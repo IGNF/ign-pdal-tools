@@ -1,5 +1,5 @@
-# construit lidar_hd/lidar_express
-PROJECT_NAME=lidar_hd/lidar_express
+# construit lidar_hd/pdal_tools
+PROJECT_NAME=lidar_hd/pdal_tools
 VERSION=`cat ../VERSION.md`
 
 docker build --no-cache -t $PROJECT_NAME -f Dockerfile .

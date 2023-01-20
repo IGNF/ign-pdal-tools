@@ -1,6 +1,6 @@
-FROM lidar_hd/lidar_express AS build
+FROM lidar_hd/pdal_tools AS build
 
-WORKDIR /lidarExpress
+WORKDIR /pdalTools
 
 # https://pythonspeed.com/articles/conda-docker-image-size/
 # Install conda-pack:
@@ -8,7 +8,7 @@ RUN conda install -c conda-forge conda-pack
 
 # Use conda-pack to create a standalone enviornment
 # in /venv:
-RUN conda-pack -n lidarexpress -o /tmp/env.tar && \
+RUN conda-pack -n pdaltools -o /tmp/env.tar && \
   mkdir /venv && cd /venv && tar xf /tmp/env.tar && \
   rm /tmp/env.tar
 
@@ -24,11 +24,11 @@ FROM debian:buster AS runtime
 
 # Copy /venv from the previous stage:
 COPY --from=build /venv /venv
-COPY --from=build /lidarExpress /lidarExpress
+COPY --from=build /pdalTools /pdalTools
 
 # When image is run, run the code with the environment
 # activated:
 SHELL ["/bin/bash", "-c"]
 ENV PATH=/venv/bin:$PATH
 
-WORKDIR /lidarExpress
+WORKDIR /pdalTools

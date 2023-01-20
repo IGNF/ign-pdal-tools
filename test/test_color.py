@@ -4,7 +4,7 @@ import pytest
 import requests
 import laspy
 
-from express import decomp_and_color
+from tools import color
 
 cwd = os.getcwd()
 
@@ -27,7 +27,7 @@ ouptput_file = TMPDIR + "Semis_2021_0435_6292_LA93_IGN69.las"
 def test_epsg_fail():
 
     with pytest.raises(requests.exceptions.HTTPError, match="400 Client Error: BadRequest for url") :
-        decomp_and_color.decomp_and_color(input_file, ouptput_file, "", 0.1, 15)
+        color.decomp_and_color(input_file, ouptput_file, "", 0.1, 15)
 
 
 epsg = "2154"
@@ -41,27 +41,27 @@ pixel_per_meter=0.1
 
 # @pytest.mark.skip("tmp dev")
 def test_download_image_ok():
-    decomp_and_color.download_image_from_geoportail(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, ouptput_file, 15)
+    color.download_image_from_geoportail(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, ouptput_file, 15)
 
 
 # @pytest.mark.skip("tmp dev")
 def test_download_image_raise1():
 
     with pytest.raises(requests.exceptions.HTTPError):
-        decomp_and_color.download_image_from_geoportail(epsg, "MAUVAISE_COUCHE", minx, miny, maxx, maxy, pixel_per_meter, ouptput_file, 15)
+        color.download_image_from_geoportail(epsg, "MAUVAISE_COUCHE", minx, miny, maxx, maxy, pixel_per_meter, ouptput_file, 15)
 
 
 # @pytest.mark.skip("tmp dev")
 def test_download_image_raise2():
 
     with pytest.raises(requests.exceptions.HTTPError):
-        decomp_and_color.download_image_from_geoportail("9001", layer, minx, miny, maxx, maxy, pixel_per_meter, ouptput_file, 15)
+        color.download_image_from_geoportail("9001", layer, minx, miny, maxx, maxy, pixel_per_meter, ouptput_file, 15)
 
 
 # Pour bien tester ceci, il faut debrancher son cable réseau et voir que la méthode est bien appellée 3 fois, toutes les 5 secondes
 # @pytest.mark.skip("tmp dev")
 def test_retry():
-    retry_download = decomp_and_color.retry(3, 5)(decomp_and_color.download_image_from_geoportail)
+    retry_download = color.retry(3, 5)(color.download_image_from_geoportail)
     retry_download(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, ouptput_file, 15)
 
 
@@ -73,7 +73,7 @@ def test_decomp_and_color():
     LAZ_FILE = "/media/data/Bug_ouverture_laz/one/436000_6469000.laz"
     LAS_FILE = TMPDIR + "436000_6469000.las"
 
-    decomp_and_color.decomp_and_color(LAZ_FILE, LAS_FILE, "", 0.1)
+    color.decomp_and_color(LAZ_FILE, LAS_FILE, "", 0.1)
 
     las = laspy.read(LAS_FILE)
     print(las.header)

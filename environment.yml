@@ -13,3 +13,4 @@ dependencies:
   - isort # import sorting
   - flake8 # code analysis
   - pytest
+  - laspy

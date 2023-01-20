@@ -8,6 +8,6 @@ docker run -e http_proxy=$http_proxy -e https_proxy=$https_proxy --rm --network 
 -v $INPUT_DIR:/input \
 -v $OUPUT_DIR:/output \
 lidar_hd/lidar_express \
-python -m express.decomp_and_color decomp_and_color_str \
+python -m tools.color decomp_and_color_str \
 /input/436000_6469000.laz \
 /output/436000_6469000.las 0.1

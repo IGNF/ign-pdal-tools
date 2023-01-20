@@ -1,6 +1,6 @@
 # deploy sur le registry avec la bonne version
 REGISTRY=docker-registry.ign.fr
-PROJECT_NAME=lidar_hd/lidar_express
+PROJECT_NAME=lidar_hd/pdal_tools
 VERSION=`cat ../VERSION.md`
 
 docker login docker-registry.ign.fr -u svc_lidarhd
