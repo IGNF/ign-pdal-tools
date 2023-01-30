@@ -10,18 +10,47 @@ import time
 import argparse
 
 
-def retry(times, delay):
+def pretty_time_delta(seconds):
+    sign_string = '-' if seconds < 0 else ''
+    seconds = abs(int(seconds))
+    days, seconds = divmod(seconds, 86400)
+    hours, seconds = divmod(seconds, 3600)
+    minutes, seconds = divmod(seconds, 60)
+    if days > 0:
+        return '%s%dd%dh%dm%ds' % (sign_string, days, hours, minutes, seconds)
+    elif hours > 0:
+        return '%s%dh%dm%ds' % (sign_string, hours, minutes, seconds)
+    elif minutes > 0:
+        return '%s%dm%ds' % (sign_string, minutes, seconds)
+    else:
+        return '%s%ds' % (sign_string, seconds)
+
+
+def retry(times, delay, factor=2, debug=False):
     def decorator(func):
         def newfn(*args, **kwargs):
-            attempt = 0
-            while attempt < times:
+            attempt = 1
+            new_delay = delay
+            while attempt <= times:
+                need_retry = False
                 try:
                     return func(*args, **kwargs)
                 except requests.exceptions.ConnectionError as err:
-                    print ("Error Connecting:", err)
-                    print(f"Essai {attempt}/{times}, pause de {delay} secondes.. ")
-                    time.sleep(delay)
+                    print ("Connection Error:", err)
+                    need_retry = True
+                except requests.exceptions.HTTPError as err:
+                    if "Server Error" in str(err):
+                        print ("HTTP Error:", err)
+                        need_retry = True
+                    else:
+                        raise err
+                if need_retry:
+                    print(f"{attempt}/{times} Nouvel essai après une pause de {pretty_time_delta(new_delay)} .. ")
+                    if not debug:
+                        time.sleep(new_delay)
+                    new_delay = new_delay * factor
                     attempt += 1
+
             return func(*args, **kwargs)
         return newfn
     return decorator
@@ -88,11 +117,7 @@ def copy_and_hack_decorator(func):
     return newfn
 
 
-@copy_and_hack_decorator
-def decomp_and_color(input_file: str, output_file :str,
-    proj="", pixel_per_meter=5, timeout_second=300,
-    color_rvb_enabled=True, color_ir_enabled=True, veget_index_file=""
-    ):
+def pdal_info_json(input_file: str):
     r = sp.run(["pdal", "info", "--metadata", input_file], stderr=sp.PIPE, stdout=sp.PIPE)
     if r.returncode == 1:
         msg = r.stderr.decode()
@@ -106,12 +131,18 @@ def decomp_and_color(input_file: str, output_file :str,
     except:
         print(r.stderr.decode())
         raise
+    return json_info
 
+
+@copy_and_hack_decorator
+def decomp_and_color(input_file: str, output_file :str,
+    proj="", pixel_per_meter=5, timeout_second=300,
+    color_rvb_enabled=True, color_ir_enabled=True, veget_index_file=""
+    ):
+
+    json_info = pdal_info_json(input_file)
     metadata = json_info["metadata"]
-    minx = metadata["minx"]
-    maxx = metadata["maxx"]
-    miny = metadata["miny"]
-    maxy = metadata["maxy"]
+    minx, maxx, miny, maxy = metadata["minx"], metadata["maxx"], metadata["miny"], metadata["maxy"]
 
     if proj == "":
         proj = proj_from_metadata(metadata)
@@ -121,7 +152,7 @@ def decomp_and_color(input_file: str, output_file :str,
     writer_extra_dims = "all"
 
     # apply decorator to retry 3 times, and wait 30 seconds each times
-    download_image_from_geoportail_retrying = retry(3, 30)(download_image_from_geoportail)
+    download_image_from_geoportail_retrying = retry(7, 15, 2)(download_image_from_geoportail)
 
     if veget_index_file and veget_index_file != "":
         print(f"Remplissage du champ Deviation à partir du fichier {veget_index_file}")
@@ -166,7 +197,6 @@ def copy_and_hack_the_laz_file(laz_file):
         shutil.copy(laz_file, laz_file_tmp)
 
         unlock_file(laz_file_tmp)
-
 
         print("Patch appliqué sur : " + laz_file_tmp)
         return laz_file_tmp
