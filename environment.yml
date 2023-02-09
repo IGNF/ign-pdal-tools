@@ -15,3 +15,5 @@ dependencies:
   - pytest
   - laspy
   - requests-mock
+  - build
+  - twine

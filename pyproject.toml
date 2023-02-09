@@ -1,0 +1,10 @@
+[project]
+name = "ign-pdal-tools"
+version = "0.4.1"
+description = "Library for common LAS files manipulation with PDAL"
+readme = "README.md"
+authors = [
+    { name = "Guillaume Liegard", email = "guillaume.liegard@ign.fr" }
+]
+[tool.setuptools]
+packages = [ "pdaltools" ]
