@@ -1,7 +1,7 @@
 import argparse
 from pdaltools.las_merge import create_list
-from pdaltools.las_clip import las_crop
-from pdaltools.pdal_tools import las_info
+from pdaltools.las_info import las_get_xy_bounds
+
 import logging
 import os
 import pdal
@@ -21,7 +21,7 @@ def create_las_with_buffer(input_dir: str, tile_filename: str,
         buffer_width (int): width of the border to add to the tile (in pixels)
         spatial_ref (str): Spatial reference to use to override the one from input las.
     """
-    bounds = las_info(tile_filename, buffer_width=buffer_width, spatial_ref=spatial_ref)
+    bounds = las_get_xy_bounds(tile_filename, buffer_width=buffer_width, spatial_ref=spatial_ref)
 
     logging.debug(f"Add buffer of size {buffer_width} to tile.")
     las_merge_and_crop(input_dir, tile_filename, bounds, output_filename, spatial_ref)
@@ -30,6 +30,16 @@ def create_las_with_buffer(input_dir: str, tile_filename: str,
 def las_merge_and_crop(input_dir: str, tile_filename: str, bounds: List,
         output_filename: str, spatial_ref: str="EPSG:2154"):
     """ Merge and crop las in a single pipeline (for buffer addition)
+
+    For performance reasons, instead of using a pipeline that reads all files, merge them and
+    then crop to the desired bbox, what is done is:
+    - For each file:
+        - read it
+        - crop it according to the bounds
+        - keep the crop in memory
+        - delete the pipeline object to release the memory taken by the las reader
+    - Merge the already cropped data
+
     Args:
         input_dir (str): directory of pointclouds (where you look for neigbors)
         tile_filename (str): full path to the queried LIDAR tile
@@ -39,17 +49,20 @@ def las_merge_and_crop(input_dir: str, tile_filename: str, bounds: List,
     """
     # List files to merge
     Listfiles = create_list(input_dir, tile_filename)
+
     if len(Listfiles) > 0:
-        pipeline = pdal.Pipeline()
-        # Add inputs
+        # Read and crop each file
+        crops = []
         for f in Listfiles:
+            pipeline = pdal.Pipeline()
             pipeline |= pdal.Reader.las(filename=f)
+            pipeline |= pdal.Filter.crop(bounds=str(bounds))
+            pipeline.execute()
+            crops.append(pipeline.arrays[0])
+            del pipeline
 
         # Merge
-        pipeline |= pdal.Filter.merge()
-
-        # Crop
-        pipeline |= pdal.Filter.crop(bounds=str(bounds))
+        pipeline = pdal.Filter.merge().pipeline(*crops)
 
         # Write
         pipeline |= pdal.Writer(filename=output_filename, a_srs=spatial_ref)
