@@ -2,7 +2,7 @@ import numpy as np
 import os
 import pytest
 import shutil
-from tools.las_clip import las_crop
+from pdaltools.las_clip import las_crop
 import laspy
 import logging
 

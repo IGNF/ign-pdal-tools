@@ -2,7 +2,7 @@ import numpy as np
 import os
 import pytest
 import shutil
-from tools.las_add_buffer import create_las_with_buffer
+from pdaltools.las_add_buffer import create_las_with_buffer
 import laspy
 import logging
 

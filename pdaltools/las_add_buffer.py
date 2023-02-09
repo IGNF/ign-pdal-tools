@@ -1,7 +1,7 @@
 import argparse
-from tools.las_merge import create_list
-from tools.las_clip import las_crop
-from tools.pdal_tools import las_info
+from pdaltools.las_merge import create_list
+from pdaltools.las_clip import las_crop
+from pdaltools.pdal_tools import las_info
 import logging
 import os
 import pdal

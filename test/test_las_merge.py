@@ -2,7 +2,7 @@ import numpy as np
 import os
 import pytest
 import shutil
-from tools.las_merge import las_merge
+from pdaltools.las_merge import las_merge
 import laspy
 import logging
 
