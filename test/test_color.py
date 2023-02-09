@@ -3,7 +3,7 @@ import shutil
 import pytest
 import laspy
 
-from tools import color
+from pdaltools import color
 
 import requests
 import requests_mock
