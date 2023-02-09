@@ -1,7 +1,7 @@
 import argparse
 from pdaltools.las_merge import create_list
-from pdaltools.las_clip import las_crop
-from pdaltools.pdal_tools import las_info
+from pdaltools.las_info import las_get_xy_bounds
+
 import logging
 import os
 import pdal
@@ -21,7 +21,7 @@ def create_las_with_buffer(input_dir: str, tile_filename: str,
         buffer_width (int): width of the border to add to the tile (in pixels)
         spatial_ref (str): Spatial reference to use to override the one from input las.
     """
-    bounds = las_info(tile_filename, buffer_width=buffer_width, spatial_ref=spatial_ref)
+    bounds = las_get_xy_bounds(tile_filename, buffer_width=buffer_width, spatial_ref=spatial_ref)
 
     logging.debug(f"Add buffer of size {buffer_width} to tile.")
     las_merge_and_crop(input_dir, tile_filename, bounds, output_filename, spatial_ref)
