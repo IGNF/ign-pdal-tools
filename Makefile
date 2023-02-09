@@ -5,8 +5,8 @@
 # chain commands together with semicolon
 .ONESHELL:
 
-install:
-	pip install -e .
+#install:
+#	pip install -e .
 
 testing:
 	python -m pytest ./test -s --log-cli-level DEBUG
