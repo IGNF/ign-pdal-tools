@@ -1,0 +1,19 @@
+name: pdaltools
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10.*
+  - conda-forge:pdal==2.5.*
+  - conda-forge:python-pdal==3.2.*
+  - requests
+  - gdal
+# --------- dev dep --------- #
+  - pre-commit # hooks for applying linters on commit
+  - black # code formatting
+  - isort # import sorting
+  - flake8 # code analysis
+  - pytest
+  - laspy
+  - requests-mock
+  - build
+  - twine
