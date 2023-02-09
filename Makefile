@@ -5,8 +5,20 @@
 # chain commands together with semicolon
 .ONESHELL:
 
-#install:
-#	pip install -e .
+deploy: check
+	twine upload dist/*
+
+check: dist/ign-pdal-tool*.tar.gz 
+	twine check dist/*
+
+dist/ign-pdal-tool*.tar.gz:
+	python -m build
+
+build:
+	python -m build
+
+install:
+	pip install -e .
 
 testing:
 	python -m pytest ./test -s --log-cli-level DEBUG

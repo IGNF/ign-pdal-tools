@@ -1,0 +1,10 @@
+[project]
+name = "ign-pdal-tools"
+version = "0.4.0"
+description = "Common code used for Lidar"
+readme = "README.md"
+authors = [
+    { name = "Guillaume Liegard", email = "guillaume.liegard@ign.fr" }
+]
+[tool.setuptools]
+packages = [ "pdaltools" ]
