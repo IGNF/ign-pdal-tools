@@ -7,15 +7,16 @@ import laspy
 import logging
 
 
+# Note: 0000_0001 is cropped to simulate missing data in neighbors during merge
 test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")
-input_dir =  os.path.join(test_path, "data")
+input_dir = os.path.join(test_path, "data")
 input_file = os.path.join(input_dir, "test_data_0001_0001_LA93_IGN69_ground.las")
 output_file = os.path.join(tmp_path, "cropped.las")
 
 input_nb_points = 22343
-expected_output_nb_points = 47037
-expected_out_mins = [770540., 6277540.]
+expected_output_nb_points = 40177
+expected_out_mins = [770540.01, 6277540.]
 expected_out_maxs = [770610., 6277600.]
 
 
