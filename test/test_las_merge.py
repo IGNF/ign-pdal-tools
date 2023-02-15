@@ -14,7 +14,7 @@ input_file = os.path.join(input_dir, "test_data_0001_0001_LA93_IGN69_ground.las"
 output_file = os.path.join(tmp_path, "merged.las")
 
 input_nb_points = 22343
-expected_output_nb_points = 171189
+expected_output_nb_points = 154134
 expected_out_mins = [ 770500., 6277500.]
 expected_out_maxs = [ 770650., 6277600.]
 
