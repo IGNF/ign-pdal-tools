@@ -1,9 +1,12 @@
 # Pdal tools
 
-Crée une image docker qui réalise des opérations simples en utilisant pdal:
+Bibliothèque python qui réalise des opérations simples en utilisant pdal:
 * colorisation
 * stitching
 
+La lib peut être utilisée dans une image docker (cf. dossier `./docker`)
+
+# Opérations
 ## Colorisation
 
 * `color.py`: colorise un nuage de point, en allant chercher les images du Geoportail
@@ -18,7 +21,15 @@ Crée une image docker qui réalise des opérations simples en utilisant pdal:
 Le format de nom de fichiers attendu est : `{prefix1}_{prefix2}_{xcoord}_{ycoord}_{postfix})}`, eg. `Semis_2021_0770_6278_LA93_IGN69.laz`
 
 # Installation / Usage
-## Création de l'image docker
+
+## Bibliothèque
+
+Les opérations pour générer la bibliothèque python et la déployer sur pypi sont réalisées via le fichier Makefile à la racine du projet:
+* `make build` : construit la bibliothèque
+* `make install` : installe la bibliothèque de façon éditable
+* `make deploy` : déploie sur pipy
+
+## Image docker
 
 `cd docker`
 
@@ -30,6 +41,9 @@ Réduit la taille de l'image docker
 
 `./conda_pack.sh`
 
+Déploie l'image docker sur le nexus ign
+
+`./deploy.sh`
 
 ## Tester
 
