@@ -55,7 +55,7 @@ def las_merge_and_crop(input_dir: str, tile_filename: str, bounds: List,
         crops = []
         for f in Listfiles:
             pipeline = pdal.Pipeline()
-            pipeline |= pdal.Reader.las(filename=f)
+            pipeline |= pdal.Reader.las(filename=f, override_srs=spatial_ref)
             pipeline |= pdal.Filter.crop(bounds=str(bounds))
             pipeline.execute()
             if len(pipeline.arrays[0]) == 0:
