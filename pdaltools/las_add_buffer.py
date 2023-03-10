@@ -55,10 +55,14 @@ def las_merge_and_crop(input_dir: str, tile_filename: str, bounds: List,
         crops = []
         for f in Listfiles:
             pipeline = pdal.Pipeline()
-            pipeline |= pdal.Reader.las(filename=f)
+            pipeline |= pdal.Reader.las(filename=f, override_srs=spatial_ref)
             pipeline |= pdal.Filter.crop(bounds=str(bounds))
             pipeline.execute()
-            crops.append(pipeline.arrays[0])
+            if len(pipeline.arrays[0]) == 0:
+                logging.warning(f"File {f} ignored in merge/crop: No points in crop bounding box")
+            else:
+                crops.append(pipeline.arrays[0])
+
             del pipeline
 
         # Merge
