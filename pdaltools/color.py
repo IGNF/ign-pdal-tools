@@ -236,7 +236,7 @@ def parse_args():
         "--vegetation",
         type=str,
         default = "",
-        help="Vegetation file, value will be store in Deviation field")
+        help="Vegetation file, value will be stored in Deviation field")
     return  parser.parse_args()
 
 
