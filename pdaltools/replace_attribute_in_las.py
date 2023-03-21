@@ -6,7 +6,9 @@ import json
 import logging
 import os
 import pdal
+from pdaltools.standardize_format import get_writer_parameters
 from typing import List, Dict
+
 
 
 def parse_args():
@@ -27,6 +29,14 @@ def parse_args():
                         "replace. It should contain a dict like " +
                         "{new_value1: [value_to_replace1, value_to_replace2], " +
                         "new_value2: [value_to_replace3, ...]}")
+    parser.add_argument("--record_format",
+                        choices=[6, 8],
+                        type=int,
+                        help="Record format: 6 (no color) or 8 (4 color channels)")
+    parser.add_argument("--projection",
+                        default="EPSG:2154",
+                        type=str,
+                        help="Projection, eg. EPSG:2154")
 
 
     return parser.parse_args()
@@ -67,24 +77,32 @@ def dict_to_pdal_assign_list(d: Dict,
 def replace_values(input_file: str,
                    output_file: str,
                    replacement_map: Dict,
-                   attribute: str="Classification") -> None:
+                   attribute: str="Classification",
+                   writer_parameters: Dict={}) -> None:
+    """
+    Replace values of attribute {attribute} using a replacement map
+    """
     temp_attribute = "tmp"
     assignment_list = dict_to_pdal_assign_list(replacement_map, attribute, temp_attribute)
     pipeline = pdal.Reader.las(input_file)
     pipeline |= pdal.Filter.ferry(dimensions=f"{attribute} => {temp_attribute}")
     pipeline |= pdal.Filter.assign(value=assignment_list)
-    # the temp_attribute dimension should not be written as the writer has no "extra_dims" parameter
-    pipeline |= pdal.Writer(filename=output_file)
+    # the temp_attribute dimension should not be written as long as the writer has no "extra_dims"
+    # parameter
+    pipeline |= pdal.Writer(filename=output_file, **writer_parameters)
 
     pipeline.execute()
 
 
 def main():
     args = parse_args()
+    writer_params_from_parser = dict(dataformat_id=args.record_format, a_srs=args.projection)
+    writer_parameters = get_writer_parameters(writer_params_from_parser)
     with open(args.replacement_map_path, 'r') as f:
         replacement_map = json.load(f)
 
-    replace_values(args.input_file, args.output_file, replacement_map, args.attribute)
+    replace_values(args.input_file, args.output_file,
+                   replacement_map, args.attribute, writer_parameters)
 
 
 if __name__ == "__main__":
