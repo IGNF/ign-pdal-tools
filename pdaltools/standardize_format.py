@@ -13,6 +13,7 @@ from typing import Dict
 
 
 STANDARD_PARAMETERS = dict(
+    major_version="1",
     minor_version="4",  # Laz format version (pdal always write in 1.x format)
     global_encoding=17,  # store WKT projection in file
     compression="true",  # Save to compressed laz format
@@ -23,7 +24,10 @@ STANDARD_PARAMETERS = dict(
     offset_x='auto',  # To be confirmed
     offset_y='auto',  # To be confirmed
     offset_z='auto',  # To be confirmed
+    dataformat_id=6,  # No color by default
+    a_srs="EPSG:2154"
 )
+
 
 def parse_args():
     parser = argparse.ArgumentParser("Rewrite laz file with standard format.")
@@ -45,9 +49,19 @@ def parse_args():
     return parser.parse_args()
 
 
+def get_writer_parameters(new_parameters: Dict) -> Dict:
+    """
+    Get writer parameters from a set of standard parameters + a new set of parameters that can
+    override the standard ones
+    """
+    params = STANDARD_PARAMETERS | new_parameters
+
+    return params
+
+
 def rewrite_with_pdal(input_file: str, output_file: str, params_from_parser: Dict) -> None:
-    params = STANDARD_PARAMETERS | params_from_parser
-    print("params::", params)
+    # Update parameters with command line values
+    params = get_writer_parameters(params_from_parser)
     pipeline = pdal.Reader.las(input_file)
     pipeline |= pdal.Writer(filename=output_file, **params)
     pipeline.execute()
@@ -58,5 +72,5 @@ if __name__ == "__main__":
     params_from_parser = dict(
         dataformat_id=args.record_format,
         a_srs=args.projection)
-    rewrite_with_pdal(args.input_file, args.output_dile, params_from_parser)
+    rewrite_with_pdal(args.input_file, args.output_file, params_from_parser)
 
