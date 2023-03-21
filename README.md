@@ -37,9 +37,13 @@ Construit l'image docker
 
 `./build.sh`
 
-Réduit la taille de l'image docker
+Réduit la taille de l'image docker.
+
+Mais pour l'instant, on ne l'utilise pas car il y des soucis avec Proj. TODO: Identifier à quel appel de code on a ce pb.
+
 
 `./conda_pack.sh`
+
 
 Déploie l'image docker sur le nexus ign
 
