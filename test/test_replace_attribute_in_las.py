@@ -69,9 +69,9 @@ def test_replace_values():
     check_dimensions(input_file, output_file)
 
 
-@pytest.mark.xfail
 def test_replace_values_duplicate_input():
-    replace_values(input_file, output_file, replacement_map_fail, attribute)
+    with pytest.raises(ValueError):
+        replace_values(input_file, output_file, replacement_map_fail, attribute)
 
 
 def check_dimensions(input_file, output_file):
@@ -80,16 +80,4 @@ def check_dimensions(input_file, output_file):
     output_summary = get_pdal_infos_summary(output_file)
     output_dimensions = set(output_summary["summary"]["dimensions"])
     assert input_dimensions == output_dimensions
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    try:
-        test_replace_values_duplicate_input()
-        # Raise error if the previous line has succeeded (it is expected fo fail)
-        raise RuntimeError("test_replace_values_duplicate_input succeeded but it should not")
-    except ValueError as e:
-        pass
-
-    test_replace_values()
 
