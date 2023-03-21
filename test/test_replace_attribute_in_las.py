@@ -1,12 +1,10 @@
 from collections import Counter
-import logging
 import os
 from pdaltools.replace_attribute_in_las import replace_values
 from pdaltools.count_occurences_for_attribute import compute_count_one_file
 import pytest
-import json
-import subprocess as sp
 import shutil
+from test.utils import get_pdal_infos_summary
 
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -52,13 +50,6 @@ def setup_module(module):
     except (FileNotFoundError):
         pass
     os.mkdir(tmp_path)
-
-
-# TODO: merge with test_fix_format.py
-def get_pdal_infos_summary(f: str):
-    r = (sp.run(['pdal', 'info', '--summary', f], stderr=sp.PIPE, stdout=sp.PIPE))
-    json_info = json.loads(r.stdout.decode())
-    return json_info
 
 
 def test_replace_values():

@@ -3,8 +3,7 @@ import pytest
 import shutil
 from pdaltools.standardize_format import rewrite_with_pdal
 import logging
-import subprocess as sp
-import json
+from test.utils import get_pdal_infos_summary
 
 
 # Note: 0000_0001 is cropped to simulate missing data in neighbors during merge
@@ -36,12 +35,6 @@ def setup_module(module):
     except (FileNotFoundError):
         pass
     os.mkdir(tmp_path)
-
-
-def get_pdal_infos_summary(f: str):
-    r = (sp.run(['pdal', 'info', '--summary', f], stderr=sp.PIPE, stdout=sp.PIPE))
-    json_info = json.loads(r.stdout.decode())
-    return json_info
 
 
 def _test_standardize_format_one_params_set(params):
