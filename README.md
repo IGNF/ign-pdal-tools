@@ -3,6 +3,7 @@
 Bibliothèque python qui réalise des opérations simples en utilisant pdal:
 * colorisation
 * stitching
+* standardisation
 
 La lib peut être utilisée dans une image docker (cf. dossier `./docker`)
 
@@ -19,6 +20,16 @@ La lib peut être utilisée dans une image docker (cf. dossier `./docker`)
 
 **WARNING**: Pour `las_merge.py` et `las_add_buffer.py`, les noms de fichiers sont parsés pour trouver les voisins.
 Le format de nom de fichiers attendu est : `{prefix1}_{prefix2}_{xcoord}_{ycoord}_{postfix})}`, eg. `Semis_2021_0770_6278_LA93_IGN69.laz`
+
+## Standardisation
+
+* `standardize_format.py`: réécrit un fichier las dans un format standard (cf. code)
+* `count_occurences_for_attribute.py`: pour un attribut donné (développé en premier
+lieu pour de la classification), compte les occurences de chaque valeur sur un
+ensemble de fichiers las.
+* `replace_attribute_in_las.py`: à partir d'un fichier json contenant un tableau de
+correspondances, remplace les occurences de chaque valeur par la valeur associée
+dans le tableau.
 
 # Installation / Usage
 
