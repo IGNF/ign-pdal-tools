@@ -1,6 +1,6 @@
 [project]
 name = "ign-pdal-tools"
-version = "0.4.1"
+version = "0.5.0"
 description = "Library for common LAS files manipulation with PDAL"
 readme = "README.md"
 authors = [

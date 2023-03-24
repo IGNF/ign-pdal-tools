@@ -73,5 +73,5 @@ Les tests unitaires
 
 ## Version
 
-à chaque modification du code, pense à modifier le fichier `VERSION.md`
+à chaque modification du code, pense à modifier le fichier `pdaltools/_VERSION.py`
 
