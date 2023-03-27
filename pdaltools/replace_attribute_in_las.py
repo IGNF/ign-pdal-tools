@@ -1,4 +1,4 @@
-"""Replace values of a gien attribute in a las/laz file"""
+"""Replace values of a given attribute in a las/laz file"""
 
 import argparse
 from collections import Counter
@@ -12,7 +12,7 @@ from typing import List, Dict
 
 
 def parse_args():
-    parser = argparse.ArgumentParser("Count points with each value of an attribute.")
+    parser = argparse.ArgumentParser("Replace values of a given attribute in a las/laz file.")
     parser.add_argument("--input_file",
                         type=str,
                         help="Laz input file")
@@ -23,10 +23,11 @@ def parse_args():
                         type=str,
                         default="Classification",
                         help="Attribute on which to count values")
-    parser.add_argument("--replacement_map_path",
+    parser.add_argument("--replacement_map",
                         type=str,
                         help="Path to a json file that contains the values that we want to " +
-                        "replace. It should contain a dict like " +
+                        "replace, or string that contains the content of such a file." +
+                        "It should contain a dict like " +
                         "{new_value1: [value_to_replace1, value_to_replace2], " +
                         "new_value2: [value_to_replace3, ...]}")
     parser.add_argument("--record_format",
@@ -94,12 +95,26 @@ def replace_values(input_file: str,
     pipeline.execute()
 
 
+def parse_replacement_map_from_path_or_json_string(replacement_map):
+    if os.path.isfile(replacement_map):
+        with open(replacement_map, 'r') as f:
+            parsed_map = json.load(f)
+    else:
+        try:
+            parsed_map = json.loads(replacement_map)
+        except json.decoder.JSONDecodeError as e:
+            print("Invalid json string or file path, please check args.replacement_map input:")
+            print(replacement_map)
+            raise e
+
+    return parsed_map
+
+
 def main():
     args = parse_args()
     writer_params_from_parser = dict(dataformat_id=args.record_format, a_srs=args.projection)
     writer_parameters = get_writer_parameters(writer_params_from_parser)
-    with open(args.replacement_map_path, 'r') as f:
-        replacement_map = json.load(f)
+    replacement_map = parse_replacement_map_from_path_or_json_string(args.replacement_map)
 
     replace_values(args.input_file, args.output_file,
                    replacement_map, args.attribute, writer_parameters)
