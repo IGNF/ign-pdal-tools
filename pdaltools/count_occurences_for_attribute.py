@@ -14,7 +14,8 @@ def parse_args():
     parser.add_argument("--input_files",
                         nargs="+",
                         type=str,
-                        help="Laz input files.")
+                        help="List of laz input files separated by spaces, or directory " +
+                             "containing las/laz files")
     parser.add_argument("--attribute",
                         type=str,
                         default="Classification",
@@ -56,7 +57,14 @@ def compute_count(input_files: List[str], attribute: str="Classification"):
 
 def main():
     args = parse_args()
-    compute_count(args.input_files, args.attribute)
+    if len(args.input_files) == 1 and os.path.isdir(args.input_files[0]):
+        input_dir = args.input_files[0]
+        input_files = [os.path.join(input_dir, f) for f in os.listdir(input_dir)
+                       if f.lower().endswith(("las", "laz"))]
+    else:
+        input_files = args.input_files
+
+    compute_count(input_files, args.attribute)
 
 
 if __name__ == "__main__":
