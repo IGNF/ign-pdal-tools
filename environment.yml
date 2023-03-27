@@ -17,3 +17,4 @@ dependencies:
   - requests-mock
   - build
   - twine
+  - tqdm

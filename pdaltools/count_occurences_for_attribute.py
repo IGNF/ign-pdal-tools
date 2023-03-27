@@ -6,6 +6,7 @@ from collections import Counter
 import logging
 import os
 import pdal
+from tqdm import tqdm
 from typing import List
 
 
@@ -45,7 +46,8 @@ def compute_count_one_file(filepath: str, attribute: str="Classification") -> Co
 
 def compute_count(input_files: List[str], attribute: str="Classification"):
     all_counts = Counter()
-    for f in input_files:
+    # refresh status bar at most every 1/100 iter cf. https://github.com/tqdm/tqdm/issues/1429
+    for f in tqdm(input_files, miniters=int(len(input_files)/100), maxinterval=float('inf')):
         logging.debug(f"Counting values of {attribute} for {os.path.basename(f)}")
         all_counts += compute_count_one_file(f, attribute)
 
