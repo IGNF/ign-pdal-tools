@@ -1,10 +1,12 @@
 from collections import Counter
+import json
 import os
-from pdaltools.replace_attribute_in_las import replace_values
+from pdaltools.replace_attribute_in_las import replace_values, parse_replacement_map_from_path_or_json_string
 from pdaltools.count_occurences_for_attribute import compute_count_one_file
 import pytest
 import shutil
 from test.utils import get_pdal_infos_summary
+from typing import Dict
 
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -42,6 +44,11 @@ replacement_map_success = {
     "64": ["6"],
 }
 
+# test replacement map parsing
+input_parsing_correct = '{ "201" : ["1", "64"],  "64": ["6"]}'
+input_parsing_incorrect = '"201" : ["1", "64"],  "64": ["6"]'
+input_parsing_file = os.path.join(test_path, "data", "example_replacement_map.json")
+
 
 def setup_module(module):
     try:
@@ -72,3 +79,15 @@ def check_dimensions(input_file, output_file):
     output_dimensions = set(output_summary["summary"]["dimensions"])
     assert input_dimensions == output_dimensions
 
+
+def test_parse_replacement_map_from_path_or_json_string_path_ok():
+    assert isinstance(parse_replacement_map_from_path_or_json_string(input_parsing_file), Dict)
+
+
+def test_parse_replacement_map_from_path_or_json_string_json_ok():
+    assert isinstance(parse_replacement_map_from_path_or_json_string(input_parsing_correct), Dict)
+
+
+def test_parse_replacement_map_from_path_or_json_string_other_nok():
+    with pytest.raises(json.decoder.JSONDecodeError):
+        parse_replacement_map_from_path_or_json_string(input_parsing_incorrect)
