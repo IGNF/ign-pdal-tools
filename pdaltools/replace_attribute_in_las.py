@@ -33,6 +33,7 @@ def parse_args():
     parser.add_argument("--record_format",
                         choices=[6, 8],
                         type=int,
+                        required=True,
                         help="Record format: 6 (no color) or 8 (4 color channels)")
     parser.add_argument("--projection",
                         default="EPSG:2154",
