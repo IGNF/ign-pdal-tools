@@ -1,4 +1,5 @@
 python -m pdaltools.replace_attribute_in_las \
     --input_file test/data/classified_laz/test_data_0000_0000_LA93_IGN69.laz \
     --output_file test/tmp/replaced_cmdline.laz \
-    --replacement_map_path test/data/example_replacement_map.json
+    --replacement_map test/data/example_replacement_map.json \
+    --record_format 8
