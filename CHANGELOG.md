@@ -1,4 +1,4 @@
-# dev
+# v0.5.1
 - standardisation : parallélisation du compte des occurences
 
 # v0.5.0
