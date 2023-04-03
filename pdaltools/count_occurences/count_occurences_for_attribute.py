@@ -74,7 +74,7 @@ def main():
     else:
         input_files = args.input_files
 
-    compute_count(input_files, args.attribute)
+    compute_count(input_files, args.attribute, args.output_file)
 
 
 if __name__ == "__main__":

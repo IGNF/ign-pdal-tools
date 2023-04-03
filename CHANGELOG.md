@@ -1,3 +1,5 @@
+# dev
+- standardisation : parallélisation du compte des occurences
 
 # v0.5.0
 - docker: option no-capture-output
