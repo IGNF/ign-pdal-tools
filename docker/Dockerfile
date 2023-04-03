@@ -6,4 +6,4 @@ WORKDIR /pdalTools
 
 RUN conda env create -n pdaltools -f environment.yml
 
-ENTRYPOINT ["conda", "run", "-n", "pdaltools"]
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "pdaltools"]
