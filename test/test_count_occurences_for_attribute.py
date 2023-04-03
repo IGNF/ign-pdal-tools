@@ -9,6 +9,7 @@ test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")
 input_dir = os.path.join(test_path, "data/classified_laz")
 input_files = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(("las", "laz"))]
+output_file = os.path.join(tmp_path, "count.json")
 
 attribute = "Classification"
 expected_counts = Counter({
@@ -27,6 +28,13 @@ def test_count_by_attribute_values():
     assert count == expected_counts
 
 
+def test_count_by_attribute_values_with_json():
+    count = compute_count(input_files, attribute, output_file)
+    assert count == expected_counts
+    assert os.path.isfile(output_file)
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     test_count_by_attribute_values()
+    test_count_by_attribute_values_with_json()
