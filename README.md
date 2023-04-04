@@ -24,9 +24,13 @@ Le format de nom de fichiers attendu est : `{prefix1}_{prefix2}_{xcoord}_{ycoord
 ## Standardisation
 
 * `standardize_format.py`: réécrit un fichier las dans un format standard (cf. code)
-* `count_occurences_for_attribute.py`: pour un attribut donné (développé en premier
+* `count_occurences`: pour un attribut donné (développé en premier
 lieu pour de la classification), compte les occurences de chaque valeur sur un
 ensemble de fichiers las.
+    * `count_occurences_for_attribute.py`: compte les occurences sur un ou plusieurs fichiers et les
+et les sauve dans un fichier json
+    * `merge_occurences_counts.py` : permet d'assembler des comptes (fichiers json) en un seul fichier
+de compte d'occurences (utilisé en cas de parallélisation)
 * `replace_attribute_in_las.py`: à partir d'un fichier json contenant un tableau de
 correspondances, remplace les occurences de chaque valeur par la valeur associée
 dans le tableau.
