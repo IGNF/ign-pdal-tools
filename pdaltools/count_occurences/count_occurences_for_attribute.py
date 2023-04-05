@@ -3,6 +3,7 @@ Eg. to count points of each class in classified point clouds """
 
 import argparse
 from collections import Counter
+import json
 import logging
 import os
 import pdal
@@ -21,6 +22,9 @@ def parse_args():
                         type=str,
                         default="Classification",
                         help="Attribute on which to count values")
+    parser.add_argument("--output_file",
+                        type=str,
+                        help="Output json file containing the counts")
 
     return parser.parse_args()
 
@@ -44,7 +48,7 @@ def compute_count_one_file(filepath: str, attribute: str="Classification") -> Co
     return counts
 
 
-def compute_count(input_files: List[str], attribute: str="Classification"):
+def compute_count(input_files: List[str], attribute: str="Classification", output_file=""):
     all_counts = Counter()
     # refresh status bar at most every 1/100 iter cf. https://github.com/tqdm/tqdm/issues/1429
     for f in tqdm(input_files, miniters=int(len(input_files)/100), maxinterval=float('inf')):
@@ -53,6 +57,10 @@ def compute_count(input_files: List[str], attribute: str="Classification"):
 
     text = ["Number of point per class:"] + [f"Class {k} :: {v:,d}" for k, v in all_counts.items()]
     logging.info("\n".join(text))
+
+    if output_file:
+        with open(output_file, "w") as f:
+            json.dump(all_counts, f, indent=2)
 
     return all_counts
 
@@ -66,7 +74,7 @@ def main():
     else:
         input_files = args.input_files
 
-    compute_count(input_files, args.attribute)
+    compute_count(input_files, args.attribute, args.output_file)
 
 
 if __name__ == "__main__":

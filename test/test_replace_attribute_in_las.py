@@ -2,7 +2,7 @@ from collections import Counter
 import json
 import os
 from pdaltools.replace_attribute_in_las import replace_values, parse_replacement_map_from_path_or_json_string
-from pdaltools.count_occurences_for_attribute import compute_count_one_file
+from pdaltools.count_occurences.count_occurences_for_attribute import compute_count_one_file
 import pytest
 import shutil
 from test.utils import get_pdal_infos_summary
