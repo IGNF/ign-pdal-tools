@@ -12,9 +12,15 @@ parallel (
 
         stage('deploy-docker-image') {
 			gitlabCommitStatus("build-docker-image") {
-                withCredentials([string(credentialsId: 'svc_lidarhd', variable: 'svc_lidarhd')]) {
-				    sh "docker/deploy-jenkins.sh ${svc_lidarhd}"
-                }
+
+				if (env.BRANCH_NAME == 'master') {
+					withCredentials([string(credentialsId: 'svc_lidarhd', variable: 'svc_lidarhd')]) {
+						sh "docker/deploy-jenkins.sh ${svc_lidarhd}"
+					}
+				} else {
+					echo "Nothing to do, because branch is not master"
+				}
+
 			}
 		}
 
