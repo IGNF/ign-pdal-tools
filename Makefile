@@ -35,6 +35,6 @@ mamba-env-update:
 	mamba env update -n pdaltools -f environment.yml
 
 docker-build: clean
-	docker build --no-cache -t lidar_hd/pdal_tools -f Dockerfile .
-	docker tag lidar_hd/pdal_tools lidar_hd/pdal_tools:`python pdaltools/_version.py`
+	docker build --no-cache -t lidar_hd/pdal_tools -f Dockerfile . && \
+	docker tag lidar_hd/pdal_tools lidar_hd/pdal_tools:`python pdaltools/_version.py` && \
 	docker images lidar_hd/pdal_tools:`python pdaltools/_version.py`
