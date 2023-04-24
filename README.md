@@ -46,17 +46,17 @@ Les opérations pour générer la bibliothèque python et la déployer sur pypi 
 
 ## Image docker
 
-`cd docker`
 
 Construit l'image docker
 
-`./build.sh`
+`make docker-build`
 
 Réduit la taille de l'image docker.
 
 Mais pour l'instant, on ne l'utilise pas car il y des soucis avec Proj. TODO: Identifier à quel appel de code on a ce pb.
 
 
+`cd docker`
 `./conda_pack.sh`
 
 
