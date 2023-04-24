@@ -5,8 +5,12 @@ parallel (
 
 		stage('build-docker-image') {
 			gitlabCommitStatus("build-docker-image") {
-				checkout scm				
-				sh "make docker-build"
+				if (env.BRANCH_NAME == 'master') {
+					checkout scm				
+					sh "make docker-build"
+				} else {
+					echo "Nothing to do, because branch is not master"
+				}
 			}
 		}
 
