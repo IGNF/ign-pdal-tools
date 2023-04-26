@@ -14,6 +14,16 @@ parallel (
 			}
 		}
 
+		stage('test-docker-images') {
+			gitlabCommitStatus("test-docker-images") {
+				if (env.BRANCH_NAME == 'master') {
+					sh "./script/test/test_docker_output.sh"
+				} else {
+					echo "Nothing to do, because branch is not master"
+				}
+			}
+		}
+
         stage('deploy-docker-image') {
 			gitlabCommitStatus("build-docker-image") {
 

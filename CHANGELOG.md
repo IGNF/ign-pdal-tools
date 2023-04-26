@@ -1,7 +1,7 @@
 # dev
-- script jenkins: gestion des erreurs
 
-# v0.5.2
+# v0.5.2 :
+- script jenkins: gestion des erreurs
 - docker : hérite d'une image basée sur Mamba au lieu de Conda (Mamba est plus rapide pour récupérer les dépendances)
 - integration continue (jenkins): contruit l'image docker et publie sur le Nexus quand on merge dans la branche master
 
