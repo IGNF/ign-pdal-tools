@@ -6,6 +6,6 @@ REGISTRY=docker-registry.ign.fr
 PROJECT_NAME=lidar_hd/pdal_tools
 VERSION=`python pdaltools/_version.py`
 
-docker login docker-registry.ign.fr -u svc_lidarhd -p $1
-docker tag $PROJECT_NAME:$VERSION $REGISTRY/$PROJECT_NAME:$VERSION
+docker login docker-registry.ign.fr -u svc_lidarhd -p $1 && \
+docker tag $PROJECT_NAME:$VERSION $REGISTRY/$PROJECT_NAME:$VERSION && \
 docker push $REGISTRY/$PROJECT_NAME:$VERSION
