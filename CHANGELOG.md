@@ -1,4 +1,5 @@
 # dev
+- add_buffer / merge : use filename to get tile extent
 
 # v0.5.2 :
 - script jenkins: gestion des erreurs
