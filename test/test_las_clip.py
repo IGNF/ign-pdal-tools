@@ -10,8 +10,11 @@ import logging
 test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")
 input_dir =  os.path.join(test_path, "data")
-input_file = os.path.join(input_dir, "test_data_0001_0001_LA93_IGN69_ground.las")
 output_file = os.path.join(tmp_path, "cropped.las")
+
+coord_x = 77055
+coord_y = 627760
+input_file = os.path.join(input_dir, f"test_data_{coord_x}_{coord_y}_LA93_IGN69_ground.las")
 
 input_nb_points = 22343
 expected_output_nb_points = 6578

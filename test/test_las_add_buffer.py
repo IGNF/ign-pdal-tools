@@ -7,17 +7,23 @@ import laspy
 import logging
 
 
-# Note: 0000_0001 is cropped to simulate missing data in neighbors during merge
 test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")
 input_dir = os.path.join(test_path, "data")
-input_file = os.path.join(input_dir, "test_data_0001_0001_LA93_IGN69_ground.las")
 output_file = os.path.join(tmp_path, "cropped.las")
+
+coord_x = 77055
+coord_y = 627760
+# Note: neighbor tile 77050_627760 is cropped to simulate missing data in neighbors during merge
+input_file = os.path.join(input_dir, f"test_data_{coord_x}_{coord_y}_LA93_IGN69_ground.las")
+tile_width = 50
+tile_coord_scale = 10
 
 input_nb_points = 22343
 expected_output_nb_points = 40177
 expected_out_mins = [770540.01, 6277540.]
 expected_out_maxs = [770610., 6277600.]
+
 
 
 def setup_module(module):
@@ -51,7 +57,8 @@ def get_2d_bounding_box(path):
 def test_create_las_with_buffer():
     buffer_width = 10
     create_las_with_buffer(
-        input_dir, input_file, output_file, buffer_width=buffer_width)
+        input_dir, input_file, output_file, buffer_width=buffer_width,
+        tile_width=tile_width,tile_coord_scale=tile_coord_scale)
     logging.info(get_nb_points(input_file))
     # check file exists
     assert os.path.isfile(output_file)

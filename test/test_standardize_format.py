@@ -6,11 +6,14 @@ import logging
 from test.utils import get_pdal_infos_summary
 
 
-# Note: 0000_0001 is cropped to simulate missing data in neighbors during merge
+# Note: tile 77050_627760 is cropped to simulate missing data in neighbors during merge
 test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")
 input_dir = os.path.join(test_path, "data")
-input_file = os.path.join(input_dir, "test_data_0001_0001_LA93_IGN69_ground.las")
+
+coord_x = 77055
+coord_y = 627760
+input_file = os.path.join(input_dir, f"test_data_{coord_x}_{coord_y}_LA93_IGN69_ground.las")
 output_file = os.path.join(tmp_path, "formatted.laz")
 multiple_params = [
     {"dataformat_id": 6, "a_srs": "EPSG:2154"},
