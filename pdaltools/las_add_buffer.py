@@ -27,7 +27,8 @@ def create_las_with_buffer(input_dir: str, tile_filename: str,
                 (usually 1000m)
     """
     bounds = get_buffered_bounds_from_filename(tile_filename, buffer_width=buffer_width,
-                                               tile_width=tile_width, tile_coord_scale=tile_coord_scale)
+                                               tile_width=tile_width,
+                                               tile_coord_scale=tile_coord_scale)
 
     logging.debug(f"Add buffer of size {buffer_width} to tile.")
     las_merge_and_crop(input_dir, tile_filename, bounds, output_filename, spatial_ref,

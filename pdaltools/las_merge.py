@@ -5,7 +5,7 @@ import logging
 from pdaltools.las_info import parse_filename
 
 
-def create_filenames(file: str, tile_width=1000, tile_coord_scale=1000):
+def create_filenames(file: str, tile_width: int=1000, tile_coord_scale: int=1000):
     """Generate the name of the tiles around the input LIDAR tile
     It supposes that the file names are formatted as {prefix1}_{prefix2}_{coordx}_{coordy}_{suffix}
     with coordx and coordy having at least 4 digits
@@ -13,12 +13,12 @@ def create_filenames(file: str, tile_width=1000, tile_coord_scale=1000):
     For example Semis_2021_0000_1111_LA93_IGN69.las
 
     Args:
-        _file(str): name of LIDAR file
+        file(str): name of LIDAR file
         tile width (int): width of tiles in meters (usually 1000m)
         tile_coord_scale (int) : scale used in the filename to describe coordinates in meters
                 (usually 1000m)
     Returns:
-        _Listinput(list): List of LIDAR's name
+        Listinput(list): List of LIDAR's name
     """
 
     # Create name of LIDAR tiles who cercle the tile
@@ -64,12 +64,12 @@ def create_list(las_dir, input_file, tile_width=1000, tile_coord_scale=1000):
     Args:
         las_dir (str): directory of pointclouds
         input_file (str): path to queried LIDAR tile
+        tile_width (int): Width of a tile(in the reference unit: 1m)
+        tile_coord_scale (int): Scale used in filename to describe coordinates (usually kilometers)
+        1000 * 1m (with 1m being the reference)
 
     Returns:
         Listfiles(li): list of tiles
-        tile_coord_scale (int): Scale used in filename to describe coordinates (usually kilometers)
-        1000 * 1m (with 1m being the reference)
-        tile_width (int): Width of a tile(in the reference unit: 1m)
     """
 
     # Return list 8 tiles around the tile
@@ -90,9 +90,9 @@ def las_merge(las_dir, input_file, merge_file, tile_width=1000, tile_coord_scale
         las_dir (str): directory of pointclouds (to look for neigboprs)
         input_file (str): name of query LIDAR file (with extension)
         output_file (str): path to output
+        tile_width (int): Width of a tile(in the reference unit: 1m)
         tile_coord_scale (int): Scale used in filename to describe coordinates (usually kilometers)
         1000 * 1m (with 1m being the reference)
-        tile_width (int): Width of a tile(in the reference unit: 1m)
     """
     # List files to merge
     Listfiles = create_list(las_dir, input_file, tile_width, tile_coord_scale)

@@ -61,7 +61,7 @@ def las_get_xy_bounds(filename: str, buffer_width: int=0, spatial_ref:str="EPSG:
 
     Args:
         filename (str): full path of file for which to get the bounding box
-        border_width (str): number of pixel to add to the bounding box on each side (buffer size)
+        buffer_width (str): number of pixel to add to the bounding box on each side (buffer size)
         spatial_ref: spatial reference to pass as 'override_srs' argument in las reader
         (Used if pdal info --metadata failed)
 
@@ -113,10 +113,10 @@ def get_buffered_bounds_from_filename(filename: str, buffer_width: int=0,
 
     Args:
         filename (str): full path of file for which to get the bounding box
-        border_width (str): number of pixel to add to the bounding box on each side (buffer size)
+        buffer_width (str): number of pixel to add to the bounding box on each side (buffer size)
+        tile_width (int): Width of a tile(in the reference unit: 1m)
         tile_coord_scale (int): Scale used in filename to describe coordinates (usually kilometers)
             1000 * 1m (with 1m being the reference)
-        tile_width (int): Width of a tile(in the reference unit: 1m)
 
     Returns:
         bounds(tuple) : Tuple of bounding box from the LIDAR tile with potential buffer
