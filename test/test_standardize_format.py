@@ -4,6 +4,7 @@ import shutil
 from pdaltools.standardize_format import rewrite_with_pdal
 import logging
 from test.utils import get_pdal_infos_summary
+import pdal
 
 
 # Note: tile 77050_627760 is cropped to simulate missing data in neighbors during merge
@@ -47,10 +48,14 @@ def _test_standardize_format_one_params_set(params):
     assert os.path.isfile(output_file)
     # check values from metadata
     json_info = get_pdal_infos_summary(output_file)
-    assert json_info["summary"]["metadata"][1]["compressed"] == True
-    assert json_info["summary"]["metadata"][1]["minor_version"] == 4
-    assert json_info["summary"]["metadata"][1]["global_encoding"] == 17
-    assert json_info["summary"]["metadata"][1]["dataformat_id"] == params["dataformat_id"]
+    if pdal.info.version <= "2.5.2":
+        metadata = json_info["summary"]["metadata"][1]
+    else :
+        metadata = json_info["summary"]["metadata"]
+    assert metadata["compressed"] == True
+    assert metadata["minor_version"] == 4
+    assert metadata["global_encoding"] == 17
+    assert metadata["dataformat_id"] == params["dataformat_id"]
     # Check that there is no extra dim
     dimensions = set([d.strip() for d in json_info["summary"]["dimensions"].split(",")])
     assert dimensions == expected_dims[params["dataformat_id"]]
