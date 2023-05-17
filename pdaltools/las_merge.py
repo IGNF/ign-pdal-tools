@@ -18,7 +18,7 @@ def create_filenames(file: str, tile_width: int=1000, tile_coord_scale: int=1000
         tile_coord_scale (int) : scale used in the filename to describe coordinates in meters
                 (usually 1000m)
     Returns:
-        Listinput(list): List of LIDAR's name
+        list_input(list): List of LIDAR's name
     """
 
     # Create name of LIDAR tiles who cercle the tile
@@ -69,13 +69,13 @@ def create_list(las_dir, input_file, tile_width=1000, tile_coord_scale=1000):
         1000 * 1m (with 1m being the reference)
 
     Returns:
-        Listfiles(li): list of tiles
+        list_files(li): list of tiles
     """
 
     # Return list 8 tiles around the tile
-    Listinput = create_filenames(os.path.basename(input_file), tile_width, tile_coord_scale)
+    list_input = create_filenames(os.path.basename(input_file), tile_width, tile_coord_scale)
     # List pointclouds
-    li = [os.path.join(las_dir, e) for e in Listinput]
+    li = [os.path.join(las_dir, e) for e in list_input]
     # Keep only existing files
     li = check_tiles_exist(li)
     # Appending queried tile to list

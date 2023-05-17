@@ -48,7 +48,9 @@ def _test_standardize_format_one_params_set(params):
     assert os.path.isfile(output_file)
     # check values from metadata
     json_info = get_pdal_infos_summary(output_file)
-    if pdal.info.version <= "2.5.2":
+    if pdal.info.version < "2.5":
+        raise NotImplementedError("This test is not implemented for pdal < 2.5")
+    elif pdal.info.version <= "2.5.2":
         metadata = json_info["summary"]["metadata"][1]
     else :
         metadata = json_info["summary"]["metadata"]
