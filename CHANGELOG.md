@@ -1,4 +1,6 @@
 # dev
+
+# v0.5.3
 - add_buffer / merge : use filename to get tile extent
 
 # v0.5.2 :
