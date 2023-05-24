@@ -12,7 +12,7 @@ from typing import Dict
 test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")
 input_dir = os.path.join(test_path, "data/classified_laz")
-input_file = os.path.join(input_dir, "test_data_0000_0000_LA93_IGN69.laz")
+input_file = os.path.join(input_dir, "test_data_77050_627755_LA93_IGN69.laz")
 output_file = os.path.join(tmp_path, "replaced.las")
 attribute = "Classification"
 input_counts = Counter({

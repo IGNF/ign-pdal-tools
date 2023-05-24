@@ -1,5 +1,8 @@
 # dev
 
+# v0.5.3
+- add_buffer / merge : use filename to get tile extent
+
 # v0.5.2 :
 - script jenkins: gestion des erreurs
 - docker : hérite d'une image basée sur Mamba au lieu de Conda (Mamba est plus rapide pour récupérer les dépendances)

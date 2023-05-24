@@ -10,8 +10,13 @@ import logging
 test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")
 input_dir =  os.path.join(test_path, "data")
-input_file = os.path.join(input_dir, "test_data_0001_0001_LA93_IGN69_ground.las")
 output_file = os.path.join(tmp_path, "merged.las")
+
+coord_x = 77055
+coord_y = 627760
+input_file = os.path.join(input_dir, f"test_data_{coord_x}_{coord_y}_LA93_IGN69_ground.las")
+tile_width = 50
+tile_coord_scale = 10
 
 input_nb_points = 22343
 expected_output_nb_points = 154134
@@ -48,7 +53,8 @@ def get_2d_bounding_box(path):
 
 ## Tests
 def test_las_merge():
-    las_merge(input_dir, input_file, output_file)
+    las_merge(input_dir, input_file, output_file,
+              tile_width=tile_width, tile_coord_scale=tile_coord_scale)
 
     # check file exists
     assert os.path.isfile(output_file)

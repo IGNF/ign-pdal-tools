@@ -12,8 +12,8 @@ tmp_path = os.path.join(test_path, "tmp")
 input_dir = os.path.join(test_path, "data/classified_laz")
 input_files = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(("las", "laz"))]
 output_file = os.path.join(tmp_path, "count.json")
-single_input_file = os.path.join(input_dir, 'test_data_0000_0000_LA93_IGN69.laz')
-counts_single_json = os.path.join(test_path, "data", "counts", 'count_test_data_0000_0000_LA93_IGN69.json')
+single_input_file = os.path.join(input_dir, 'test_data_77050_627755_LA93_IGN69.laz')
+counts_single_json = os.path.join(test_path, "data", "counts", 'count_test_data_77050_627755_LA93_IGN69.json')
 
 attribute = "Classification"
 expected_counts = Counter({
