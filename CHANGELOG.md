@@ -1,4 +1,5 @@
 # dev
+- standardisation: fix warnings (vus avec lasinfo). Utilise las2las pour sauvegarder à nouveau le LAS.
 
 # v0.5.3
 - add_buffer / merge : use filename to get tile extent
