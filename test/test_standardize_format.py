@@ -1,11 +1,11 @@
 import os
 import pytest
 import shutil
-from pdaltools.standardize_format import rewrite_with_pdal
+from pdaltools.standardize_format import rewrite_with_pdal, standardize, exec_las2las
 import logging
 from test.utils import get_pdal_infos_summary
 import pdal
-
+import subprocess as sp
 
 # Note: tile 77050_627760 is cropped to simulate missing data in neighbors during merge
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -69,6 +69,45 @@ def _test_standardize_format_one_params_set(params):
 def test_standardize_format():
     for params in multiple_params:
         _test_standardize_format_one_params_set(params)
+
+
+def exec_lasinfo(input_file: str):
+    r = sp.run(["lasinfo", "-stdout", input_file], stderr=sp.PIPE, stdout=sp.PIPE)
+    if r.returncode == 1:
+        msg = r.stderr.decode()
+        print(msg)
+        raise RuntimeError(msg)
+
+    output = r.stdout.decode()
+    return output
+
+
+def assert_lasinfo_no_warning(input_file: str):
+    errors = [ line for line in exec_lasinfo(input_file).splitlines() if 'WARNING' in line]
+
+    for line in errors:
+        print(line)
+
+    assert errors == [], errors
+
+
+def test_exec_las2las_error():
+    with pytest.raises(RuntimeError):
+        exec_las2las("not_existing_input_file", "output_file")
+
+
+def test_standardize_does_NOT_produce_any_warning_with_Lasinfo():
+    # bad file on the store (44 Mo)
+    # input_file = "/var/data/store-lidarhd/developpement/standaLAS/demo_standardization/Semis_2022_0584_6880_LA93_IGN69.laz"
+
+    input_file = "./test/data/classified_laz/test_data_77050_627755_LA93_IGN69.laz"
+    output_file = "./tmp/test_standardize_produce_no_warning_with_lasinfo.las"
+
+    # if you want to see input_file warnings
+    # assert_lasinfo_no_warning(input_file)
+
+    standardize(input_file, output_file, multiple_params[0])
+    assert_lasinfo_no_warning(output_file)
 
 
 if __name__ == "__main__":
