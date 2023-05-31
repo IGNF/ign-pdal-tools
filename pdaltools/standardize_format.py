@@ -23,9 +23,9 @@ STANDARD_PARAMETERS = dict(
     scale_x=0.01, # Precision of the stored data
     scale_y=0.01,
     scale_z=0.01,
-    offset_x='auto',  # To be confirmed
-    offset_y='auto',  # To be confirmed
-    offset_z='auto',  # To be confirmed
+    offset_x=0, # No offset
+    offset_y=0,
+    offset_z=0,
     dataformat_id=6,  # No color by default
     a_srs="EPSG:2154"
 )

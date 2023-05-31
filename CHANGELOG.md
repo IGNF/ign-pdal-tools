@@ -1,4 +1,5 @@
 # dev
+- standardisation: offset à 0
 
 # v0.5.4
 - standardisation: fix warnings (vus avec lasinfo). Utilise las2las pour sauvegarder à nouveau le LAS.
