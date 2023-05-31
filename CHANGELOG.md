@@ -1,4 +1,6 @@
 # dev
+
+# v0.5.5
 - standardisation: offset à 0
 
 # v0.5.4
