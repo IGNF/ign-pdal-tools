@@ -1,13 +1,14 @@
 from collections import Counter
 import json
 import os
-from pdaltools.replace_attribute_in_las import replace_values, parse_replacement_map_from_path_or_json_string
+from pdaltools.replace_attribute_in_las import replace_values, replace_values_clean, parse_replacement_map_from_path_or_json_string
 from pdaltools.count_occurences.count_occurences_for_attribute import compute_count_one_file
+from pdaltools.standardize_format import get_writer_parameters
 import pytest
 import shutil
 from test.utils import get_pdal_infos_summary
 from typing import Dict
-
+from test.test_standardize_format import assert_lasinfo_no_warning
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")
@@ -65,6 +66,11 @@ def test_replace_values():
 
     assert count == expected_counts
     check_dimensions(input_file, output_file)
+
+
+def test_replace_values_clean():
+    replace_values_clean(input_file, output_file, replacement_map_success, attribute, get_writer_parameters({}))
+    assert_lasinfo_no_warning(output_file)
 
 
 def test_replace_values_duplicate_input():
