@@ -14,7 +14,7 @@ check: dist/ign-pdal-tool*.tar.gz
 dist/ign-pdal-tool*.tar.gz:
 	python -m build
 
-build:
+build: clean
 	python -m build
 
 install:
