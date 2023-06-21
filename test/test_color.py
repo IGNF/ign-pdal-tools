@@ -87,15 +87,12 @@ def test_retry_param():
         raise_server_error()
 
 
-@pytest.mark.skip("TODO: utiliser un fichier sur le store")
-def test_decomp_and_color():
+def test_copy_and_hack_decorator():
+    # bug during laz opening in pdal (solved with copy_and_hack_decorator)
+    LAZ_FILE = os.path.join(TEST_PATH, 'data/test_pdalfail_0643_6319_LA93_IGN69.laz')
+    LAS_FILE = TMPDIR + "test_pdalfail_0643_6319_LA93_IGN69.las"
 
-    # bug de l'ouverture des laz
-    # TODO Faire une version legere de ce LAZ et le mettre sur le git
-    LAZ_FILE = "/media/data/Bug_ouverture_laz/one/436000_6469000.laz"
-    LAS_FILE = TMPDIR + "436000_6469000.las"
-
-    color.decomp_and_color(LAZ_FILE, LAS_FILE, "", 0.1)
+    color.decomp_and_color(LAZ_FILE, LAS_FILE, "", 1)
 
     las = laspy.read(LAS_FILE)
     print(las.header)
