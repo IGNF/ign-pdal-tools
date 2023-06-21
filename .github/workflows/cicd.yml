@@ -1,0 +1,40 @@
+
+name: cicd
+
+on:
+  # Run tests for non-draft pull request
+  pull_request:
+    branches:
+      - dev
+      - master
+  # Also run when the pull request merges  (which generates a push)
+  # So that we can tag the docker image appropriately.
+  push:
+    branches:
+      - dev
+      - master
+
+jobs:
+  docker_build_and_test:
+    runs-on: ubuntu-latest
+    permissions:
+        contents: read
+        packages: write
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+
+      - name: Build docker image
+        run: make docker-build
+
+      - name: Run pytest
+        run: >
+          docker run
+          --ipc=host
+          lidar_hd/pdal_tools
+          python -m pytest ./test -s --log-cli-level DEBUG
+
+      - name: Clean dangling docker images
+        if: always()  # always do it, even if something failed
+        run: docker system prune --force # remove dangling docker images, without asking user for confirmation
