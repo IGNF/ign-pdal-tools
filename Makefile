@@ -5,10 +5,11 @@
 # chain commands together with semicolon
 .ONESHELL:
 SHELL = /bin/bash
+
 deploy: check
 	twine upload dist/*
 
-check: dist/ign-pdal-tool*.tar.gz 
+check: dist/ign-pdal-tool*.tar.gz
 	twine check dist/*
 
 dist/ign-pdal-tool*.tar.gz:
@@ -34,11 +35,22 @@ mamba-env-create:
 mamba-env-update:
 	mamba env update -n pdaltools -f environment.yml
 
+
+##############################
+# Docker
+##############################
+
+PROJECT_NAME=ignimagelidar/ign-pdal-tools
+VERSION=`python -m pdaltools._version`
+
 docker-build: clean
-	docker build --no-cache -t lidar_hd/pdal_tools:`python pdaltools/_version.py` -f Dockerfile .
+	docker build --no-cache -t ${PROJECT_NAME}:${VERSION} -f Dockerfile .
 
 docker-test:
-	docker run --rm -it lidar_hd/pdal_tools:`python pdaltools/_version.py` python -m pytest -s
+	docker run --rm -it ${PROJECT_NAME}:${VERSION} python -m pytest -s
 
 docker-remove:
-	docker rmi -f `docker images | grep pdal_tools | tr -s ' ' | cut -d ' ' -f 3`
+	docker rmi -f `docker images | grep ${PROJECT_NAME} | tr -s ' ' | cut -d ' ' -f 3`
+
+docker-deploy:
+	docker push ${PROJECT_NAME}:${VERSION}

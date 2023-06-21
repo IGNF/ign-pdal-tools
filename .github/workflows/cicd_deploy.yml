@@ -1,0 +1,90 @@
+
+name: cicd_deploy
+
+on:
+  # Also run when the pull request merges  (which generates a push)
+  # So that we can tag the docker image appropriately.
+  push:
+    branches:
+      - master
+
+env:
+  DOCKER_REPO: ignimagelidar/ign-pdal-tools
+
+jobs:
+  deploy_docker:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout branch
+      uses: actions/checkout@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build and export to Docker
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        load: true
+        tags: ${{ env.DOCKER_REPO }}:test
+
+    - name: Set version number
+      run: |
+        echo "VERSION=$(docker run ${{ env.DOCKER_REPO }}:test python -m pdaltools._version)" >> $GITHUB_ENV
+
+    - name: Run pytest
+      run: >
+        docker run
+        --ipc=host
+        ${{ env.DOCKER_REPO }}:test
+        python -m pytest ./test -s --log-cli-level DEBUG
+    -
+      name: Build and push
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: ${{ env.DOCKER_REPO }}:latest,${{ env.DOCKER_REPO }}:${{ env.VERSION }}
+
+  deploy-pypi:
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/ign-pdal-tools
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+
+      # See https://github.com/marketplace/actions/setup-micromamba
+      - name: setup-micromamba
+        uses: mamba-org/setup-micromamba@v1.4.3
+        with:
+          environment-file: environment.yml
+          environment-name: pdaltools  # activate the environment
+          cache-environment: true
+          cache-downloads: true
+          generate-run-shell: true
+
+      - name: Run tests with pytest
+        shell: micromamba-shell {0}
+        run: python -m pytest ./test -s --log-cli-level DEBUG
+
+      - name: Build pip package
+        shell: micromamba-shell {0}
+        run: make build
+
+      - name: pypi-publish
+        uses: pypa/gh-action-pypi-publish@v1.8.6
