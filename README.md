@@ -73,4 +73,4 @@ To generate a pip package and deploy it on pypi, use the [Makefile](Makefile) at
 
 To build a docker image with the library installed: `make docker-build`
 
-To deploy the docker image on our Nexus instance: `cd docker && ./deploy.sh`
+To test the docker image: `make docker-test`

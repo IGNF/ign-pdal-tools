@@ -1,4 +1,5 @@
 # dev
+- docker: Use staged build to reduce docker image size
 
 # v0.5.6
 - makefile: execute la règle "clean" avant le "build" de la lib. Comme ça l'integration continue supprime les anciennes versions de la lib.
