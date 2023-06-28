@@ -1,81 +1,76 @@
-# Pdal tools
+# ign-pdal-tools
 
-Bibliothèque python qui réalise des opérations simples en utilisant pdal:
-* colorisation
-* stitching
-* standardisation
+This repo contains various python tools based on [PDAL](https://pdal.io/) that are used to work on
+LiDAR data in the [LidarHD](https://www.ign.fr/institut/lidar-hd-vers-une-nouvelle-cartographie-3d-du-territoire)
+project at [IGN](https://www.ign.fr) (Institut National de l'Information Géographique et Forestière / French National Institute of
+Geographic and Forest Information) to work on LiDAR data.
 
-La lib peut être utilisée dans une image docker (cf. dossier `./docker`)
+We've decided to make them available because think that they may be useful to others, but this repo
+is NOT meant to be substantially modified from community input, and may be amended/completed depending
+on the fonctionalities that our team needs.
 
-# Opérations
-## Colorisation
+# Content
 
-* `color.py`: colorise un nuage de point, en allant chercher les images du Geoportail
-
-## Stitching
-
-* `las_clip.py`: découpe un fichier las d'après une bounding box
-* `las_merge.py`: merge un las avec ses voisins d'après les noms de fichiers
-* `las_add_buffer.py`: ajoute un buffer à un fichier las avec les données de ses voisins (d'après les noms de fichiers)
-
-**WARNING**: Pour `las_merge.py` et `las_add_buffer.py`, les noms de fichiers sont parsés pour trouver les voisins.
-Le format de nom de fichiers attendu est : `{prefix1}_{prefix2}_{xcoord}_{ycoord}_{postfix})}`, eg. `Semis_2021_0770_6278_LA93_IGN69.laz`
-
-## Standardisation
-
-* `standardize_format.py`: réécrit un fichier las dans un format standard (cf. code)
-* `count_occurences`: pour un attribut donné (développé en premier
-lieu pour de la classification), compte les occurences de chaque valeur sur un
-ensemble de fichiers las.
-    * `count_occurences_for_attribute.py`: compte les occurences sur un ou plusieurs fichiers et les
-et les sauve dans un fichier json
-    * `merge_occurences_counts.py` : permet d'assembler des comptes (fichiers json) en un seul fichier
-de compte d'occurences (utilisé en cas de parallélisation)
-* `replace_attribute_in_las.py`: à partir d'un fichier json contenant un tableau de
-correspondances, remplace les occurences de chaque valeur par la valeur associée
-dans le tableau.
+This library contains pdal-based tools to:
+* **colorize** a point cloud using images from [Geoportail](https://www.geoportail.gouv.fr/) (a portal
+from French government providing access to aerial imagery)
+* **stitch** together LAS files using their location
+* **standardize** LAS files
 
 # Installation / Usage
 
-## Bibliothèque
+This library can be used in different ways:
+* installed with `pip` from pypi: ` pip install ign-pdal-tools`
+* used in a docker container: see documentation [Dockerfile](Dockerfile)
 
-Les opérations pour générer la bibliothèque python et la déployer sur pypi sont réalisées via le fichier Makefile à la racine du projet:
-* `make build` : construit la bibliothèque
-* `make install` : installe la bibliothèque de façon éditable
-* `make deploy` : déploie sur pipy
+# More details on the contained tools
+## Colorization
 
-## Image docker
+* [color.py](pdaltools/color.py): Colorize a point cloud from Geoportail data
 
-`cd docker`
+## Stitching
 
-Construit l'image docker
+* [las_clip.py](pdaltools/las_clip.py): crop a LAS file using 2d bounding box
+* [las_merge.py](pdaltools/las_merge.py): merge a LAS file with its neighbors according to their filenames
+* [las_add_buffer.py](pdaltools/las_add_buffer.py): add points to a LAS file from a buffer (border) from its neighbors (using filenames to locate neighbors)
 
-`./build.sh`
+**WARNING**: In `las_merge.py` and `las_add_buffer.py`, filenames are used to get the LAS files extents
+and to find neighbors.
+The naming convention is `{prefix1}_{prefix2}_{xcoord}_{ycoord}_{postfix})}` (eg. `Semis_2021_0770_6278_LA93_IGN69.laz`).
+By default, `xcoord` and `ycoord` are given in kilometers and the shape of the tile is 1 km * 1 km
 
-Réduit la taille de l'image docker.
+## Standardization
 
-Mais pour l'instant, on ne l'utilise pas car il y des soucis avec Proj. TODO: Identifier à quel appel de code on a ce pb.
+* [standardize_format.py](pdaltools/standardize_format.py): re-write a LAS file in a standard format (see code for details)
+* [count_occurences](pdaltools/count_occurences): count occurences for each value of a given attribute in a set of LAS files (initially used for classification)
+    * [count_occurences_for_attribute.py](pdaltools/count_occurences/count_occurences_for_attribute.py): count occurences in one or several files and save the result in a json file.
+    * [merge_occurences_counts.py](pdaltools/count_occurences/merge_occurences_counts.py): merge counts from several results of [count_occurences_for_attribute](pdaltools/count_occurences/count_occurences_for_attribute.py) (json files) into a single json file (used for parallelization)
+* [replace_attribute_in_las.py](test/test_replace_attribute_in_las.py): using a json file containing a correspondance map, replace the occurences of each value in a LAS file by its corresponding value from the map.
 
+# Dev / Build
 
-`./conda_pack.sh`
+## Contribute
 
+Every time the code is changed, think of updating the version file: [pdaltools/_version.py](pdaltools/_version.py`)
 
-Déploie l'image docker sur le nexus ign
+Please log your changes in [CHANGELOG.md](CHANGELOG.md)
 
-`./deploy.sh`
+## Tests
 
-## Tester
+Create the conda environment: `./script/createCondaEnv.sh`
 
-Créer l'environnement Conda
+Run unit tests: `./script/test.sh`
 
-`./script/createCondaEnv.sh`
+## Pip package
 
-Les tests unitaires
+To generate a pip package and deploy it on pypi, use the [Makefile](Makefile) at the root of the repo:
 
-`./script/test.sh`
+* `make build`: build the library
+* `make install`: instal the library in an editable way (`pip -e`)
+* `make deploy` : deploy it on pypi
 
+## Docker image
 
-## Version
+To build a docker image with the library installed: `make docker-build`
 
-à chaque modification du code, pense à modifier le fichier `pdaltools/_VERSION.py`
-
+To test the docker image: `make docker-test`

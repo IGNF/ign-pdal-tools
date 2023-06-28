@@ -8,9 +8,11 @@
     - no extra-dims
 """
 import argparse
+import os
 import pdal
+import subprocess as sp
+import tempfile
 from typing import Dict
-
 
 STANDARD_PARAMETERS = dict(
     major_version="1",
@@ -21,9 +23,9 @@ STANDARD_PARAMETERS = dict(
     scale_x=0.01, # Precision of the stored data
     scale_y=0.01,
     scale_z=0.01,
-    offset_x='auto',  # To be confirmed
-    offset_y='auto',  # To be confirmed
-    offset_z='auto',  # To be confirmed
+    offset_x=0, # No offset
+    offset_y=0,
+    offset_z=0,
     dataformat_id=6,  # No color by default
     a_srs="EPSG:2154"
 )
@@ -67,10 +69,30 @@ def rewrite_with_pdal(input_file: str, output_file: str, params_from_parser: Dic
     pipeline.execute()
 
 
+def exec_las2las(input_file: str, output_file: str):
+    r = sp.run(["las2las", "-i", input_file, "-o", output_file], stderr=sp.PIPE, stdout=sp.PIPE)
+    if r.returncode == 1:
+        msg = r.stderr.decode()
+        print(msg)
+        raise RuntimeError(msg)
+
+    output = r.stdout.decode()
+    for line in output.splitlines():
+        print(line)
+
+
+def standardize(input_file: str, output_file: str, params_from_parser: Dict) -> None:
+    _, extension = os.path.splitext(output_file)
+    with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
+        tmp.close()
+        rewrite_with_pdal(input_file, tmp.name, params_from_parser)
+        exec_las2las(tmp.name, output_file)
+
+
 if __name__ == "__main__":
     args = parse_args()
     params_from_parser = dict(
         dataformat_id=args.record_format,
         a_srs=args.projection)
-    rewrite_with_pdal(args.input_file, args.output_file, params_from_parser)
+    standardize(args.input_file, args.output_file, params_from_parser)
 

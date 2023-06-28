@@ -1,0 +1,34 @@
+name: cicd_light
+
+on:
+  # Run tests for non-draft pull request on dev
+  pull_request:
+    branches:
+      - dev
+
+
+jobs:
+  docker_build_and_test:
+    runs-on: ubuntu-latest
+    permissions:
+        contents: read
+        packages: write
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+
+      # See https://github.com/marketplace/actions/setup-micromamba
+      - name: setup-micromamba
+        uses: mamba-org/setup-micromamba@v1.4.3
+        with:
+          environment-file: environment.yml
+          environment-name: pdaltools  # activate the environment
+          cache-environment: true
+          cache-downloads: true
+          generate-run-shell: true
+
+      - name: Run tests with pytest
+        shell: micromamba-shell {0}
+        run: python -m pytest ./test -s --log-cli-level DEBUG
+
