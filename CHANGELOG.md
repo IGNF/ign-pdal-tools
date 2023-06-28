@@ -1,4 +1,5 @@
-# dev
+# 1.0.0
+- first public version
 - docker: Use staged build to reduce docker image size
 - add continuous integration with github actions
 
