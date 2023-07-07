@@ -13,6 +13,7 @@ import pdal
 import subprocess as sp
 import tempfile
 from typing import Dict
+from pdaltools.unlock_file import copy_and_hack_decorator
 
 STANDARD_PARAMETERS = dict(
     major_version="1",
@@ -81,6 +82,7 @@ def exec_las2las(input_file: str, output_file: str):
         print(line)
 
 
+@copy_and_hack_decorator
 def standardize(input_file: str, output_file: str, params_from_parser: Dict) -> None:
     _, extension = os.path.splitext(output_file)
     with tempfile.NamedTemporaryFile(suffix=extension) as tmp:

@@ -1,6 +1,4 @@
 import json
-import os
-import shutil
 import subprocess as sp
 import tempfile
 import pdal
@@ -8,6 +6,8 @@ import requests
 from osgeo.osr import SpatialReference
 import time
 import argparse
+
+from pdaltools.unlock_file import copy_and_hack_decorator, unlock_file
 
 
 def pretty_time_delta(seconds):
@@ -97,26 +97,6 @@ def proj_from_metadata(metadata):
     return proj
 
 
-def copy_and_hack_decorator(func):
-    def newfn(*args, **kwargs):
-        attempt = 0
-        try:
-            return func(*args, **kwargs)
-        except RuntimeError as e:
-            if (
-                "PDAL: readers.las: Global encoding WKT flag not set for point format 6 - 10."
-                in str(e)
-            ):
-                args = list(args)
-                input_file_tmp = copy_and_hack_the_laz_file(args[0])
-                args[0] = input_file_tmp
-                func(*args, **kwargs)
-                os.remove(input_file_tmp)
-            else:
-                raise e
-    return newfn
-
-
 def pdal_info_json(input_file: str):
     r = sp.run(["pdal", "info", "--metadata", input_file], stderr=sp.PIPE, stdout=sp.PIPE)
     if r.returncode == 1:
@@ -176,30 +156,6 @@ def decomp_and_color(input_file: str, output_file :str,
 
     # os.remove(tmp_ortho)
     # os.remove(tmp_ortho_irc)
-
-
-# https://gis.stackexchange.com/questions/413191/python-pdal-error-reading-format-1-4-las-file-readers-las-error-global-enco
-def unlock_file(finename: str):
-    f = open(finename, "rb+")
-    f.seek(6)
-    f.write(bytes([17, 0, 0, 0]))
-    f.close()
-
-
-def copy_and_hack_the_laz_file(laz_file):
-    with tempfile.NamedTemporaryFile() as tmp:
-        laz_file_tmp = tmp.name + ".laz"
-
-        print(
-            "Gestion de l'erreur en créeant un nouveau LAZ que l'on modifiera : "
-            + laz_file_tmp
-        )
-        shutil.copy(laz_file, laz_file_tmp)
-
-        unlock_file(laz_file_tmp)
-
-        print("Patch appliqué sur : " + laz_file_tmp)
-        return laz_file_tmp
 
 
 def parse_args():

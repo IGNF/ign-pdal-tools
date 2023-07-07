@@ -110,6 +110,13 @@ def test_standardize_does_NOT_produce_any_warning_with_Lasinfo():
     assert_lasinfo_no_warning(output_file)
 
 
+def test_standardize_malformed_laz():
+    input_file = os.path.join(test_path, 'data/test_pdalfail_0643_6319_LA93_IGN69.laz')
+    output_file = os.path.join(tmp_path, 'standardize_pdalfail_0643_6319_LA93_IGN69.laz')
+    standardize(input_file, output_file, multiple_params[0])
+    assert os.path.isfile(output_file)
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     test_standardize_format()
