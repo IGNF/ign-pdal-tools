@@ -1,5 +1,6 @@
 # dev
 standardization: handle malformed laz input ("Global encoding WKT flag not set for point format 6 - 10")
+color: extract unlock module from colorization and rename colorization function
 
 # 1.0.0
 - first public version
