@@ -1,4 +1,7 @@
 # dev
+tests: 
+- add geoportail marker to skip tests relying on geoportail (they are now played on PR to the master branch only)
+- bugfix on standardization test file path
 
 # 1.1.0
 standardization: handle malformed laz input ("Global encoding WKT flag not set for point format 6 - 10")
