@@ -22,6 +22,9 @@ install:
 	pip install -e .
 
 testing:
+	python -m pytest ./test -s --log-cli-level DEBUG -m "not geoportail"
+
+testing_full:
 	python -m pytest ./test -s --log-cli-level DEBUG
 
 clean:
