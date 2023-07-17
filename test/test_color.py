@@ -26,7 +26,7 @@ OUTPUT_FILE = TMPDIR + "Semis_2021_0435_6292_LA93_IGN69.las"
 
 def test_epsg_fail():
     with pytest.raises(requests.exceptions.HTTPError, match="400 Client Error: BadRequest for url") :
-        color.decomp_and_color(INPUT_PATH, OUTPUT_FILE, "", 0.1, 15)
+        color.color(INPUT_PATH, OUTPUT_FILE, "", 0.1, 15)
 
 
 epsg = "2154"

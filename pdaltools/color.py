@@ -115,7 +115,7 @@ def pdal_info_json(input_file: str):
 
 
 @copy_and_hack_decorator
-def decomp_and_color(input_file: str, output_file :str,
+def color(input_file: str, output_file :str,
     proj="", pixel_per_meter=5, timeout_second=300,
     color_rvb_enabled=True, color_ir_enabled=True, veget_index_file=""
     ):
@@ -197,4 +197,4 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    decomp_and_color(args.input, args.output, args.proj, args.resolution, args.timeout, args.rvb, args.ir, args.vegetation)
+    color(args.input, args.output, args.proj, args.resolution, args.timeout, args.rvb, args.ir, args.vegetation)
