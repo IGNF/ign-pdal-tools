@@ -7,7 +7,7 @@ from osgeo.osr import SpatialReference
 import time
 import argparse
 
-from pdaltools.unlock_file import copy_and_hack_decorator, unlock_file
+from pdaltools.unlock_file import copy_and_hack_decorator
 
 
 def pretty_time_delta(seconds):
@@ -187,7 +187,6 @@ def parse_args():
         help="Timeout, in seconds")
     parser.add_argument('--rvb', action='store_true', help="Colorize RVB")
     parser.add_argument('--ir', action='store_true', help="Colorize IR")
-    parser.add_argument('--unlock', action='store_true', help="Unlock")
     parser.add_argument(
         "--vegetation",
         type=str,
@@ -198,9 +197,4 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-
-    if args.unlock:
-        unlock_file(args.input)
-    else:
-        decomp_and_color(args.input, args.output, args.proj, args.resolution, args.timeout, args.rvb, args.ir, args.vegetation)
-
+    decomp_and_color(args.input, args.output, args.proj, args.resolution, args.timeout, args.rvb, args.ir, args.vegetation)
