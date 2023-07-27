@@ -1,4 +1,6 @@
 # dev
+
+# 1.1.1
 - unlock: fix main
 - tests:
   - add geoportail marker to skip tests relying on geoportail (they are now played on PR to the master branch only)
