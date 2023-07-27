@@ -58,7 +58,6 @@ def test_download_image_raise2():
         retry_download("9001", layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15)
 
 
-@pytest.mark.geoportail
 def test_retry_on_server_error():
     with requests_mock.Mocker() as mock:
         mock.get(requests_mock.ANY, status_code=502, reason="Bad Gateway")
@@ -69,7 +68,6 @@ def test_retry_on_server_error():
         assert len(history) == 3
 
 
-@pytest.mark.geoportail
 def test_retry_on_connection_error():
       with requests_mock.Mocker() as mock:
         mock.get(requests_mock.ANY, exc=requests.exceptions.ConnectionError)
@@ -81,7 +79,6 @@ def test_retry_on_connection_error():
         assert len(history) == 3
 
 
-@pytest.mark.geoportail
 def test_retry_param():
 
     # Here you can change retry params
