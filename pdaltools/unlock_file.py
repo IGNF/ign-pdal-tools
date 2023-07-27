@@ -57,6 +57,8 @@ def parse_args():
         required=True,
         help="Input file")
 
+    return parser.parse_args()
+
 
 if __name__ == "__main__":
     args = parse_args()
