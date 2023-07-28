@@ -6,7 +6,13 @@ readme = "README.md"
 authors = [
     { name = "Guillaume Liegard", email = "guillaume.liegard@ign.fr" }
 ]
+
 [tool.setuptools.dynamic]
 version = {attr = "pdaltools._version.__version__"}
 [tool.setuptools]
 packages = [ "pdaltools" ]
+
+[tool.pytest.ini_options]
+markers = [
+    "geoportail: marks tests that request the (sometimes unreliable) geoportail.gouv.fr",
+]

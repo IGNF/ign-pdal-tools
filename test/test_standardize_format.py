@@ -100,8 +100,8 @@ def test_standardize_does_NOT_produce_any_warning_with_Lasinfo():
     # bad file on the store (44 Mo)
     # input_file = "/var/data/store-lidarhd/developpement/standaLAS/demo_standardization/Semis_2022_0584_6880_LA93_IGN69.laz"
 
-    input_file = "./test/data/classified_laz/test_data_77050_627755_LA93_IGN69.laz"
-    output_file = "./tmp/test_standardize_produce_no_warning_with_lasinfo.las"
+    input_file = os.path.join(test_path, "data/classified_laz/test_data_77050_627755_LA93_IGN69.laz")
+    output_file = os.path.join(tmp_path, "test_standardize_produce_no_warning_with_lasinfo.las")
 
     # if you want to see input_file warnings
     # assert_lasinfo_no_warning(input_file)
