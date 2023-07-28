@@ -139,11 +139,13 @@ def color(input_file: str, output_file :str,
         pipeline |= pdal.Filter.colorization(raster=veget_index_file, dimensions="Deviation:1:256.0")
         writer_extra_dims = ["Deviation=ushort"]
 
+    tmp_ortho = None
     if color_rvb_enabled:
         tmp_ortho = tempfile.NamedTemporaryFile().name
         download_image_from_geoportail_retrying(proj, "ORTHOIMAGERY.ORTHOPHOTOS", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho, timeout_second)
         pipeline|= pdal.Filter.colorization(raster=tmp_ortho, dimensions="Red:1:256.0, Green:2:256.0, Blue:3:256.0")
 
+    tmp_ortho_irc = None
     if color_ir_enabled:
         tmp_ortho_irc = tempfile.NamedTemporaryFile().name
         download_image_from_geoportail_retrying(proj, "ORTHOIMAGERY.ORTHOPHOTOS.IRC", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho_irc, timeout_second)
@@ -154,8 +156,10 @@ def color(input_file: str, output_file :str,
     print("Traitement du nuage de point")
     pipeline.execute()
 
-    # os.remove(tmp_ortho)
-    # os.remove(tmp_ortho_irc)
+    # The orthoimages files will be deleted only when their reference are lost.
+    # To keep them, make a copy (with e.g. shutil.copy(...))
+    # See: https://docs.python.org/2/library/tempfile.html#tempfile.TemporaryFile
+    return tmp_ortho, tmp_ortho_irc
 
 
 def parse_args():

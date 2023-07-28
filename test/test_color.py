@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import shutil
 import pytest
 
@@ -37,6 +38,12 @@ miny=6291000
 maxx=436000
 maxy=6292000
 pixel_per_meter=0.1
+
+
+def test_color_and_keeping_orthoimages():
+    tmp_ortho, tmp_ortho_irc = color.color(INPUT_PATH, OUTPUT_FILE, epsg)
+    assert Path(tmp_ortho).exists()
+    assert Path(tmp_ortho_irc).exists()
 
 
 @pytest.mark.geoportail
