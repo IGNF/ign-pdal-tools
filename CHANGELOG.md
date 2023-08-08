@@ -1,5 +1,8 @@
 # dev
 
+# 1.2.0
+color: keep downloaded orthoimages by returning them to make them stay in executionn scope
+
 # 1.1.1
 - unlock: fix main
 - tests:

@@ -11,19 +11,19 @@ from pdaltools.unlock_file import copy_and_hack_decorator
 
 
 def pretty_time_delta(seconds):
-    sign_string = '-' if seconds < 0 else ''
+    sign_string = "-" if seconds < 0 else ""
     seconds = abs(int(seconds))
     days, seconds = divmod(seconds, 86400)
     hours, seconds = divmod(seconds, 3600)
     minutes, seconds = divmod(seconds, 60)
     if days > 0:
-        return '%s%dd%dh%dm%ds' % (sign_string, days, hours, minutes, seconds)
+        return "%s%dd%dh%dm%ds" % (sign_string, days, hours, minutes, seconds)
     elif hours > 0:
-        return '%s%dh%dm%ds' % (sign_string, hours, minutes, seconds)
+        return "%s%dh%dm%ds" % (sign_string, hours, minutes, seconds)
     elif minutes > 0:
-        return '%s%dm%ds' % (sign_string, minutes, seconds)
+        return "%s%dm%ds" % (sign_string, minutes, seconds)
     else:
-        return '%s%ds' % (sign_string, seconds)
+        return "%s%ds" % (sign_string, seconds)
 
 
 def retry(times, delay, factor=2, debug=False):
@@ -36,11 +36,11 @@ def retry(times, delay, factor=2, debug=False):
                 try:
                     return func(*args, **kwargs)
                 except requests.exceptions.ConnectionError as err:
-                    print ("Connection Error:", err)
+                    print("Connection Error:", err)
                     need_retry = True
                 except requests.exceptions.HTTPError as err:
                     if "Server Error" in str(err):
-                        print ("HTTP Error:", err)
+                        print("HTTP Error:", err)
                         need_retry = True
                     else:
                         raise err
@@ -52,26 +52,19 @@ def retry(times, delay, factor=2, debug=False):
                     attempt += 1
 
             return func(*args, **kwargs)
+
         return newfn
+
     return decorator
 
 
-def download_image_from_geoportail(
-    proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout
-):
+def download_image_from_geoportail(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout):
     # for layer in layers:
     URL_GPP = "https://wxs.ign.fr/ortho/geoportail/r/wms?"
     URL_FORMAT = "&EXCEPTIONS=text/xml&FORMAT=image/geotiff&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&STYLES="
     URL_EPSG = "&CRS=EPSG:" + str(proj)
-    URL_BBOX = (
-        "&BBOX=" + str(minx) + "," + str(miny) + "," + str(maxx) + "," + str(maxy)
-    )
-    URL_SIZE = (
-        "&WIDTH="
-        + str(int((maxx - minx) * pixel_per_meter))
-        + "&HEIGHT="
-        + str(int((maxy - miny) * pixel_per_meter))
-    )
+    URL_BBOX = "&BBOX=" + str(minx) + "," + str(miny) + "," + str(maxx) + "," + str(maxy)
+    URL_SIZE = "&WIDTH=" + str(int((maxx - minx) * pixel_per_meter)) + "&HEIGHT=" + str(int((maxy - miny) * pixel_per_meter))
 
     URL = URL_GPP + "LAYERS=" + layer + URL_FORMAT + URL_EPSG + URL_BBOX + URL_SIZE
 
@@ -115,11 +108,16 @@ def pdal_info_json(input_file: str):
 
 
 @copy_and_hack_decorator
-def color(input_file: str, output_file :str,
-    proj="", pixel_per_meter=5, timeout_second=300,
-    color_rvb_enabled=True, color_ir_enabled=True, veget_index_file=""
-    ):
-
+def color(
+    input_file: str,
+    output_file: str,
+    proj="",
+    pixel_per_meter=5,
+    timeout_second=300,
+    color_rvb_enabled=True,
+    color_ir_enabled=True,
+    veget_index_file="",
+):
     json_info = pdal_info_json(input_file)
     metadata = json_info["metadata"]
     minx, maxx, miny, maxy = metadata["minx"], metadata["maxx"], metadata["miny"], metadata["maxy"]
@@ -139,14 +137,20 @@ def color(input_file: str, output_file :str,
         pipeline |= pdal.Filter.colorization(raster=veget_index_file, dimensions="Deviation:1:256.0")
         writer_extra_dims = ["Deviation=ushort"]
 
+    tmp_ortho = None
     if color_rvb_enabled:
         tmp_ortho = tempfile.NamedTemporaryFile().name
-        download_image_from_geoportail_retrying(proj, "ORTHOIMAGERY.ORTHOPHOTOS", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho, timeout_second)
-        pipeline|= pdal.Filter.colorization(raster=tmp_ortho, dimensions="Red:1:256.0, Green:2:256.0, Blue:3:256.0")
+        download_image_from_geoportail_retrying(
+            proj, "ORTHOIMAGERY.ORTHOPHOTOS", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho, timeout_second
+        )
+        pipeline |= pdal.Filter.colorization(raster=tmp_ortho, dimensions="Red:1:256.0, Green:2:256.0, Blue:3:256.0")
 
+    tmp_ortho_irc = None
     if color_ir_enabled:
         tmp_ortho_irc = tempfile.NamedTemporaryFile().name
-        download_image_from_geoportail_retrying(proj, "ORTHOIMAGERY.ORTHOPHOTOS.IRC", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho_irc, timeout_second)
+        download_image_from_geoportail_retrying(
+            proj, "ORTHOIMAGERY.ORTHOPHOTOS.IRC", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho_irc, timeout_second
+        )
         pipeline |= pdal.Filter.colorization(raster=tmp_ortho_irc, dimensions="Infrared:1:256.0")
 
     pipeline |= pdal.Writer.las(filename=output_file, extra_dims=writer_extra_dims, minor_version="4", dataformat_id="8")
@@ -154,45 +158,23 @@ def color(input_file: str, output_file :str,
     print("Traitement du nuage de point")
     pipeline.execute()
 
-    # os.remove(tmp_ortho)
-    # os.remove(tmp_ortho_irc)
+    # The orthoimages files will be deleted only when their reference are lost.
+    # To keep them, make a copy (with e.g. shutil.copy(...))
+    # See: https://docs.python.org/2/library/tempfile.html#tempfile.TemporaryFile
+    return tmp_ortho, tmp_ortho_irc
 
 
 def parse_args():
     parser = argparse.ArgumentParser("Colorize tool")
-    parser.add_argument(
-        "--input", "-i",
-        type=str,
-        required=True,
-        help="Input file")
-    parser.add_argument(
-        "--output", "-o",
-        type=str,
-        default="",
-        help="Output file")
-    parser.add_argument(
-        "--proj", "-p",
-        type=str,
-        default = "",
-        help="Projection, default will use projection from metadata input")
-    parser.add_argument(
-        "--resolution", "-r",
-        type=float,
-        default = 5,
-        help="Resolution, in pixel per meter")
-    parser.add_argument(
-        "--timeout", "-t",
-        type=int,
-        default = 300,
-        help="Timeout, in seconds")
-    parser.add_argument('--rvb', action='store_true', help="Colorize RVB")
-    parser.add_argument('--ir', action='store_true', help="Colorize IR")
-    parser.add_argument(
-        "--vegetation",
-        type=str,
-        default = "",
-        help="Vegetation file, value will be stored in Deviation field")
-    return  parser.parse_args()
+    parser.add_argument("--input", "-i", type=str, required=True, help="Input file")
+    parser.add_argument("--output", "-o", type=str, default="", help="Output file")
+    parser.add_argument("--proj", "-p", type=str, default="", help="Projection, default will use projection from metadata input")
+    parser.add_argument("--resolution", "-r", type=float, default=5, help="Resolution, in pixel per meter")
+    parser.add_argument("--timeout", "-t", type=int, default=300, help="Timeout, in seconds")
+    parser.add_argument("--rvb", action="store_true", help="Colorize RVB")
+    parser.add_argument("--ir", action="store_true", help="Colorize IR")
+    parser.add_argument("--vegetation", type=str, default="", help="Vegetation file, value will be stored in Deviation field")
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
