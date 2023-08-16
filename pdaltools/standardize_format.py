@@ -20,34 +20,26 @@ STANDARD_PARAMETERS = dict(
     minor_version="4",  # Laz format version (pdal always write in 1.x format)
     global_encoding=17,  # store WKT projection in file
     compression="true",  # Save to compressed laz format
-    extra_dims= [],  # Save no extra_dims
-    scale_x=0.01, # Precision of the stored data
+    extra_dims=[],  # Save no extra_dims
+    scale_x=0.01,  # Precision of the stored data
     scale_y=0.01,
     scale_z=0.01,
-    offset_x=0, # No offset
+    offset_x=0,  # No offset
     offset_y=0,
     offset_z=0,
     dataformat_id=6,  # No color by default
-    a_srs="EPSG:2154"
+    a_srs="EPSG:2154",
 )
 
 
 def parse_args():
     parser = argparse.ArgumentParser("Rewrite laz file with standard format.")
-    parser.add_argument("--input_file",
-                        type=str,
-                        help="Laz input file.")
-    parser.add_argument("--output_file",
-                        type=str,
-                        help="Laz output file")
-    parser.add_argument("--record_format",
-                        choices=[6, 8],
-                        type=int,
-                        help="Record format: 6 (no color) or 8 (4 color channels)")
-    parser.add_argument("--projection",
-                        default="EPSG:2154",
-                        type=str,
-                        help="Projection, eg. EPSG:2154")
+    parser.add_argument("--input_file", type=str, help="Laz input file.")
+    parser.add_argument("--output_file", type=str, help="Laz output file")
+    parser.add_argument(
+        "--record_format", choices=[6, 8], type=int, help="Record format: 6 (no color) or 8 (4 color channels)"
+    )
+    parser.add_argument("--projection", default="EPSG:2154", type=str, help="Projection, eg. EPSG:2154")
 
     return parser.parse_args()
 
@@ -93,8 +85,5 @@ def standardize(input_file: str, output_file: str, params_from_parser: Dict) -> 
 
 if __name__ == "__main__":
     args = parse_args()
-    params_from_parser = dict(
-        dataformat_id=args.record_format,
-        a_srs=args.projection)
+    params_from_parser = dict(dataformat_id=args.record_format, a_srs=args.projection)
     standardize(args.input_file, args.output_file, params_from_parser)
-

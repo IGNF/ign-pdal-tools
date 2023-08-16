@@ -1,7 +1,11 @@
 from collections import Counter
 import json
 import os
-from pdaltools.replace_attribute_in_las import replace_values, replace_values_clean, parse_replacement_map_from_path_or_json_string
+from pdaltools.replace_attribute_in_las import (
+    replace_values,
+    replace_values_clean,
+    parse_replacement_map_from_path_or_json_string,
+)
 from pdaltools.count_occurences.count_occurences_for_attribute import compute_count_one_file
 from pdaltools.standardize_format import get_writer_parameters
 import pytest
@@ -16,32 +20,27 @@ input_dir = os.path.join(test_path, "data/classified_laz")
 input_file = os.path.join(input_dir, "test_data_77050_627755_LA93_IGN69.laz")
 output_file = os.path.join(tmp_path, "replaced.las")
 attribute = "Classification"
-input_counts = Counter({
-    '1': 2047,
-    '2': 21172,
-    '3': 226,
-    '4': 1227,
-    '5': 30392,
-    '6': 29447,
-    '64': 13,
-})
+input_counts = Counter(
+    {
+        "1": 2047,
+        "2": 21172,
+        "3": 226,
+        "4": 1227,
+        "5": 30392,
+        "6": 29447,
+        "64": 13,
+    }
+)
 
-expected_counts = Counter({
-    '2': 21172,
-    '3': 226,
-    '4': 1227,
-    '5': 30392,
-    '64': 29447,
-    '201': 2047 + 13
-})
+expected_counts = Counter({"2": 21172, "3": 226, "4": 1227, "5": 30392, "64": 29447, "201": 2047 + 13})
 
 replacement_map_fail = {
-    "201" : ["1", "64"],
+    "201": ["1", "64"],
     "6": ["64"],
 }  # has duplicatevalue to replace
 
 replacement_map_success = {
-    "201" : ["1", "64"],
+    "201": ["1", "64"],
     "64": ["6"],
 }
 
@@ -55,7 +54,7 @@ def setup_module(module):
     try:
         shutil.rmtree(tmp_path)
 
-    except (FileNotFoundError):
+    except FileNotFoundError:
         pass
     os.mkdir(tmp_path)
 

@@ -7,8 +7,8 @@ import pdal
 import json
 
 
-def las_crop(input_file: str, output_file: str, bounds, spatial_ref:str="EPSG:2154"):
-    """ Crop filter removes points that fall inside a cropping bounding box (2D)
+def las_crop(input_file: str, output_file: str, bounds, spatial_ref: str = "EPSG:2154"):
+    """Crop filter removes points that fall inside a cropping bounding box (2D)
     Args:
         input_dir (str): input point cloud file
         output_dir (str): output point cloud file
@@ -16,22 +16,10 @@ def las_crop(input_file: str, output_file: str, bounds, spatial_ref:str="EPSG:21
     """
     # Parameters
     information = {
-    "pipeline": [
-            {
-                "type": "readers.las",
-                "filename": input_file,
-                "override_srs": spatial_ref,
-                "nosrs": True
-            },
-            {
-                "type":"filters.crop",
-                "bounds": str(bounds)
-            },
-            {
-                "type": "writers.las",
-                "a_srs": spatial_ref,
-                "filename": output_file
-            }
+        "pipeline": [
+            {"type": "readers.las", "filename": input_file, "override_srs": spatial_ref, "nosrs": True},
+            {"type": "filters.crop", "bounds": str(bounds)},
+            {"type": "writers.las", "a_srs": spatial_ref, "filename": output_file},
         ]
     }
     # Create json

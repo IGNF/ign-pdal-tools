@@ -13,23 +13,19 @@ from typing import List
 
 def parse_args():
     parser = argparse.ArgumentParser("Count points with each value of an attribute.")
-    parser.add_argument("--input_files",
-                        nargs="+",
-                        type=str,
-                        help="List of laz input files separated by spaces, or directory " +
-                             "containing las/laz files")
-    parser.add_argument("--attribute",
-                        type=str,
-                        default="Classification",
-                        help="Attribute on which to count values")
-    parser.add_argument("--output_file",
-                        type=str,
-                        help="Output json file containing the counts")
+    parser.add_argument(
+        "--input_files",
+        nargs="+",
+        type=str,
+        help="List of laz input files separated by spaces, or directory " + "containing las/laz files",
+    )
+    parser.add_argument("--attribute", type=str, default="Classification", help="Attribute on which to count values")
+    parser.add_argument("--output_file", type=str, help="Output json file containing the counts")
 
     return parser.parse_args()
 
 
-def compute_count_one_file(filepath: str, attribute: str="Classification") -> Counter:
+def compute_count_one_file(filepath: str, attribute: str = "Classification") -> Counter:
     pipeline = pdal.Reader.las(filepath)
     pipeline |= pdal.Filter.stats(dimensions=attribute, count=attribute)
     pipeline.execute()
@@ -48,10 +44,10 @@ def compute_count_one_file(filepath: str, attribute: str="Classification") -> Co
     return counts
 
 
-def compute_count(input_files: List[str], attribute: str="Classification", output_file=""):
+def compute_count(input_files: List[str], attribute: str = "Classification", output_file=""):
     all_counts = Counter()
     # refresh status bar at most every 1/100 iter cf. https://github.com/tqdm/tqdm/issues/1429
-    for f in tqdm(input_files, miniters=int(len(input_files)/100), maxinterval=float('inf')):
+    for f in tqdm(input_files, miniters=int(len(input_files) / 100), maxinterval=float("inf")):
         logging.debug(f"Counting values of {attribute} for {os.path.basename(f)}")
         all_counts += compute_count_one_file(f, attribute)
 
@@ -69,8 +65,7 @@ def main():
     args = parse_args()
     if len(args.input_files) == 1 and os.path.isdir(args.input_files[0]):
         input_dir = args.input_files[0]
-        input_files = [os.path.join(input_dir, f) for f in os.listdir(input_dir)
-                       if f.lower().endswith(("las", "laz"))]
+        input_files = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.lower().endswith(("las", "laz"))]
     else:
         input_files = args.input_files
 

@@ -9,7 +9,7 @@ import logging
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")
-input_dir =  os.path.join(test_path, "data")
+input_dir = os.path.join(test_path, "data")
 output_file = os.path.join(tmp_path, "cropped.las")
 
 coord_x = 77055
@@ -18,17 +18,17 @@ input_file = os.path.join(input_dir, f"test_data_{coord_x}_{coord_y}_LA93_IGN69_
 
 input_nb_points = 22343
 expected_output_nb_points = 6578
-input_mins = [ 770550., 6277550.]
-input_maxs = [ 770600., 6277600.]
-expected_out_mins = [770560., 6277560.]
-expected_out_maxs = [770590., 6277590.]
+input_mins = [770550.0, 6277550.0]
+input_maxs = [770600.0, 6277600.0]
+expected_out_mins = [770560.0, 6277560.0]
+expected_out_maxs = [770590.0, 6277590.0]
 
 
 def setup_module(module):
     try:
         shutil.rmtree(tmp_path)
 
-    except (FileNotFoundError):
+    except FileNotFoundError:
         pass
     os.mkdir(tmp_path)
 
@@ -53,8 +53,7 @@ def get_2d_bounding_box(path):
 
 ## Tests
 def test_las_crop():
-    bounds = ([expected_out_mins[0], expected_out_maxs[0]],
-              [expected_out_mins[1], expected_out_maxs[1]])
+    bounds = ([expected_out_mins[0], expected_out_maxs[0]], [expected_out_mins[1], expected_out_maxs[1]])
     las_crop(input_file, output_file, bounds)
 
     # check file exists

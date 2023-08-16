@@ -11,36 +11,28 @@ import tempfile
 from typing import List, Dict
 
 
-
 def parse_args():
     parser = argparse.ArgumentParser("Replace values of a given attribute in a las/laz file.")
-    parser.add_argument("--input_file",
-                        type=str,
-                        help="Laz input file")
-    parser.add_argument("--output_file",
-                        type=str,
-                        help="Laz output file.")
-    parser.add_argument("--attribute",
-                        type=str,
-                        default="Classification",
-                        help="Attribute on which to count values")
-    parser.add_argument("--replacement_map",
-                        type=str,
-                        help="Path to a json file that contains the values that we want to " +
-                        "replace, or string that contains the content of such a file." +
-                        "It should contain a dict like " +
-                        "{new_value1: [value_to_replace1, value_to_replace2], " +
-                        "new_value2: [value_to_replace3, ...]}")
-    parser.add_argument("--record_format",
-                        choices=[6, 8],
-                        type=int,
-                        required=True,
-                        help="Record format: 6 (no color) or 8 (4 color channels)")
-    parser.add_argument("--projection",
-                        default="EPSG:2154",
-                        type=str,
-                        help="Projection, eg. EPSG:2154")
-
+    parser.add_argument("--input_file", type=str, help="Laz input file")
+    parser.add_argument("--output_file", type=str, help="Laz output file.")
+    parser.add_argument("--attribute", type=str, default="Classification", help="Attribute on which to count values")
+    parser.add_argument(
+        "--replacement_map",
+        type=str,
+        help="Path to a json file that contains the values that we want to "
+        + "replace, or string that contains the content of such a file."
+        + "It should contain a dict like "
+        + "{new_value1: [value_to_replace1, value_to_replace2], "
+        + "new_value2: [value_to_replace3, ...]}",
+    )
+    parser.add_argument(
+        "--record_format",
+        choices=[6, 8],
+        type=int,
+        required=True,
+        help="Record format: 6 (no color) or 8 (4 color channels)",
+    )
+    parser.add_argument("--projection", default="EPSG:2154", type=str, help="Projection, eg. EPSG:2154")
 
     return parser.parse_args()
 
@@ -56,9 +48,7 @@ def check_duplicate_values(d: Dict) -> None:
             raise ValueError(f"Duplicate value {val} provided more than once (count={count})")
 
 
-def dict_to_pdal_assign_list(d: Dict,
-                             output_attribute: str="Classification",
-                             input_attribute: str="tmp") -> List:
+def dict_to_pdal_assign_list(d: Dict, output_attribute: str = "Classification", input_attribute: str = "tmp") -> List:
     """Create an assignment list (to be passed to pdal) from a dictionary of type
     d = {
         output_val1: [input_val1, input_val2],
@@ -70,18 +60,18 @@ def dict_to_pdal_assign_list(d: Dict,
     assignment_list = []
     for output_val, input_values in d.items():
         for input_val in input_values:
-            assignment_list.append(
-                f"{output_attribute} = {output_val} WHERE {input_attribute} == {input_val}"
-            )
+            assignment_list.append(f"{output_attribute} = {output_val} WHERE {input_attribute} == {input_val}")
 
     return assignment_list
 
 
-def replace_values(input_file: str,
-                   output_file: str,
-                   replacement_map: Dict,
-                   attribute: str="Classification",
-                   writer_parameters: Dict={}) -> None:
+def replace_values(
+    input_file: str,
+    output_file: str,
+    replacement_map: Dict,
+    attribute: str = "Classification",
+    writer_parameters: Dict = {},
+) -> None:
     """
     Replace values of attribute {attribute} using a replacement map
     """
@@ -99,7 +89,7 @@ def replace_values(input_file: str,
 
 def parse_replacement_map_from_path_or_json_string(replacement_map):
     if os.path.isfile(replacement_map):
-        with open(replacement_map, 'r') as f:
+        with open(replacement_map, "r") as f:
             parsed_map = json.load(f)
     else:
         try:
@@ -112,12 +102,13 @@ def parse_replacement_map_from_path_or_json_string(replacement_map):
     return parsed_map
 
 
-def replace_values_clean(input_file: str,
-                   output_file: str,
-                   replacement_map: Dict,
-                   attribute: str="Classification",
-                   writer_parameters: Dict={}):
-
+def replace_values_clean(
+    input_file: str,
+    output_file: str,
+    replacement_map: Dict,
+    attribute: str = "Classification",
+    writer_parameters: Dict = {},
+):
     _, extension = os.path.splitext(output_file)
     with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
         tmp.close()
@@ -131,8 +122,7 @@ def main():
     writer_parameters = get_writer_parameters(writer_params_from_parser)
     replacement_map = parse_replacement_map_from_path_or_json_string(args.replacement_map)
 
-    replace_values_clean(args.input_file, args.output_file,
-                   replacement_map, args.attribute, writer_parameters)
+    replace_values_clean(args.input_file, args.output_file, replacement_map, args.attribute, writer_parameters)
 
 
 if __name__ == "__main__":

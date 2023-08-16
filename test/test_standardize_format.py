@@ -22,13 +22,48 @@ multiple_params = [
 ]
 
 expected_dims = {
-    6: set(["X", "Y", "Z", "Intensity", "ReturnNumber", "NumberOfReturns", "ClassFlags",
-           "ScanChannel", "ScanDirectionFlag", "EdgeOfFlightLine", "Classification",
-           "UserData", "ScanAngleRank", "PointSourceId", "GpsTime"]),
-    8: set(["X", "Y", "Z", "Intensity", "ReturnNumber", "NumberOfReturns", "ClassFlags",
-           "ScanChannel", "ScanDirectionFlag", "EdgeOfFlightLine", "Classification",
-           "UserData", "ScanAngleRank", "PointSourceId", "GpsTime",
-           "Red", "Green", "Blue", "Infrared"]),
+    6: set(
+        [
+            "X",
+            "Y",
+            "Z",
+            "Intensity",
+            "ReturnNumber",
+            "NumberOfReturns",
+            "ClassFlags",
+            "ScanChannel",
+            "ScanDirectionFlag",
+            "EdgeOfFlightLine",
+            "Classification",
+            "UserData",
+            "ScanAngleRank",
+            "PointSourceId",
+            "GpsTime",
+        ]
+    ),
+    8: set(
+        [
+            "X",
+            "Y",
+            "Z",
+            "Intensity",
+            "ReturnNumber",
+            "NumberOfReturns",
+            "ClassFlags",
+            "ScanChannel",
+            "ScanDirectionFlag",
+            "EdgeOfFlightLine",
+            "Classification",
+            "UserData",
+            "ScanAngleRank",
+            "PointSourceId",
+            "GpsTime",
+            "Red",
+            "Green",
+            "Blue",
+            "Infrared",
+        ]
+    ),
 }
 
 
@@ -36,14 +71,13 @@ def setup_module(module):
     try:
         shutil.rmtree(tmp_path)
 
-    except (FileNotFoundError):
+    except FileNotFoundError:
         pass
     os.mkdir(tmp_path)
 
 
 def _test_standardize_format_one_params_set(params):
-    rewrite_with_pdal(
-        input_file, output_file, params)
+    rewrite_with_pdal(input_file, output_file, params)
     # check file exists
     assert os.path.isfile(output_file)
     # check values from metadata
@@ -52,7 +86,7 @@ def _test_standardize_format_one_params_set(params):
         raise NotImplementedError("This test is not implemented for pdal < 2.5")
     elif pdal.info.version <= "2.5.2":
         metadata = json_info["summary"]["metadata"][1]
-    else :
+    else:
         metadata = json_info["summary"]["metadata"]
     assert metadata["compressed"] == True
     assert metadata["minor_version"] == 4
@@ -83,7 +117,7 @@ def exec_lasinfo(input_file: str):
 
 
 def assert_lasinfo_no_warning(input_file: str):
-    errors = [ line for line in exec_lasinfo(input_file).splitlines() if 'WARNING' in line]
+    errors = [line for line in exec_lasinfo(input_file).splitlines() if "WARNING" in line]
 
     for line in errors:
         print(line)
@@ -111,8 +145,8 @@ def test_standardize_does_NOT_produce_any_warning_with_Lasinfo():
 
 
 def test_standardize_malformed_laz():
-    input_file = os.path.join(test_path, 'data/test_pdalfail_0643_6319_LA93_IGN69.laz')
-    output_file = os.path.join(tmp_path, 'standardize_pdalfail_0643_6319_LA93_IGN69.laz')
+    input_file = os.path.join(test_path, "data/test_pdalfail_0643_6319_LA93_IGN69.laz")
+    output_file = os.path.join(tmp_path, "standardize_pdalfail_0643_6319_LA93_IGN69.laz")
     standardize(input_file, output_file, multiple_params[0])
     assert os.path.isfile(output_file)
 

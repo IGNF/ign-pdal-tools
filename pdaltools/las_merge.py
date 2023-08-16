@@ -5,7 +5,7 @@ import logging
 from pdaltools.las_info import parse_filename
 
 
-def create_filenames(file: str, tile_width: int=1000, tile_coord_scale: int=1000):
+def create_filenames(file: str, tile_width: int = 1000, tile_coord_scale: int = 1000):
     """Generate the name of the tiles around the input LIDAR tile
     It supposes that the file names are formatted as {prefix1}_{prefix2}_{coordx}_{coordy}_{suffix}
     with coordx and coordy having at least 4 digits
@@ -42,7 +42,7 @@ def create_filenames(file: str, tile_width: int=1000, tile_coord_scale: int=1000
 
 
 def check_tiles_exist(list_las: list):
-    """ Check if pointclouds exist
+    """Check if pointclouds exist
     Args:
         list_las (list): Filenames of the tiles around the LIDAR tile
 
@@ -52,7 +52,7 @@ def check_tiles_exist(list_las: list):
     li = []
     for i in list_las:
         if not os.path.exists(i):
-            logging.info(f'NOK : {i}')
+            logging.info(f"NOK : {i}")
             pass
         else:
             li.append(i)
@@ -99,13 +99,10 @@ def las_merge(las_dir, input_file, merge_file, tile_width=1000, tile_coord_scale
     if len(Listfiles) > 0:
         # Merge
         information = {}
-        information = {
-                "pipeline":
-                        Listfiles + [merge_file]
-        }
+        information = {"pipeline": Listfiles + [merge_file]}
         merge = json.dumps(information, sort_keys=True, indent=4)
         logging.info(merge)
         pipeline = pdal.Pipeline(merge)
         pipeline.execute()
     else:
-        raise ValueError('List of valid tiles is empty : stop processing')
+        raise ValueError("List of valid tiles is empty : stop processing")
