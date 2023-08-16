@@ -5,6 +5,7 @@ import os
 import subprocess as sp
 from typing import Tuple
 
+
 def las_info_metadata(filename: str):
     """Get las info from pdal info --metadata"""
     ret = sp.run(["pdal", "info", filename, "--metadata"], capture_output=True)
@@ -12,29 +13,22 @@ def las_info_metadata(filename: str):
         infos = ret.stdout.decode()
         infos = json.loads(infos)
 
-        return infos['metadata']
+        return infos["metadata"]
 
     else:
         raise RuntimeError(f"pdal info failed with error: \n {ret.stderr}")
 
 
-def las_info_pipeline(filename:str,  spatial_ref:str="EPSG:2154"):
+def las_info_pipeline(filename: str, spatial_ref: str = "EPSG:2154"):
     """Get las info from pdal pipeline with filter.info
     Args:
         filename: input las
         spatial_ref: spatial reference to pass as 'override_srs' argument in las reader
     """
     information = {
-    "pipeline": [
-            {
-                "type": "readers.las",
-                "filename": filename,
-                "override_srs": spatial_ref,
-                "nosrs": True
-            },
-            {
-                "type": "filters.info"
-            }
+        "pipeline": [
+            {"type": "readers.las", "filename": filename, "override_srs": spatial_ref, "nosrs": True},
+            {"type": "filters.info"},
         ]
     }
 
@@ -50,11 +44,11 @@ def las_info_pipeline(filename:str,  spatial_ref:str="EPSG:2154"):
     if type(metadata) == str:
         metadata = json.loads(metadata)
 
-    return metadata['metadata']['filters.info']
+    return metadata["metadata"]["filters.info"]
 
 
-def las_get_xy_bounds(filename: str, buffer_width: int=0, spatial_ref:str="EPSG:2154"):
-    """ Get tile bounds (xy only) from las metadata.
+def las_get_xy_bounds(filename: str, buffer_width: int = 0, spatial_ref: str = "EPSG:2154"):
+    """Get tile bounds (xy only) from las metadata.
     Try getting bounds using las_info_metadata
     As command "pdal_info --metadata" does not seem to work properly on some data
     (TerraSolid output for ex), fallback to las_info_pipeline
@@ -71,7 +65,7 @@ def las_get_xy_bounds(filename: str, buffer_width: int=0, spatial_ref:str="EPSG:
     # Parameters
     _x = []
     _y = []
-    bounds= []
+    bounds = []
     try:
         metadata = las_info_metadata(filename)
         bounds_dict = metadata
@@ -82,12 +76,12 @@ def las_get_xy_bounds(filename: str, buffer_width: int=0, spatial_ref:str="EPSG:
     if type(metadata) == str:
         metadata = json.loads(metadata)
     # Export bound (maxy, maxy, minx and miny), then creating a buffer with 100 m
-    _x.append(float((bounds_dict['minx']) - buffer_width)) # coordinate minX
-    _x.append(float((bounds_dict['maxx']) + buffer_width)) # coordinate maxX
-    _y.append(float((bounds_dict['miny']) - buffer_width)) # coordinate minY
-    _y.append(float((bounds_dict['maxy']) + buffer_width)) # coordinate maxY
-    bounds.append(_x) # [xmin, xmax]
-    bounds.append(_y) # insert [ymin, ymax]
+    _x.append(float((bounds_dict["minx"]) - buffer_width))  # coordinate minX
+    _x.append(float((bounds_dict["maxx"]) + buffer_width))  # coordinate maxX
+    _y.append(float((bounds_dict["miny"]) - buffer_width))  # coordinate minY
+    _y.append(float((bounds_dict["maxy"]) + buffer_width))  # coordinate maxY
+    bounds.append(_x)  # [xmin, xmax]
+    bounds.append(_y)  # insert [ymin, ymax]
 
     return tuple(i for i in bounds)
 
@@ -104,9 +98,10 @@ def parse_filename(file: str):
     return prefix, int(coordx), int(coordy), suffix
 
 
-def get_buffered_bounds_from_filename(filename: str, buffer_width: int=0,
-                                      tile_width: int=1000, tile_coord_scale: int=1000) -> Tuple:
-    """ Get tile bounds (xy only) from las metadata.
+def get_buffered_bounds_from_filename(
+    filename: str, buffer_width: int = 0, tile_width: int = 1000, tile_coord_scale: int = 1000
+) -> Tuple:
+    """Get tile bounds (xy only) from las metadata.
     Try getting bounds using las_info_metadata
     As command "pdal_info --metadata" does not seem to work properly on some data
     (TerraSolid output for ex), fallback to las_info_pipeline
@@ -131,4 +126,4 @@ def get_buffered_bounds_from_filename(filename: str, buffer_width: int=0,
     xs = [minX - buffer_width, maxX + buffer_width]
     ys = [minY - buffer_width, maxY + buffer_width]
 
-    return (xs,ys)
+    return (xs, ys)

@@ -64,7 +64,9 @@ def download_image_from_geoportail(proj, layer, minx, miny, maxx, maxy, pixel_pe
     URL_FORMAT = "&EXCEPTIONS=text/xml&FORMAT=image/geotiff&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&STYLES="
     URL_EPSG = "&CRS=EPSG:" + str(proj)
     URL_BBOX = "&BBOX=" + str(minx) + "," + str(miny) + "," + str(maxx) + "," + str(maxy)
-    URL_SIZE = "&WIDTH=" + str(int((maxx - minx) * pixel_per_meter)) + "&HEIGHT=" + str(int((maxy - miny) * pixel_per_meter))
+    URL_SIZE = (
+        "&WIDTH=" + str(int((maxx - minx) * pixel_per_meter)) + "&HEIGHT=" + str(int((maxy - miny) * pixel_per_meter))
+    )
 
     URL = URL_GPP + "LAYERS=" + layer + URL_FORMAT + URL_EPSG + URL_BBOX + URL_SIZE
 
@@ -149,11 +151,21 @@ def color(
     if color_ir_enabled:
         tmp_ortho_irc = tempfile.NamedTemporaryFile().name
         download_image_from_geoportail_retrying(
-            proj, "ORTHOIMAGERY.ORTHOPHOTOS.IRC", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho_irc, timeout_second
+            proj,
+            "ORTHOIMAGERY.ORTHOPHOTOS.IRC",
+            minx,
+            miny,
+            maxx,
+            maxy,
+            pixel_per_meter,
+            tmp_ortho_irc,
+            timeout_second,
         )
         pipeline |= pdal.Filter.colorization(raster=tmp_ortho_irc, dimensions="Infrared:1:256.0")
 
-    pipeline |= pdal.Writer.las(filename=output_file, extra_dims=writer_extra_dims, minor_version="4", dataformat_id="8")
+    pipeline |= pdal.Writer.las(
+        filename=output_file, extra_dims=writer_extra_dims, minor_version="4", dataformat_id="8"
+    )
 
     print("Traitement du nuage de point")
     pipeline.execute()
@@ -168,12 +180,16 @@ def parse_args():
     parser = argparse.ArgumentParser("Colorize tool")
     parser.add_argument("--input", "-i", type=str, required=True, help="Input file")
     parser.add_argument("--output", "-o", type=str, default="", help="Output file")
-    parser.add_argument("--proj", "-p", type=str, default="", help="Projection, default will use projection from metadata input")
+    parser.add_argument(
+        "--proj", "-p", type=str, default="", help="Projection, default will use projection from metadata input"
+    )
     parser.add_argument("--resolution", "-r", type=float, default=5, help="Resolution, in pixel per meter")
     parser.add_argument("--timeout", "-t", type=int, default=300, help="Timeout, in seconds")
     parser.add_argument("--rvb", action="store_true", help="Colorize RVB")
     parser.add_argument("--ir", action="store_true", help="Colorize IR")
-    parser.add_argument("--vegetation", type=str, default="", help="Vegetation file, value will be stored in Deviation field")
+    parser.add_argument(
+        "--vegetation", type=str, default="", help="Vegetation file, value will be stored in Deviation field"
+    )
     return parser.parse_args()
 
 

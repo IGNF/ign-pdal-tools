@@ -16,3 +16,17 @@ packages = [ "pdaltools" ]
 markers = [
     "geoportail: marks tests that request the (sometimes unreliable) geoportail.gouv.fr",
 ]
+
+[tool.black]
+line-length = 119
+include = '\.pyi?$'
+exclude = '''
+/(
+  \.toml
+  |\.sh
+  |\.git
+  |\.ini
+  |\.bat
+  | data
+)/
+'''
