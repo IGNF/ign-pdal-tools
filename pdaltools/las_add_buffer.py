@@ -8,12 +8,15 @@ import pdal
 from typing import List
 
 
-def create_las_with_buffer(input_dir: str, tile_filename: str,
-                           output_filename: str,
-                           buffer_width: int=100,
-                           spatial_ref: str="EPSG:2154",
-                           tile_width: int=1000,
-                           tile_coord_scale: int=1000):
+def create_las_with_buffer(
+    input_dir: str,
+    tile_filename: str,
+    output_filename: str,
+    buffer_width: int = 100,
+    spatial_ref: str = "EPSG:2154",
+    tile_width: int = 1000,
+    tile_coord_scale: int = 1000,
+):
     """Merge lidar tiles around the queried tile and crop them in order to add a buffer
     to the tile (usually 100m).
     Args:
@@ -26,19 +29,32 @@ def create_las_with_buffer(input_dir: str, tile_filename: str,
         tile_coord_scale (int) : scale used in the filename to describe coordinates in meters
                 (usually 1000m)
     """
-    bounds = get_buffered_bounds_from_filename(tile_filename, buffer_width=buffer_width,
-                                               tile_width=tile_width,
-                                               tile_coord_scale=tile_coord_scale)
+    bounds = get_buffered_bounds_from_filename(
+        tile_filename, buffer_width=buffer_width, tile_width=tile_width, tile_coord_scale=tile_coord_scale
+    )
 
     logging.debug(f"Add buffer of size {buffer_width} to tile.")
-    las_merge_and_crop(input_dir, tile_filename, bounds, output_filename, spatial_ref,
-                       tile_width=tile_width, tile_coord_scale=tile_coord_scale)
+    las_merge_and_crop(
+        input_dir,
+        tile_filename,
+        bounds,
+        output_filename,
+        spatial_ref,
+        tile_width=tile_width,
+        tile_coord_scale=tile_coord_scale,
+    )
 
 
-def las_merge_and_crop(input_dir: str, tile_filename: str, bounds: List,
-        output_filename: str, spatial_ref: str="EPSG:2154",
-        tile_width=1000, tile_coord_scale=1000):
-    """ Merge and crop las in a single pipeline (for buffer addition)
+def las_merge_and_crop(
+    input_dir: str,
+    tile_filename: str,
+    bounds: List,
+    output_filename: str,
+    spatial_ref: str = "EPSG:2154",
+    tile_width=1000,
+    tile_coord_scale=1000,
+):
+    """Merge and crop las in a single pipeline (for buffer addition)
 
     For performance reasons, instead of using a pipeline that reads all files, merge them and
     then crop to the desired bbox, what is done is:
@@ -86,40 +102,35 @@ def las_merge_and_crop(input_dir: str, tile_filename: str, bounds: List,
         logging.info(pipeline.toJSON())
         pipeline.execute()
     else:
-        raise ValueError('List of valid tiles is empty : stop processing')
+        raise ValueError("List of valid tiles is empty : stop processing")
     pass
 
 
 def parse_args():
     parser = argparse.ArgumentParser("Add a buffer to a las tile by stitching with its neighbors")
     parser.add_argument(
-        "--input_dir", "-i",
+        "--input_dir",
+        "-i",
         type=str,
         required=True,
-        help="Path to the the folder containing the tile to which you want to add buffer"+
-             "as well as its neighbors tiles")
+        help="Path to the the folder containing the tile to which you want to add buffer"
+        + "as well as its neighbors tiles",
+    )
     parser.add_argument(
-        "--tile_filename", "-f",
-        type=str,
-        required=True,
-        help="Filename of the input tile (basename only)")
+        "--tile_filename", "-f", type=str, required=True, help="Filename of the input tile (basename only)"
+    )
+    parser.add_argument("--output_dir", "-o", type=str, required=True, help="Directory folder for saving the outputs")
     parser.add_argument(
-        "--output_dir", "-o",
-        type=str,
-        required=True,
-        help="Directory folder for saving the outputs")
-    parser.add_argument(
-        "--buffer_width", "-b",
+        "--buffer_width",
+        "-b",
         default=100,
         type=int,
-        help="Width (in meter) for the buffer that is added to the tile before interpolation " +
-             "(to prevent artefacts)"
+        help="Width (in meter) for the buffer that is added to the tile before interpolation "
+        + "(to prevent artefacts)",
     )
     # Optional parameters
     parser.add_argument(
-        "--spatial_reference",
-        default="EPSG:2154",
-        help="Spatial reference to use to override the one from input las."
+        "--spatial_reference", default="EPSG:2154", help="Spatial reference to use to override the one from input las."
     )
 
     return parser.parse_args()
@@ -127,8 +138,10 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    create_las_with_buffer(input_dir=args.input_dir,
-                           tile_filename=os.path.join(args.input_dir, args.tile_filename),
-                           output_filename=os.path.join(args.output_dir, args.tile_filename),
-                           buffer_width=args.buffer_width,
-                           spatial_ref=args.spatial_reference)
+    create_las_with_buffer(
+        input_dir=args.input_dir,
+        tile_filename=os.path.join(args.input_dir, args.tile_filename),
+        output_filename=os.path.join(args.output_dir, args.tile_filename),
+        buffer_width=args.buffer_width,
+        spatial_ref=args.spatial_reference,
+    )
