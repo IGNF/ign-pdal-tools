@@ -153,15 +153,7 @@ def color(
     if color_rvb_enabled:
         tmp_ortho = tempfile.NamedTemporaryFile().name
         download_image_from_geoportail_retrying(
-            proj,
-            "ORTHOIMAGERY.ORTHOPHOTOS",
-            minx,
-            miny,
-            maxx,
-            maxy,
-            pixel_per_meter,
-            tmp_ortho,
-            timeout_second,
+            proj, "ORTHOIMAGERY.ORTHOPHOTOS", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho, timeout_second
         )
         pipeline |= pdal.Filter.colorization(raster=tmp_ortho, dimensions="Red:1:256.0, Green:2:256.0, Blue:3:256.0")
 
@@ -199,34 +191,18 @@ def parse_args():
     parser.add_argument("--input", "-i", type=str, required=True, help="Input file")
     parser.add_argument("--output", "-o", type=str, default="", help="Output file")
     parser.add_argument(
-        "--proj",
-        "-p",
-        type=str,
-        default="",
-        help="Projection, default will use projection from metadata input",
+        "--proj", "-p", type=str, default="", help="Projection, default will use projection from metadata input"
     )
     parser.add_argument("--resolution", "-r", type=float, default=5, help="Resolution, in pixel per meter")
     parser.add_argument("--timeout", "-t", type=int, default=300, help="Timeout, in seconds")
     parser.add_argument("--rvb", action="store_true", help="Colorize RVB")
     parser.add_argument("--ir", action="store_true", help="Colorize IR")
     parser.add_argument(
-        "--vegetation",
-        type=str,
-        default="",
-        help="Vegetation file, value will be stored in Deviation field",
+        "--vegetation", type=str, default="", help="Vegetation file, value will be stored in Deviation field"
     )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    color(
-        args.input,
-        args.output,
-        args.proj,
-        args.resolution,
-        args.timeout,
-        args.rvb,
-        args.ir,
-        args.vegetation,
-    )
+    color(args.input, args.output, args.proj, args.resolution, args.timeout, args.rvb, args.ir, args.vegetation)
