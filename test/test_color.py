@@ -23,21 +23,15 @@ def setup_module(module):
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 INPUT_PATH = os.path.join(TEST_PATH, "data/test_noepsg_043500_629205_IGN69.laz")
-INPUT_PATH_SINGLE_POINT_CLOUD = os.path.join(
-    TEST_PATH, "data/test_data_0436_6384_LA93_IGN69_single_point.laz"
-)
+INPUT_PATH_SINGLE_POINT_CLOUD = os.path.join(TEST_PATH, "data/test_data_0436_6384_LA93_IGN69_single_point.laz")
 
 OUTPUT_FILE = TMPDIR + "Semis_2021_0435_6292_LA93_IGN69.las"
-OUTPUT_FILE_SINGLE_POINT_CLOUD = (
-    TMPDIR + "test_data_0436_6384_LA93_IGN69_single_point.colorized.laz"
-)
+OUTPUT_FILE_SINGLE_POINT_CLOUD = TMPDIR + "test_data_0436_6384_LA93_IGN69_single_point.colorized.laz"
 
 
 @pytest.mark.geoportail
 def test_epsg_fail():
-    with pytest.raises(
-        requests.exceptions.HTTPError, match="400 Client Error: BadRequest for url"
-    ):
+    with pytest.raises(requests.exceptions.HTTPError, match="400 Client Error: BadRequest for url"):
         color.color(INPUT_PATH, OUTPUT_FILE, "", 0.1, 15)
 
 
@@ -63,18 +57,14 @@ def test_color_narrow_cloud():
 
 @pytest.mark.geoportail
 def test_download_image_ok():
-    color.download_image_from_geoportail(
-        epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15
-    )
+    color.download_image_from_geoportail(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15)
 
 
 @pytest.mark.geoportail
 def test_download_image_raise1():
     retry_download = color.retry(2, 5)(color.download_image_from_geoportail)
     with pytest.raises(requests.exceptions.HTTPError):
-        retry_download(
-            epsg, "MAUVAISE_COUCHE", minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15
-        )
+        retry_download(epsg, "MAUVAISE_COUCHE", minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15)
 
 
 @pytest.mark.geoportail
