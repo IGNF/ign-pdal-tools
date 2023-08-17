@@ -1,5 +1,15 @@
 # dev
 
+# 1.3.0
+- color: support colorization for <0.2m clouds (including height=0/width=0)
+- color: ceil width/height to have a bbox that contains all points
+
+# 1.2.1
+- fix cicd_full github action: deployment was triggered on pushing to dev instead of master only
+
+# 1.2.0
+- color: keep downloaded orthoimages by returning them to make them stay in execution scope
+
 # 1.1.1
 - unlock: fix main
 - tests:
@@ -8,7 +18,7 @@
 
 # 1.1.0
 - standardization: handle malformed laz input ("Global encoding WKT flag not set for point format 6 - 10")
-color: extract unlock module from colorization and rename colorization function
+- color: extract unlock module from colorization and rename colorization function
 
 # 1.0.0
 - first public version

@@ -21,16 +21,15 @@ tile_coord_scale = 10
 
 input_nb_points = 22343
 expected_output_nb_points = 40177
-expected_out_mins = [770540.01, 6277540.]
-expected_out_maxs = [770610., 6277600.]
-
+expected_out_mins = [770540.01, 6277540.0]
+expected_out_maxs = [770610.0, 6277600.0]
 
 
 def setup_module(module):
     try:
         shutil.rmtree(tmp_path)
 
-    except (FileNotFoundError):
+    except FileNotFoundError:
         pass
     os.mkdir(tmp_path)
 
@@ -57,8 +56,13 @@ def get_2d_bounding_box(path):
 def test_create_las_with_buffer():
     buffer_width = 10
     create_las_with_buffer(
-        input_dir, input_file, output_file, buffer_width=buffer_width,
-        tile_width=tile_width,tile_coord_scale=tile_coord_scale)
+        input_dir,
+        input_file,
+        output_file,
+        buffer_width=buffer_width,
+        tile_width=tile_width,
+        tile_coord_scale=tile_coord_scale,
+    )
     logging.info(get_nb_points(input_file))
     # check file exists
     assert os.path.isfile(output_file)
@@ -69,7 +73,7 @@ def test_create_las_with_buffer():
 
     # The following test does not work on the current test case as there is no tile on the left
     # and the top of the tile
-    assert np.all(np.isclose(out_mins,  in_mins - buffer_width))
+    assert np.all(np.isclose(out_mins, in_mins - buffer_width))
     assert np.all(np.isclose(out_maxs, in_maxs + buffer_width))
 
     # check number of points

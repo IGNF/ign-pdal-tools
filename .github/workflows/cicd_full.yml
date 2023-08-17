@@ -1,5 +1,5 @@
 
-name: cicd_deploy
+name: cicd_full
 
 on:
   # Run tests for pull-requests on master
