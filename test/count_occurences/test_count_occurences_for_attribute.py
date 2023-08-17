@@ -12,25 +12,27 @@ tmp_path = os.path.join(test_path, "tmp")
 input_dir = os.path.join(test_path, "data/classified_laz")
 input_files = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(("las", "laz"))]
 output_file = os.path.join(tmp_path, "count.json")
-single_input_file = os.path.join(input_dir, 'test_data_77050_627755_LA93_IGN69.laz')
-counts_single_json = os.path.join(test_path, "data", "counts", 'count_test_data_77050_627755_LA93_IGN69.json')
+single_input_file = os.path.join(input_dir, "test_data_77050_627755_LA93_IGN69.laz")
+counts_single_json = os.path.join(test_path, "data", "counts", "count_test_data_77050_627755_LA93_IGN69.json")
 
 attribute = "Classification"
-expected_counts = Counter({
-    '1': 6830,
-    '2': 54740,
-    '3': 605,
-    '4': 2160,
-    '5': 42546,
-    '6': 33595,
-    '64': 83,
-})
+expected_counts = Counter(
+    {
+        "1": 6830,
+        "2": 54740,
+        "3": 605,
+        "4": 2160,
+        "5": 42546,
+        "6": 33595,
+        "64": 83,
+    }
+)
 
 
 def setup_module(module):
     try:
         shutil.rmtree(tmp_path)
-    except (FileNotFoundError):
+    except FileNotFoundError:
         pass
     os.mkdir(tmp_path)
 

@@ -13,21 +13,23 @@ input_files = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.en
 output_file = os.path.join(tmp_path, "merged_counts.json")
 
 attribute = "Classification"
-expected_counts = Counter({
-    '1': 6830,
-    '2': 54740,
-    '3': 605,
-    '4': 2160,
-    '5': 42546,
-    '6': 33595,
-    '64': 83,
-})
+expected_counts = Counter(
+    {
+        "1": 6830,
+        "2": 54740,
+        "3": 605,
+        "4": 2160,
+        "5": 42546,
+        "6": 33595,
+        "64": 83,
+    }
+)
 
 
 def setup_module(module):
     try:
         shutil.rmtree(tmp_path)
-    except (FileNotFoundError):
+    except FileNotFoundError:
         pass
     os.mkdir(tmp_path)
 

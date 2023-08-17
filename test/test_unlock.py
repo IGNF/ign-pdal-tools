@@ -9,13 +9,13 @@ from pdaltools.unlock_file import unlock_file, copy_and_hack_decorator
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMPDIR = os.path.join(TEST_PATH, "tmp")
-LAZ_FILE = os.path.join(TEST_PATH, 'data/test_pdalfail_0643_6319_LA93_IGN69.laz')
+LAZ_FILE = os.path.join(TEST_PATH, "data/test_pdalfail_0643_6319_LA93_IGN69.laz")
 
 
 def setup_module(module):
     try:
         shutil.rmtree(TMPDIR)
-    except (FileNotFoundError):
+    except FileNotFoundError:
         pass
     os.mkdir(TMPDIR)
 
