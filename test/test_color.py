@@ -23,8 +23,10 @@ def setup_module(module):
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 INPUT_PATH = os.path.join(TEST_PATH, "data/test_noepsg_043500_629205_IGN69.laz")
+INPUT_PATH_SINGLE_POINT_CLOUD = os.path.join(TEST_PATH, "data/test_data_0436_6384_LA93_IGN69_single_point.laz")
 
 OUTPUT_FILE = TMPDIR + "Semis_2021_0435_6292_LA93_IGN69.las"
+OUTPUT_FILE_SINGLE_POINT_CLOUD = TMPDIR + "test_data_0436_6384_LA93_IGN69_single_point.colorized.laz"
 
 
 @pytest.mark.geoportail
@@ -46,6 +48,11 @@ def test_color_and_keeping_orthoimages():
     tmp_ortho, tmp_ortho_irc = color.color(INPUT_PATH, OUTPUT_FILE, epsg)
     assert Path(tmp_ortho).exists()
     assert Path(tmp_ortho_irc).exists()
+
+
+def test_color_narrow_cloud():
+    # Test that clouds that are smaller in width or height to 20cm are still clorized without an error.
+    color.color(INPUT_PATH_SINGLE_POINT_CLOUD, OUTPUT_FILE_SINGLE_POINT_CLOUD, epsg)
 
 
 @pytest.mark.geoportail

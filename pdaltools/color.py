@@ -1,4 +1,5 @@
 import json
+from math import ceil
 import subprocess as sp
 import tempfile
 import pdal
@@ -59,13 +60,22 @@ def retry(times, delay, factor=2, debug=False):
 
 
 def download_image_from_geoportail(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout):
+    # Give single-point clouds a width/height of at least one pixel to have valid BBOX and SIZE
+    if minx == maxx:
+        maxx = minx + 1 / pixel_per_meter
+    if miny == maxy:
+        maxy = miny + 1 / pixel_per_meter
+
     # for layer in layers:
     URL_GPP = "https://wxs.ign.fr/ortho/geoportail/r/wms?"
     URL_FORMAT = "&EXCEPTIONS=text/xml&FORMAT=image/geotiff&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&STYLES="
     URL_EPSG = "&CRS=EPSG:" + str(proj)
     URL_BBOX = "&BBOX=" + str(minx) + "," + str(miny) + "," + str(maxx) + "," + str(maxy)
     URL_SIZE = (
-        "&WIDTH=" + str(int((maxx - minx) * pixel_per_meter)) + "&HEIGHT=" + str(int((maxy - miny) * pixel_per_meter))
+        "&WIDTH="
+        + str(ceil((maxx - minx) * pixel_per_meter))
+        + "&HEIGHT="
+        + str(ceil((maxy - miny) * pixel_per_meter))
     )
 
     URL = URL_GPP + "LAYERS=" + layer + URL_FORMAT + URL_EPSG + URL_BBOX + URL_SIZE
