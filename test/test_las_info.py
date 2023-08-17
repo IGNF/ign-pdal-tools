@@ -17,8 +17,8 @@ test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")
 input_dir = os.path.join(test_path, "data")
 input_file = os.path.join(input_dir, f"test_data_{coord_x}_{coord_y}_LA93_IGN69_ground.las")
-input_mins = [ 770550., 6277550.]
-input_maxs = [ 770600., 6277600.]
+input_mins = [770550.0, 6277550.0]
+input_maxs = [770600.0, 6277600.0]
 
 
 def test_las_info_metadata():
@@ -57,16 +57,17 @@ def test_parse_filename():
 
 
 def test_get_buffered_bounds_from_filename_no_buffer():
-    xs, ys = las_info.get_buffered_bounds_from_filename(input_file, tile_width=tile_width,
-                                                        tile_coord_scale=tile_coord_scale)
+    xs, ys = las_info.get_buffered_bounds_from_filename(
+        input_file, tile_width=tile_width, tile_coord_scale=tile_coord_scale
+    )
     assert xs == [770550, 770600]
     assert ys == [6277550, 6277600]
 
 
 def test_get_buffered_bounds_from_filename_with_buffer():
     buffer_width = 10
-    xs, ys = las_info.get_buffered_bounds_from_filename(input_file, tile_width=tile_width,
-                                                        tile_coord_scale=tile_coord_scale,
-                                                        buffer_width=buffer_width)
+    xs, ys = las_info.get_buffered_bounds_from_filename(
+        input_file, tile_width=tile_width, tile_coord_scale=tile_coord_scale, buffer_width=buffer_width
+    )
     assert xs == [770550 - buffer_width, 770600 + buffer_width]
     assert ys == [6277550 - buffer_width, 6277600 + buffer_width]
