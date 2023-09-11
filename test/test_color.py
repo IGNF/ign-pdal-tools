@@ -46,8 +46,8 @@ pixel_per_meter = 0.1
 
 def test_color_and_keeping_orthoimages():
     tmp_ortho, tmp_ortho_irc = color.color(INPUT_PATH, OUTPUT_FILE, epsg)
-    assert Path(tmp_ortho).exists()
-    assert Path(tmp_ortho_irc).exists()
+    assert Path(tmp_ortho.name).exists()
+    assert Path(tmp_ortho_irc.name).exists()
 
 
 def test_color_narrow_cloud():
