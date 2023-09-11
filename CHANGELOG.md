@@ -1,5 +1,8 @@
 # dev
 
+# 1.3.1
+- fix color: ensure that tmp orthoimages are deleted after use by using the namedTemporaryFile properly.
+
 # 1.3.0
 - color: support colorization for <0.2m clouds (including height=0/width=0)
 - color: ceil width/height to have a bbox that contains all points
