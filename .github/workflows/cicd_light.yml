@@ -28,6 +28,10 @@ jobs:
           cache-downloads: true
           generate-run-shell: true
 
+      - name: Run import pdal
+        shell: micromamba-shell {0}
+        run: python -c "import pdal"
+
       - name: Run tests with pytest
         shell: micromamba-shell {0}
         run: python -m pytest ./test -s --log-cli-level DEBUG -m "not geoportail"
