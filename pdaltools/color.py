@@ -151,15 +151,17 @@ def color(
 
     tmp_ortho = None
     if color_rvb_enabled:
-        tmp_ortho = tempfile.NamedTemporaryFile().name
+        tmp_ortho = tempfile.NamedTemporaryFile()
         download_image_from_geoportail_retrying(
-            proj, "ORTHOIMAGERY.ORTHOPHOTOS", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho, timeout_second
+            proj, "ORTHOIMAGERY.ORTHOPHOTOS", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho.name, timeout_second
         )
-        pipeline |= pdal.Filter.colorization(raster=tmp_ortho, dimensions="Red:1:256.0, Green:2:256.0, Blue:3:256.0")
+        pipeline |= pdal.Filter.colorization(
+            raster=tmp_ortho.name, dimensions="Red:1:256.0, Green:2:256.0, Blue:3:256.0"
+        )
 
     tmp_ortho_irc = None
     if color_ir_enabled:
-        tmp_ortho_irc = tempfile.NamedTemporaryFile().name
+        tmp_ortho_irc = tempfile.NamedTemporaryFile()
         download_image_from_geoportail_retrying(
             proj,
             "ORTHOIMAGERY.ORTHOPHOTOS.IRC",
@@ -168,10 +170,10 @@ def color(
             maxx,
             maxy,
             pixel_per_meter,
-            tmp_ortho_irc,
+            tmp_ortho_irc.name,
             timeout_second,
         )
-        pipeline |= pdal.Filter.colorization(raster=tmp_ortho_irc, dimensions="Infrared:1:256.0")
+        pipeline |= pdal.Filter.colorization(raster=tmp_ortho_irc.name, dimensions="Infrared:1:256.0")
 
     pipeline |= pdal.Writer.las(
         filename=output_file, extra_dims=writer_extra_dims, minor_version="4", dataformat_id="8"
