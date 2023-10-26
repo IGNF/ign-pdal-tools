@@ -1,4 +1,5 @@
 # dev
+- count_occurences / replace_value: add copy_and_hack decorator to run on tscan output files
 
 # 1.3.1
 - fix color: ensure that tmp orthoimages are deleted after use by using the namedTemporaryFile properly.

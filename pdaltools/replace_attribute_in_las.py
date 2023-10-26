@@ -10,6 +10,8 @@ from pdaltools.standardize_format import get_writer_parameters, exec_las2las
 import tempfile
 from typing import List, Dict
 
+from pdaltools.unlock_file import copy_and_hack_decorator
+
 
 def parse_args():
     parser = argparse.ArgumentParser("Replace values of a given attribute in a las/laz file.")
@@ -65,6 +67,7 @@ def dict_to_pdal_assign_list(d: Dict, output_attribute: str = "Classification", 
     return assignment_list
 
 
+@copy_and_hack_decorator
 def replace_values(
     input_file: str,
     output_file: str,
@@ -109,9 +112,8 @@ def replace_values_clean(
     attribute: str = "Classification",
     writer_parameters: Dict = {},
 ):
-    _, extension = os.path.splitext(output_file)
-    with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
-        tmp.close()
+    filename = os.path.basename(output_file)
+    with tempfile.NamedTemporaryFile(suffix=filename) as tmp:
         replace_values(input_file, tmp.name, replacement_map, attribute, writer_parameters)
         exec_las2las(tmp.name, output_file)
 
