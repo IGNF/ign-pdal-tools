@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.10.*
-  - conda-forge:pdal==2.5.*
+  - conda-forge:pdal>=2.6.*
   - conda-forge:python-pdal==3.2.*
   - requests
   - gdal
