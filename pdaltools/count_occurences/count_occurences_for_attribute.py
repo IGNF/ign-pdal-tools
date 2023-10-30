@@ -10,6 +10,8 @@ import pdal
 from tqdm import tqdm
 from typing import List
 
+from pdaltools.unlock_file import copy_and_hack_decorator
+
 
 def parse_args():
     parser = argparse.ArgumentParser("Count points with each value of an attribute.")
@@ -25,6 +27,7 @@ def parse_args():
     return parser.parse_args()
 
 
+@copy_and_hack_decorator
 def compute_count_one_file(filepath: str, attribute: str = "Classification") -> Counter:
     pipeline = pdal.Reader.las(filepath)
     pipeline |= pdal.Filter.stats(dimensions=attribute, count=attribute)
