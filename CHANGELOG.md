@@ -1,5 +1,7 @@
 # dev
 - count_occurences / replace_value: add copy_and_hack decorator to run on tscan output files
+- Update to pdal 2.6+ to better handle classification values and flags in replace_attribute_in_las
+(was treating values over 31 as {classification under 31 + flag} even when saving to LAS 1.4)
 
 # 1.3.1
 - fix color: ensure that tmp orthoimages are deleted after use by using the namedTemporaryFile properly.
