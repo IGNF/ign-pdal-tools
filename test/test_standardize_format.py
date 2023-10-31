@@ -3,7 +3,7 @@ import pytest
 import shutil
 from pdaltools.standardize_format import rewrite_with_pdal, standardize, exec_las2las
 import logging
-from test.utils import get_pdal_infos_summary
+from test.utils import get_pdal_infos_summary, EXPECTED_DIMS_BY_DATAFORMAT
 import pdal
 import subprocess as sp
 
@@ -20,51 +20,6 @@ multiple_params = [
     {"dataformat_id": 6, "a_srs": "EPSG:2154"},
     {"dataformat_id": 8, "a_srs": "EPSG:4326"},
 ]
-
-expected_dims = {
-    6: set(
-        [
-            "X",
-            "Y",
-            "Z",
-            "Intensity",
-            "ReturnNumber",
-            "NumberOfReturns",
-            "ClassFlags",
-            "ScanChannel",
-            "ScanDirectionFlag",
-            "EdgeOfFlightLine",
-            "Classification",
-            "UserData",
-            "ScanAngleRank",
-            "PointSourceId",
-            "GpsTime",
-        ]
-    ),
-    8: set(
-        [
-            "X",
-            "Y",
-            "Z",
-            "Intensity",
-            "ReturnNumber",
-            "NumberOfReturns",
-            "ClassFlags",
-            "ScanChannel",
-            "ScanDirectionFlag",
-            "EdgeOfFlightLine",
-            "Classification",
-            "UserData",
-            "ScanAngleRank",
-            "PointSourceId",
-            "GpsTime",
-            "Red",
-            "Green",
-            "Blue",
-            "Infrared",
-        ]
-    ),
-}
 
 
 def setup_module(module):
@@ -94,7 +49,7 @@ def _test_standardize_format_one_params_set(params):
     assert metadata["dataformat_id"] == params["dataformat_id"]
     # Check that there is no extra dim
     dimensions = set([d.strip() for d in json_info["summary"]["dimensions"].split(",")])
-    assert dimensions == expected_dims[params["dataformat_id"]]
+    assert dimensions == EXPECTED_DIMS_BY_DATAFORMAT[params["dataformat_id"]]
 
     # TODO: Check srs
     # TODO: check precision

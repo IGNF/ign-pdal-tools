@@ -76,9 +76,8 @@ def exec_las2las(input_file: str, output_file: str):
 
 @copy_and_hack_decorator
 def standardize(input_file: str, output_file: str, params_from_parser: Dict) -> None:
-    _, extension = os.path.splitext(output_file)
-    with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
-        tmp.close()
+    filename = os.path.basename(output_file)
+    with tempfile.NamedTemporaryFile(suffix=filename) as tmp:
         rewrite_with_pdal(input_file, tmp.name, params_from_parser)
         exec_las2las(tmp.name, output_file)
 

@@ -10,7 +10,7 @@ from pdaltools.count_occurences.count_occurences_for_attribute import compute_co
 from pdaltools.standardize_format import get_writer_parameters
 import pytest
 import shutil
-from test.utils import get_pdal_infos_summary
+from test.utils import get_pdal_infos_summary, EXPECTED_DIMS_BY_DATAFORMAT
 from typing import Dict
 from test.test_standardize_format import assert_lasinfo_no_warning
 
@@ -28,20 +28,22 @@ input_counts = Counter(
         "4": 1227,
         "5": 30392,
         "6": 29447,
-        "64": 13,
+        "0": 13,
     }
 )
+colored_las_params = get_writer_parameters({"dataformat_id": 8})
 
-expected_counts = Counter({"2": 21172, "3": 226, "4": 1227, "5": 30392, "64": 29447, "201": 2047 + 13})
+expected_counts = Counter({"0": 13, "2": 226, "4": 1227, "5": 30392, "65": 29447, "201": 2047 + 21172})
 
 replacement_map_fail = {
     "201": ["1", "64"],
     "6": ["64"],
-}  # has duplicatevalue to replace
+}  # has duplicate value to replace, so it should fail
 
 replacement_map_success = {
-    "201": ["1", "64"],
-    "64": ["6"],
+    "201": ["1", "2"],
+    "2": ["3"],  # check that the replacement is correct when a value is both replaced and to replace
+    "65": ["6"],  # check that values over 31 are interpreted correctly in las 1.4 output
 }
 
 # test replacement map parsing
@@ -59,8 +61,8 @@ def setup_module(module):
     os.mkdir(tmp_path)
 
 
-def test_replace_values():
-    replace_values(input_file, output_file, replacement_map_success, attribute)
+def test_replace_values_ok():
+    replace_values(input_file, output_file, replacement_map_success, attribute, colored_las_params)
     count = compute_count_one_file(output_file, attribute)
 
     assert count == expected_counts
@@ -78,11 +80,11 @@ def test_replace_values_duplicate_input():
 
 
 def check_dimensions(input_file, output_file):
-    input_summary = get_pdal_infos_summary(input_file)
-    input_dimensions = set(input_summary["summary"]["dimensions"])
     output_summary = get_pdal_infos_summary(output_file)
-    output_dimensions = set(output_summary["summary"]["dimensions"])
-    assert input_dimensions == output_dimensions
+    output_dimensions = [s.strip() for s in output_summary["summary"]["dimensions"].split(",")]
+    print(sorted(output_dimensions))
+    print(sorted(EXPECTED_DIMS_BY_DATAFORMAT[8]))
+    assert set(output_dimensions) == set(EXPECTED_DIMS_BY_DATAFORMAT[8])
 
 
 def test_parse_replacement_map_from_path_or_json_string_path_ok():
