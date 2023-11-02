@@ -1,4 +1,4 @@
-# dev
+# 1.4.1
 - fix copy_and_hack_decorator (was not returning the decorated function output)
 
 # 1.4.0
