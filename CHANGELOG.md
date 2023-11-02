@@ -1,3 +1,6 @@
+# dev
+- fix copy_and_hack_decorator (was not returning the decorated function output)
+
 # 1.4.0
 - count_occurences / replace_value: add copy_and_hack decorator to run on tscan output files
 - Update to pdal 2.6+ to better handle classification values and flags in replace_attribute_in_las

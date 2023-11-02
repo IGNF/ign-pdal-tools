@@ -28,7 +28,8 @@ def decorated_pdal_info_json(input_file: str):
 def test_copy_and_hack_decorator_simple():
     TMP_FILE = os.path.join(TMPDIR, "copy_and_hack_simple.laz")
     shutil.copy(LAZ_FILE, TMP_FILE)
-    decorated_pdal_info_json(TMP_FILE)
+    ret = decorated_pdal_info_json(TMP_FILE)
+    assert ret  # Check that the return value of the decorated function is returned
 
 
 @pytest.mark.geoportail
