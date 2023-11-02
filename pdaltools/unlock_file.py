@@ -43,7 +43,8 @@ def copy_and_hack_decorator(func):
                 with tempfile.NamedTemporaryFile(suffix=os.path.splitext(in_file)[-1]) as tmp:
                     copy_and_hack_input_file(in_file, tmp.name)
                     args[0] = tmp.name
-                    func(*args, **kwargs)
+
+                    return func(*args, **kwargs)
 
             else:
                 raise e
