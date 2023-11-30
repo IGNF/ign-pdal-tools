@@ -9,56 +9,79 @@ from typing import Dict
 import numpy as np
 
 
-coord_x = 77055
-coord_y = 627760
-tile_width = 50
-tile_coord_scale = 10
-test_path = os.path.dirname(os.path.abspath(__file__))
-tmp_path = os.path.join(test_path, "tmp")
-input_dir = os.path.join(test_path, "data")
-input_file = os.path.join(input_dir, f"test_data_{coord_x}_{coord_y}_LA93_IGN69_ground.las")
-input_mins = [770550.0, 6277550.0]
-input_maxs = [770600.0, 6277600.0]
+TEST_PATH = os.path.dirname(os.path.abspath(__file__))
+TMP_PATH = os.path.join(TEST_PATH, "tmp")
+DATA_PATH = os.path.join(TEST_PATH, "data")
+
+# Description of the test data
+COORD_X = 77055
+COORD_Y = 627760
+
+INPUT_FILE = os.path.join(DATA_PATH, f"test_data_{COORD_X}_{COORD_Y}_LA93_IGN69_ground.las")
+
+TILE_WIDTH = 50
+TILE_COORD_SCALE = 10
+INPUT_MINS = [770550.0, 6277550.0]
+INPUT_MAXS = [770600.0, 6277600.0]
 
 
 def test_las_info_metadata():
-    metadata = las_info.las_info_metadata(input_file)
+    metadata = las_info.las_info_metadata(INPUT_FILE)
     assert type(metadata) == dict
     assert bool(metadata)  # check that metadata dict is not empty
 
 
 def test_las_info_pipeline():
-    info = las_info.las_info_pipeline(input_file)
+    info = las_info.las_info_pipeline(INPUT_FILE)
     assert type(info) == dict
     assert bool(info)  # check that info dict is not empty
 
 
+def test_get_bounds_from_quickinfo_metadata():
+    metadata = las_info.las_info_metadata(INPUT_FILE)
+    bounds = las_info.get_bounds_from_header_info(metadata)
+    assert bounds == (INPUT_MINS[0], INPUT_MAXS[0], INPUT_MINS[1], INPUT_MAXS[1])
+
+
+def test_get_epsg_from_quickinfo_metadata_ok():
+    metadata = las_info.las_info_metadata(INPUT_FILE)
+    assert las_info.get_epsg_from_header_info(metadata) == "2154"
+
+
+def test_get_epsg_from_quickinfo_metadata_no_epsg():
+    input_file = os.path.join(DATA_PATH, "test_noepsg_043500_629205_IGN69.laz")
+
+    metadata = las_info.las_info_metadata(input_file)
+    with pytest.raises(RuntimeError):
+        las_info.get_epsg_from_header_info(metadata)
+
+
 def test_las_get_xy_bounds_no_buffer():
-    bounds = las_info.las_get_xy_bounds(input_file)
-    expected_xs = [input_mins[0], input_maxs[0]]
-    expected_ys = [input_mins[1], input_maxs[1]]
+    bounds = las_info.las_get_xy_bounds(INPUT_FILE)
+    expected_xs = [INPUT_MINS[0], INPUT_MAXS[0]]
+    expected_ys = [INPUT_MINS[1], INPUT_MAXS[1]]
     assert np.allclose(bounds, [expected_xs, expected_ys], rtol=1e-06)
 
 
 def test_las_get_xy_bounds_with_buffer():
     buffer_width = 10
-    bounds = las_info.las_get_xy_bounds(input_file, buffer_width=buffer_width)
-    expected_xs = [input_mins[0] - buffer_width, input_maxs[0] + buffer_width]
-    expected_ys = [input_mins[1] - buffer_width, input_maxs[1] + buffer_width]
+    bounds = las_info.las_get_xy_bounds(INPUT_FILE, buffer_width=buffer_width)
+    expected_xs = [INPUT_MINS[0] - buffer_width, INPUT_MAXS[0] + buffer_width]
+    expected_ys = [INPUT_MINS[1] - buffer_width, INPUT_MAXS[1] + buffer_width]
     assert np.allclose(bounds, [expected_xs, expected_ys], rtol=1e-06)
 
 
 def test_parse_filename():
-    prefix, parsed_coord_x, parsed_coord_y, suffix = las_info.parse_filename(input_file)
+    prefix, parsed_coord_x, parsed_coord_y, suffix = las_info.parse_filename(INPUT_FILE)
     assert prefix == "test_data"
     assert suffix == "LA93_IGN69_ground.las"
-    assert parsed_coord_x == coord_x
-    assert parsed_coord_y == coord_y
+    assert parsed_coord_x == COORD_X
+    assert parsed_coord_y == COORD_Y
 
 
 def test_get_buffered_bounds_from_filename_no_buffer():
     xs, ys = las_info.get_buffered_bounds_from_filename(
-        input_file, tile_width=tile_width, tile_coord_scale=tile_coord_scale
+        INPUT_FILE, tile_width=TILE_WIDTH, tile_coord_scale=TILE_COORD_SCALE
     )
     assert xs == [770550, 770600]
     assert ys == [6277550, 6277600]
@@ -67,7 +90,7 @@ def test_get_buffered_bounds_from_filename_no_buffer():
 def test_get_buffered_bounds_from_filename_with_buffer():
     buffer_width = 10
     xs, ys = las_info.get_buffered_bounds_from_filename(
-        input_file, tile_width=tile_width, tile_coord_scale=tile_coord_scale, buffer_width=buffer_width
+        INPUT_FILE, tile_width=TILE_WIDTH, tile_coord_scale=TILE_COORD_SCALE, buffer_width=buffer_width
     )
     assert xs == [770550 - buffer_width, 770600 + buffer_width]
     assert ys == [6277550 - buffer_width, 6277600 + buffer_width]

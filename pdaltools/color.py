@@ -1,14 +1,12 @@
-import json
 from math import ceil
-import subprocess as sp
 import tempfile
 import pdal
 import requests
-from osgeo.osr import SpatialReference
 import time
 import argparse
 
 from pdaltools.unlock_file import copy_and_hack_decorator
+import pdaltools.las_info as las_info
 
 
 def pretty_time_delta(seconds):
@@ -90,35 +88,6 @@ def download_image_from_geoportail(proj, layer, minx, miny, maxx, maxy, pixel_pe
     open(outfile, "wb").write(req.content)
 
 
-def proj_from_metadata(metadata):
-    spatial_wkt = metadata["comp_spatialreference"]
-    osr_crs = SpatialReference()
-    osr_crs.ImportFromWkt(spatial_wkt)
-    authority = osr_crs.GetAttrValue("AUTHORITY", 0)
-    if authority == "EPSG":
-        proj = osr_crs.GetAttrValue("AUTHORITY", 1)
-    else:
-        proj = "2154"  # par defaut
-    return proj
-
-
-def pdal_info_json(input_file: str):
-    r = sp.run(["pdal", "info", "--metadata", input_file], stderr=sp.PIPE, stdout=sp.PIPE)
-    if r.returncode == 1:
-        msg = r.stderr.decode()
-        print(msg)
-        raise RuntimeError(msg)
-
-    output = r.stdout.decode()
-    json_info = {}
-    try:
-        json_info = json.loads(output)
-    except:
-        print(r.stderr.decode())
-        raise
-    return json_info
-
-
 @copy_and_hack_decorator
 def color(
     input_file: str,
@@ -130,12 +99,11 @@ def color(
     color_ir_enabled=True,
     veget_index_file="",
 ):
-    json_info = pdal_info_json(input_file)
-    metadata = json_info["metadata"]
-    minx, maxx, miny, maxy = metadata["minx"], metadata["maxx"], metadata["miny"], metadata["maxy"]
+    metadata = las_info.las_info_metadata(input_file)
+    minx, maxx, miny, maxy = las_info.get_bounds_from_header_info(metadata)
 
     if proj == "":
-        proj = proj_from_metadata(metadata)
+        proj = las_info.get_epsg_from_header_info(metadata)
 
     pipeline = pdal.Reader.las(filename=input_file)
 
