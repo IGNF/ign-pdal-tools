@@ -2,21 +2,44 @@ import json
 import pdal
 import logging
 import os
-import subprocess as sp
 from typing import Tuple
+import osgeo.osr as osr
+
+osr.UseExceptions()
 
 
 def las_info_metadata(filename: str):
-    """Get las info from pdal info --metadata"""
-    ret = sp.run(["pdal", "info", filename, "--metadata"], capture_output=True)
-    if ret.returncode == 0:
-        infos = ret.stdout.decode()
-        infos = json.loads(infos)
+    r = pdal.Reader.las(filename=filename)
+    p = r.pipeline()
+    metadata = p.quickinfo["readers.las"]
 
-        return infos["metadata"]
+    return metadata
+
+
+def get_bounds_from_header_info(metadata):
+    bounds = metadata["bounds"]
+    minx, maxx, miny, maxy = bounds["minx"], bounds["maxx"], bounds["miny"], bounds["maxy"]
+
+    return minx, maxx, miny, maxy
+
+
+def get_epsg_from_header_info(metadata):
+    if "srs" not in metadata.keys():
+        raise RuntimeError("EPSG could not be inferred from metadata: No 'srs' key in metadata.")
 
     else:
-        raise RuntimeError(f"pdal info failed with error: \n {ret.stderr}")
+        proj = metadata["srs"]
+        # use compoundwkt as recommended in https://github.com/PDAL/python/issues/112
+        wkt = proj["compoundwkt"]
+        osr_crs = osr.SpatialReference()
+        osr_crs.ImportFromWkt(wkt)
+        authority = osr_crs.GetAttrValue("AUTHORITY", 0)
+        if authority == "EPSG":
+            proj = osr_crs.GetAttrValue("AUTHORITY", 1)
+        else:
+            raise RuntimeError("EPSG could not be inferred from metadata: no attribute 'EPSG' found in metadata srs")
+
+    return proj
 
 
 def las_info_pipeline(filename: str, spatial_ref: str = "EPSG:2154"):
@@ -50,14 +73,14 @@ def las_info_pipeline(filename: str, spatial_ref: str = "EPSG:2154"):
 def las_get_xy_bounds(filename: str, buffer_width: int = 0, spatial_ref: str = "EPSG:2154"):
     """Get tile bounds (xy only) from las metadata.
     Try getting bounds using las_info_metadata
-    As command "pdal_info --metadata" does not seem to work properly on some data
-    (TerraSolid output for ex), fallback to las_info_pipeline
+    As pdal reader does not seem to read spatial reference properly on some data (TerraSolid output for ex),
+    fallback to las_info_pipeline with a default spatial reference
 
     Args:
         filename (str): full path of file for which to get the bounding box
         buffer_width (str): number of pixel to add to the bounding box on each side (buffer size)
         spatial_ref: spatial reference to pass as 'override_srs' argument in las reader
-        (Used if pdal info --metadata failed)
+        (Used if using the spatial reference from the las failed)
 
     Returns:
         bounds(tuple) : Tuple of bounding box from the LIDAR tile with potential buffer
@@ -68,7 +91,7 @@ def las_get_xy_bounds(filename: str, buffer_width: int = 0, spatial_ref: str = "
     bounds = []
     try:
         metadata = las_info_metadata(filename)
-        bounds_dict = metadata
+        bounds_dict = metadata["bounds"]
 
     except RuntimeError as e:
         metadata = las_info_pipeline(filename, spatial_ref)

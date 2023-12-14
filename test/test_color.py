@@ -31,7 +31,10 @@ OUTPUT_FILE_SINGLE_POINT_CLOUD = TMPDIR + "test_data_0436_6384_LA93_IGN69_single
 
 @pytest.mark.geoportail
 def test_epsg_fail():
-    with pytest.raises(requests.exceptions.HTTPError, match="400 Client Error: BadRequest for url"):
+    with pytest.raises(
+        RuntimeError,
+        match="EPSG could not be inferred from metadata: No 'srs' key in metadata.",
+    ):
         color.color(INPUT_PATH, OUTPUT_FILE, "", 0.1, 15)
 
 
