@@ -1,6 +1,8 @@
 # dev
-- replace `pdal info --metadata` subprocess by a python command (used in the `color` module in particular)
+- use absolute value comparison in tests
+- linting / add pre-commits
 - upgrade python version to 3.11
+- replace `pdal info --metadata` subprocess by a python command (used in the `color` module in particular)
 
 # 1.4.1
 - fix copy_and_hack_decorator (was not returning the decorated function output)
