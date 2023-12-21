@@ -65,7 +65,7 @@ def las_info_pipeline(filename: str, spatial_ref: str = "EPSG:2154"):
     # Extract metadata
     metadata = pipeline.metadata
 
-    if type(metadata) == str:
+    if isinstance(metadata, str):
         metadata = json.loads(metadata)
 
     return metadata["metadata"]["filters.info"]
@@ -94,10 +94,10 @@ def las_get_xy_bounds(filename: str, buffer_width: int = 0, spatial_ref: str = "
         metadata = las_info_metadata(filename)
         bounds_dict = metadata["bounds"]
 
-    except RuntimeError as e:
+    except RuntimeError:
         metadata = las_info_pipeline(filename, spatial_ref)
         bounds_dict = metadata["bbox"]
-    if type(metadata) == str:
+    if isinstance(metadata, str):
         metadata = json.loads(metadata)
     # Export bound (maxy, maxy, minx and miny), then creating a buffer with 100 m
     _x.append(float((bounds_dict["minx"]) - buffer_width))  # coordinate minX

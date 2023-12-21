@@ -4,7 +4,6 @@ import shutil
 
 import laspy
 import numpy as np
-import pytest
 
 from pdaltools.las_add_buffer import create_las_with_buffer
 
@@ -35,7 +34,7 @@ def setup_module(module):
     os.mkdir(tmp_path)
 
 
-## Utils functions
+# Utils functions
 def get_nb_points(path):
     """Get number of points in a las file"""
     with laspy.open(path) as f:
@@ -53,7 +52,7 @@ def get_2d_bounding_box(path):
     return mins[:2], maxs[:2]
 
 
-## Tests
+# Tests
 def test_create_las_with_buffer():
     buffer_width = 10
     create_las_with_buffer(

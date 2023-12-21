@@ -8,11 +8,14 @@ from typing import Dict
 
 import pytest
 
-from pdaltools.count_occurences.count_occurences_for_attribute import \
-    compute_count_one_file
+from pdaltools.count_occurences.count_occurences_for_attribute import (
+    compute_count_one_file,
+)
 from pdaltools.replace_attribute_in_las import (
-    parse_replacement_map_from_path_or_json_string, replace_values,
-    replace_values_clean)
+    parse_replacement_map_from_path_or_json_string,
+    replace_values,
+    replace_values_clean,
+)
 from pdaltools.standardize_format import get_writer_parameters
 
 test_path = os.path.dirname(os.path.abspath(__file__))

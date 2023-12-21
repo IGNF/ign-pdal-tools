@@ -4,10 +4,7 @@ import os
 import shutil
 from collections import Counter
 
-import pytest
-
-from pdaltools.count_occurences.count_occurences_for_attribute import \
-    compute_count
+from pdaltools.count_occurences.count_occurences_for_attribute import compute_count
 
 test_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # File is in subdirectory
 tmp_path = os.path.join(test_path, "tmp")
@@ -51,7 +48,7 @@ def test_count_by_attribute_values_with_json():
 
 
 def test_count_by_attribute_values_one_file():
-    count = compute_count([single_input_file], attribute, output_file)
+    compute_count([single_input_file], attribute, output_file)
     with open(counts_single_json, "r") as f:
         expected = Counter(json.load(f))
     with open(output_file, "r") as f:

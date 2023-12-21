@@ -40,7 +40,7 @@ def compute_count_one_file(filepath: str, attribute: str = "Classification") -> 
         # Try to prettify the value by converting it to an integer (eg. for Classification that
         # returns values such as 1.0000 instead of 1 or 1.)
         counts = Counter({str(int(float(value))): int(count) for value, count in split_counts})
-    except ValueError as e:
+    except ValueError:
         # in case value is not a number, float(value) returns a ValueError
         # fallback: use the raw value
         counts = Counter({value: int(count) for value, count in split_counts})

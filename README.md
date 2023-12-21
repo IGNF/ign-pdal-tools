@@ -62,18 +62,20 @@ Every time the code is changed, think of updating the version file: [pdaltools/_
 
 Please log your changes in [CHANGELOG.md](CHANGELOG.md)
 
+Before committing your changes, run the precommit hooks. They can be installed to run automatically with `make install-precommit`
+
 ## Tests
 
-Create the conda environment: `./script/createCondaEnv.sh`
+Create the conda environment: `make mamba-env-create`
 
-Run unit tests: `./script/test.sh`
+Run unit tests: `make testing`
 
 ## Pip package
 
 To generate a pip package and deploy it on pypi, use the [Makefile](Makefile) at the root of the repo:
 
 * `make build`: build the library
-* `make install`: instal the library in an editable way (`pip -e`)
+* `make install`: install the library in an editable way (`pip -e`)
 * `make deploy` : deploy it on pypi
 
 ## Docker image

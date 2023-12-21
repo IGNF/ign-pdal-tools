@@ -3,8 +3,6 @@ import os
 import shutil
 from collections import Counter
 
-import pytest
-
 from pdaltools.count_occurences.merge_occurences_counts import merge_counts
 
 test_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # File is in subdirectory
