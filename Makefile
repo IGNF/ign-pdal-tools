@@ -10,15 +10,8 @@ SHELL = /bin/bash
 ##############################
 # Install
 ##############################
-
-mamba-env-create:
-	mamba env create -n pdaltools -f environment.yml
-
-mamba-env-update:
-	mamba env update -n pdaltools -f environment.yml
-
 install:
-	pip install -e .
+	mamba env update -n pdaltools -f environment.yml
 
 
 ##############################

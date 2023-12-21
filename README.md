@@ -21,6 +21,7 @@ from French government providing access to aerial imagery)
 # Installation / Usage
 
 This library can be used in different ways:
+* directly from sources: `make install` creates a mamba environment with the required dependencies
 * installed with `pip` from pypi: ` pip install ign-pdal-tools`
 * used in a docker container: see documentation [Dockerfile](Dockerfile)
 
@@ -66,7 +67,7 @@ Before committing your changes, run the precommit hooks. They can be installed t
 
 ## Tests
 
-Create the conda environment: `make mamba-env-create`
+Create the conda environment: `make install`
 
 Run unit tests: `make testing`
 
