@@ -1,12 +1,12 @@
-import laspy
 import os
 import shutil
+
+import laspy
 import pytest
 
 from pdaltools.color import color
-from pdaltools.unlock_file import unlock_file, copy_and_hack_decorator
 from pdaltools.las_info import las_info_metadata
-
+from pdaltools.unlock_file import copy_and_hack_decorator, unlock_file
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMPDIR = os.path.join(TEST_PATH, "tmp")
@@ -33,7 +33,7 @@ def test_copy_and_hack_decorator_simple():
     assert ret  # Check that the return value of the decorated function is returned
 
 
-@pytest.mark.geoportail
+@pytest.mark.geopf
 def test_copy_and_hack_decorator_color():
     # bug during laz opening in pdal (solved with copy_and_hack_decorator)
     LAS_FILE = os.path.join(TMPDIR, "test_pdalfail_0643_6319_LA93_IGN69.las")

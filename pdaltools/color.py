@@ -1,12 +1,13 @@
-from math import ceil
+import argparse
 import tempfile
+import time
+from math import ceil
+
 import pdal
 import requests
-import time
-import argparse
 
-from pdaltools.unlock_file import copy_and_hack_decorator
 import pdaltools.las_info as las_info
+from pdaltools.unlock_file import copy_and_hack_decorator
 
 
 def pretty_time_delta(seconds):
@@ -57,7 +58,7 @@ def retry(times, delay, factor=2, debug=False):
     return decorator
 
 
-def download_image_from_geoportail(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout):
+def download_image_from_geoplateforme(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout):
     # Give single-point clouds a width/height of at least one pixel to have valid BBOX and SIZE
     if minx == maxx:
         maxx = minx + 1 / pixel_per_meter
@@ -65,7 +66,7 @@ def download_image_from_geoportail(proj, layer, minx, miny, maxx, maxy, pixel_pe
         maxy = miny + 1 / pixel_per_meter
 
     # for layer in layers:
-    URL_GPP = "https://wxs.ign.fr/ortho/geoportail/r/wms?"
+    URL_GPP = "https://data.geopf.fr/wms-r/wms?"
     URL_FORMAT = "&EXCEPTIONS=text/xml&FORMAT=image/geotiff&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&STYLES="
     URL_EPSG = "&CRS=EPSG:" + str(proj)
     URL_BBOX = "&BBOX=" + str(minx) + "," + str(miny) + "," + str(maxx) + "," + str(maxy)
@@ -110,7 +111,7 @@ def color(
     writer_extra_dims = "all"
 
     # apply decorator to retry 3 times, and wait 30 seconds each times
-    download_image_from_geoportail_retrying = retry(7, 15, 2)(download_image_from_geoportail)
+    download_image_from_geoplateforme_retrying = retry(7, 15, 2)(download_image_from_geoplateforme)
 
     if veget_index_file and veget_index_file != "":
         print(f"Remplissage du champ Deviation à partir du fichier {veget_index_file}")
@@ -120,7 +121,7 @@ def color(
     tmp_ortho = None
     if color_rvb_enabled:
         tmp_ortho = tempfile.NamedTemporaryFile()
-        download_image_from_geoportail_retrying(
+        download_image_from_geoplateforme_retrying(
             proj, "ORTHOIMAGERY.ORTHOPHOTOS", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho.name, timeout_second
         )
         pipeline |= pdal.Filter.colorization(
@@ -130,7 +131,7 @@ def color(
     tmp_ortho_irc = None
     if color_ir_enabled:
         tmp_ortho_irc = tempfile.NamedTemporaryFile()
-        download_image_from_geoportail_retrying(
+        download_image_from_geoplateforme_retrying(
             proj,
             "ORTHOIMAGERY.ORTHOPHOTOS.IRC",
             minx,

@@ -14,7 +14,7 @@ packages = [ "pdaltools" ]
 
 [tool.pytest.ini_options]
 markers = [
-    "geoportail: marks tests that request the (sometimes unreliable) geoportail.gouv.fr",
+    "geopf: marks tests that request the (sometimes unreliable) data.geopf.fr",
 ]
 
 [tool.black]

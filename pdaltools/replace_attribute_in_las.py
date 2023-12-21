@@ -1,15 +1,16 @@
 """Replace values of a given attribute in a las/laz file"""
 
 import argparse
-from collections import Counter
 import json
 import logging
 import os
-import pdal
-from pdaltools.standardize_format import get_writer_parameters, exec_las2las
 import tempfile
-from typing import List, Dict
+from collections import Counter
+from typing import Dict, List
 
+import pdal
+
+from pdaltools.standardize_format import exec_las2las, get_writer_parameters
 from pdaltools.unlock_file import copy_and_hack_decorator
 
 

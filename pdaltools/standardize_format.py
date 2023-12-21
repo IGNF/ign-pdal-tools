@@ -9,10 +9,12 @@
 """
 import argparse
 import os
-import pdal
 import subprocess as sp
 import tempfile
 from typing import Dict
+
+import pdal
+
 from pdaltools.unlock_file import copy_and_hack_decorator
 
 STANDARD_PARAMETERS = dict(
