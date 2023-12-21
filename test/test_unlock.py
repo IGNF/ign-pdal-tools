@@ -33,7 +33,7 @@ def test_copy_and_hack_decorator_simple():
     assert ret  # Check that the return value of the decorated function is returned
 
 
-@pytest.mark.geoportail
+@pytest.mark.geopf
 def test_copy_and_hack_decorator_color():
     # bug during laz opening in pdal (solved with copy_and_hack_decorator)
     LAS_FILE = os.path.join(TMPDIR, "test_pdalfail_0643_6319_LA93_IGN69.las")

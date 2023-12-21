@@ -58,7 +58,7 @@ def retry(times, delay, factor=2, debug=False):
     return decorator
 
 
-def download_image_from_geoportail(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout):
+def download_image_from_geoplateforme(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout):
     # Give single-point clouds a width/height of at least one pixel to have valid BBOX and SIZE
     if minx == maxx:
         maxx = minx + 1 / pixel_per_meter
@@ -111,7 +111,7 @@ def color(
     writer_extra_dims = "all"
 
     # apply decorator to retry 3 times, and wait 30 seconds each times
-    download_image_from_geoportail_retrying = retry(7, 15, 2)(download_image_from_geoportail)
+    download_image_from_geoplateforme_retrying = retry(7, 15, 2)(download_image_from_geoplateforme)
 
     if veget_index_file and veget_index_file != "":
         print(f"Remplissage du champ Deviation à partir du fichier {veget_index_file}")
@@ -121,7 +121,7 @@ def color(
     tmp_ortho = None
     if color_rvb_enabled:
         tmp_ortho = tempfile.NamedTemporaryFile()
-        download_image_from_geoportail_retrying(
+        download_image_from_geoplateforme_retrying(
             proj, "ORTHOIMAGERY.ORTHOPHOTOS", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho.name, timeout_second
         )
         pipeline |= pdal.Filter.colorization(
@@ -131,7 +131,7 @@ def color(
     tmp_ortho_irc = None
     if color_ir_enabled:
         tmp_ortho_irc = tempfile.NamedTemporaryFile()
-        download_image_from_geoportail_retrying(
+        download_image_from_geoplateforme_retrying(
             proj,
             "ORTHOIMAGERY.ORTHOPHOTOS.IRC",
             minx,

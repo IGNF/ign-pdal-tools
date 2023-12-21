@@ -12,7 +12,7 @@ on the fonctionalities that our team needs.
 # Content
 
 This library contains pdal-based tools to:
-* **colorize** a point cloud using images from [Geoportail](https://www.geoportail.gouv.fr/) (a portal
+* **colorize** a point cloud using images from [Geoplateforme / cartes.gouv.fr](https://www.cartes.gouv.fr/) (a portal
 from French government providing access to aerial imagery)
 * **stitch** together LAS files using their location
 * **standardize** LAS files
@@ -27,7 +27,7 @@ This library can be used in different ways:
 # More details on the contained tools
 ## Colorization
 
-* [color.py](pdaltools/color.py): Colorize a point cloud from Geoportail data
+* [color.py](pdaltools/color.py): Colorize a point cloud from Geoplateforme data
 
 ## Stitching
 
