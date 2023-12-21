@@ -1,11 +1,12 @@
-import numpy as np
-import os
-import pytest
-import shutil
-from pdaltools.las_clip import las_crop
-import laspy
 import logging
+import os
+import shutil
 
+import laspy
+import numpy as np
+import pytest
+
+from pdaltools.las_clip import las_crop
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")

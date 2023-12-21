@@ -3,12 +3,13 @@ This is intended to be used after running count_occurences_for_attribute.py in p
 on several files"""
 
 import argparse
-from collections import Counter
 import json
 import logging
 import os
-from tqdm import tqdm
+from collections import Counter
 from typing import List
+
+from tqdm import tqdm
 
 
 def parse_args():

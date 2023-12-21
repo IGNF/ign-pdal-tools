@@ -3,11 +3,11 @@
 
 # https://gis.stackexchange.com/questions/413191/python-pdal-error-reading-format-1-4-las-file-readers-las-error-global-enco
 
+import argparse
+import logging
 import os
 import shutil
 import tempfile
-import logging
-import argparse
 
 
 def unlock_file(finename: str):

@@ -1,12 +1,12 @@
-import laspy
 import os
 import shutil
+
+import laspy
 import pytest
 
 from pdaltools.color import color
-from pdaltools.unlock_file import unlock_file, copy_and_hack_decorator
 from pdaltools.las_info import las_info_metadata
-
+from pdaltools.unlock_file import copy_and_hack_decorator, unlock_file
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMPDIR = os.path.join(TEST_PATH, "tmp")

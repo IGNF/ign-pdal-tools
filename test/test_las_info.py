@@ -1,13 +1,9 @@
-from collections import Counter
-import json
 import os
-from pdaltools import las_info
-import pytest
-import shutil
-from test.utils import get_pdal_infos_summary
-from typing import Dict
-import numpy as np
 
+import numpy as np
+import pytest
+
+from pdaltools import las_info
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMP_PATH = os.path.join(TEST_PATH, "tmp")

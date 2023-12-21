@@ -1,12 +1,12 @@
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
+
 import pytest
-
-from pdaltools import color
-
 import requests
 import requests_mock
+
+from pdaltools import color
 
 cwd = os.getcwd()
 

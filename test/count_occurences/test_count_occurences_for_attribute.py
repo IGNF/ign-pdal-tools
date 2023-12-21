@@ -1,11 +1,13 @@
-from collections import Counter
 import json
 import logging
 import os
-from pdaltools.count_occurences.count_occurences_for_attribute import compute_count
-import pytest
 import shutil
+from collections import Counter
 
+import pytest
+
+from pdaltools.count_occurences.count_occurences_for_attribute import \
+    compute_count
 
 test_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # File is in subdirectory
 tmp_path = os.path.join(test_path, "tmp")

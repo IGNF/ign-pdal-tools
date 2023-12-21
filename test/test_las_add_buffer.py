@@ -1,11 +1,12 @@
-import numpy as np
-import os
-import pytest
-import shutil
-from pdaltools.las_add_buffer import create_las_with_buffer
-import laspy
 import logging
+import os
+import shutil
 
+import laspy
+import numpy as np
+import pytest
+
+from pdaltools.las_add_buffer import create_las_with_buffer
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")

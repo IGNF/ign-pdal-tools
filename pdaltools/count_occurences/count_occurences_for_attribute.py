@@ -2,13 +2,14 @@
 Eg. to count points of each class in classified point clouds """
 
 import argparse
-from collections import Counter
 import json
 import logging
 import os
+from collections import Counter
+from typing import List
+
 import pdal
 from tqdm import tqdm
-from typing import List
 
 from pdaltools.unlock_file import copy_and_hack_decorator
 

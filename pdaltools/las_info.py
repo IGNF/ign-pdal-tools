@@ -1,9 +1,10 @@
 import json
-import pdal
 import logging
 import os
 from typing import Tuple
+
 import osgeo.osr as osr
+import pdal
 
 osr.UseExceptions()
 

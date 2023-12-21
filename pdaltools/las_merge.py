@@ -1,7 +1,9 @@
 import json
-import os
-import pdal
 import logging
+import os
+
+import pdal
+
 from pdaltools.las_info import parse_filename
 
 

@@ -1,11 +1,14 @@
-import os
-import pytest
-import shutil
-from pdaltools.standardize_format import rewrite_with_pdal, standardize, exec_las2las
 import logging
-from test.utils import get_pdal_infos_summary, EXPECTED_DIMS_BY_DATAFORMAT
-import pdal
+import os
+import shutil
 import subprocess as sp
+from test.utils import EXPECTED_DIMS_BY_DATAFORMAT, get_pdal_infos_summary
+
+import pdal
+import pytest
+
+from pdaltools.standardize_format import (exec_las2las, rewrite_with_pdal,
+                                          standardize)
 
 # Note: tile 77050_627760 is cropped to simulate missing data in neighbors during merge
 test_path = os.path.dirname(os.path.abspath(__file__))

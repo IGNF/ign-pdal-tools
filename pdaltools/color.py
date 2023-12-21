@@ -1,12 +1,13 @@
-from math import ceil
+import argparse
 import tempfile
+import time
+from math import ceil
+
 import pdal
 import requests
-import time
-import argparse
 
-from pdaltools.unlock_file import copy_and_hack_decorator
 import pdaltools.las_info as las_info
+from pdaltools.unlock_file import copy_and_hack_decorator
 
 
 def pretty_time_delta(seconds):
