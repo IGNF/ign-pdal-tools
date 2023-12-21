@@ -66,7 +66,7 @@ def download_image_from_geoportail(proj, layer, minx, miny, maxx, maxy, pixel_pe
         maxy = miny + 1 / pixel_per_meter
 
     # for layer in layers:
-    URL_GPP = "https://wxs.ign.fr/ortho/geoportail/r/wms?"
+    URL_GPP = "https://data.geopf.fr/wms-r/wms?"
     URL_FORMAT = "&EXCEPTIONS=text/xml&FORMAT=image/geotiff&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&STYLES="
     URL_EPSG = "&CRS=EPSG:" + str(proj)
     URL_BBOX = "&BBOX=" + str(minx) + "," + str(miny) + "," + str(maxx) + "," + str(maxy)

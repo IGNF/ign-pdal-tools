@@ -1,4 +1,5 @@
 # dev
+- switch colorisation source from Geoportail to Geoplateforme
 - use absolute value comparison in tests
 - linting / add pre-commits
 - upgrade python version to 3.11
