@@ -1,6 +1,6 @@
 import os
+import test.utils as tu
 
-import numpy as np
 import pytest
 
 from pdaltools import las_info
@@ -23,13 +23,13 @@ INPUT_MAXS = [770600.0, 6277600.0]
 
 def test_las_info_metadata():
     metadata = las_info.las_info_metadata(INPUT_FILE)
-    assert type(metadata) == dict
+    assert isinstance(metadata, dict)
     assert bool(metadata)  # check that metadata dict is not empty
 
 
 def test_las_info_pipeline():
     info = las_info.las_info_pipeline(INPUT_FILE)
-    assert type(info) == dict
+    assert isinstance(info, dict)
     assert bool(info)  # check that info dict is not empty
 
 
@@ -56,7 +56,7 @@ def test_las_get_xy_bounds_no_buffer():
     bounds = las_info.las_get_xy_bounds(INPUT_FILE)
     expected_xs = [INPUT_MINS[0], INPUT_MAXS[0]]
     expected_ys = [INPUT_MINS[1], INPUT_MAXS[1]]
-    assert np.allclose(bounds, [expected_xs, expected_ys], rtol=1e-06)
+    assert tu.allclose_absolute(bounds, [expected_xs, expected_ys], 1e-3)
 
 
 def test_las_get_xy_bounds_with_buffer():
@@ -64,7 +64,7 @@ def test_las_get_xy_bounds_with_buffer():
     bounds = las_info.las_get_xy_bounds(INPUT_FILE, buffer_width=buffer_width)
     expected_xs = [INPUT_MINS[0] - buffer_width, INPUT_MAXS[0] + buffer_width]
     expected_ys = [INPUT_MINS[1] - buffer_width, INPUT_MAXS[1] + buffer_width]
-    assert np.allclose(bounds, [expected_xs, expected_ys], rtol=1e-06)
+    assert tu.allclose_absolute(bounds, [expected_xs, expected_ys], 1e-3)
 
 
 def test_parse_filename():
