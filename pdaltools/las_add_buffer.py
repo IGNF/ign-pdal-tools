@@ -1,11 +1,12 @@
 import argparse
-from pdaltools.las_merge import create_list
-from pdaltools.las_info import get_buffered_bounds_from_filename
-
 import logging
 import os
-import pdal
 from typing import List
+
+import pdal
+
+from pdaltools.las_info import get_buffered_bounds_from_filename
+from pdaltools.las_merge import create_list
 
 
 def create_las_with_buffer(

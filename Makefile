@@ -6,6 +6,32 @@
 .ONESHELL:
 SHELL = /bin/bash
 
+
+##############################
+# Install
+##############################
+install:
+	mamba env update -n pdaltools -f environment.yml
+
+
+##############################
+# Dev/Contrib tools
+##############################
+
+testing:
+	python -m pytest ./test -s --log-cli-level DEBUG -m "not geopf"
+
+testing_full:
+	python -m pytest ./test -s --log-cli-level DEBUG
+
+install-precommit:
+	pre-commit install
+
+
+##############################
+# Build/deploy pip lib
+##############################
+
 deploy: check
 	twine upload dist/*
 
@@ -18,29 +44,13 @@ dist/ign-pdal-tool*.tar.gz:
 build: clean
 	python -m build
 
-install:
-	pip install -e .
-
-testing:
-	python -m pytest ./test -s --log-cli-level DEBUG -m "not geoportail"
-
-testing_full:
-	python -m pytest ./test -s --log-cli-level DEBUG
-
 clean:
 	rm -rf tmp
 	rm -rf ign_pdal_tools.egg-info
 	rm -rf dist
 
-mamba-env-create:
-	mamba env create -n pdaltools -f environment.yml
-
-mamba-env-update:
-	mamba env update -n pdaltools -f environment.yml
-
-
 ##############################
-# Docker
+# Build/deploy Docker image
 ##############################
 
 PROJECT_NAME=ignimagelidar/ign-pdal-tools

@@ -1,11 +1,13 @@
-import os
-import pytest
-import shutil
-from pdaltools.standardize_format import rewrite_with_pdal, standardize, exec_las2las
 import logging
-from test.utils import get_pdal_infos_summary, EXPECTED_DIMS_BY_DATAFORMAT
-import pdal
+import os
+import shutil
 import subprocess as sp
+from test.utils import EXPECTED_DIMS_BY_DATAFORMAT, get_pdal_infos_summary
+
+import pdal
+import pytest
+
+from pdaltools.standardize_format import exec_las2las, rewrite_with_pdal, standardize
 
 # Note: tile 77050_627760 is cropped to simulate missing data in neighbors during merge
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -43,7 +45,7 @@ def _test_standardize_format_one_params_set(params):
         metadata = json_info["summary"]["metadata"][1]
     else:
         metadata = json_info["summary"]["metadata"]
-    assert metadata["compressed"] == True
+    assert metadata["compressed"] is True
     assert metadata["minor_version"] == 4
     assert metadata["global_encoding"] == 17
     assert metadata["dataformat_id"] == params["dataformat_id"]
@@ -87,7 +89,9 @@ def test_exec_las2las_error():
 
 def test_standardize_does_NOT_produce_any_warning_with_Lasinfo():
     # bad file on the store (44 Mo)
-    # input_file = "/var/data/store-lidarhd/developpement/standaLAS/demo_standardization/Semis_2022_0584_6880_LA93_IGN69.laz"
+    # input_file = (
+    #     "/var/data/store-lidarhd/developpement/standaLAS/demo_standardization/Semis_2022_0584_6880_LA93_IGN69.laz"
+    # )
 
     input_file = os.path.join(test_path, "data/classified_laz/test_data_77050_627755_LA93_IGN69.laz")
     output_file = os.path.join(tmp_path, "test_standardize_produce_no_warning_with_lasinfo.las")

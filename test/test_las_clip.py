@@ -1,11 +1,11 @@
-import numpy as np
-import os
-import pytest
-import shutil
-from pdaltools.las_clip import las_crop
-import laspy
 import logging
+import os
+import shutil
 
+import laspy
+import numpy as np
+
+from pdaltools.las_clip import las_crop
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 tmp_path = os.path.join(test_path, "tmp")
@@ -33,7 +33,7 @@ def setup_module(module):
     os.mkdir(tmp_path)
 
 
-## Utils functions
+# Utils functions
 def get_nb_points(path):
     """Get number of points in a las file"""
     with laspy.open(path) as f:
@@ -51,7 +51,7 @@ def get_2d_bounding_box(path):
     return mins[:2], maxs[:2]
 
 
-## Tests
+# Tests
 def test_las_crop():
     bounds = ([expected_out_mins[0], expected_out_maxs[0]], [expected_out_mins[1], expected_out_maxs[1]])
     las_crop(input_file, output_file, bounds)

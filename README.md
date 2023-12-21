@@ -12,7 +12,7 @@ on the fonctionalities that our team needs.
 # Content
 
 This library contains pdal-based tools to:
-* **colorize** a point cloud using images from [Geoportail](https://www.geoportail.gouv.fr/) (a portal
+* **colorize** a point cloud using images from [Geoplateforme / cartes.gouv.fr](https://www.cartes.gouv.fr/) (a portal
 from French government providing access to aerial imagery)
 * **stitch** together LAS files using their location
 * **standardize** LAS files
@@ -21,13 +21,14 @@ from French government providing access to aerial imagery)
 # Installation / Usage
 
 This library can be used in different ways:
+* directly from sources: `make install` creates a mamba environment with the required dependencies
 * installed with `pip` from pypi: ` pip install ign-pdal-tools`
 * used in a docker container: see documentation [Dockerfile](Dockerfile)
 
 # More details on the contained tools
 ## Colorization
 
-* [color.py](pdaltools/color.py): Colorize a point cloud from Geoportail data
+* [color.py](pdaltools/color.py): Colorize a point cloud from Geoplateforme data
 
 ## Stitching
 
@@ -62,18 +63,20 @@ Every time the code is changed, think of updating the version file: [pdaltools/_
 
 Please log your changes in [CHANGELOG.md](CHANGELOG.md)
 
+Before committing your changes, run the precommit hooks. They can be installed to run automatically with `make install-precommit`
+
 ## Tests
 
-Create the conda environment: `./script/createCondaEnv.sh`
+Create the conda environment: `make install`
 
-Run unit tests: `./script/test.sh`
+Run unit tests: `make testing`
 
 ## Pip package
 
 To generate a pip package and deploy it on pypi, use the [Makefile](Makefile) at the root of the repo:
 
 * `make build`: build the library
-* `make install`: instal the library in an editable way (`pip -e`)
+* `make install`: install the library in an editable way (`pip -e`)
 * `make deploy` : deploy it on pypi
 
 ## Docker image
