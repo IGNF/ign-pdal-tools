@@ -1,4 +1,4 @@
-# dev
+# 1.5.0
 - switch colorisation source from Geoportail to Geoplateforme
 - use absolute value comparison in tests
 - linting / add pre-commits
