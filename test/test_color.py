@@ -47,12 +47,14 @@ maxy = 6292000
 pixel_per_meter = 0.1
 
 
+@pytest.mark.geopf
 def test_color_and_keeping_orthoimages():
     tmp_ortho, tmp_ortho_irc = color.color(INPUT_PATH, OUTPUT_FILE, epsg)
     assert Path(tmp_ortho.name).exists()
     assert Path(tmp_ortho_irc.name).exists()
 
 
+@pytest.mark.geopf
 def test_color_narrow_cloud():
     # Test that clouds that are smaller in width or height to 20cm are still clorized without an error.
     color.color(INPUT_PATH_SINGLE_POINT_CLOUD, OUTPUT_FILE_SINGLE_POINT_CLOUD, epsg)
