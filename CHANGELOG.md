@@ -1,3 +1,6 @@
+# dev
+- fix add_buffer: propagate header infos from input to the output
+
 # 1.5.0
 - switch colorisation source from Geoportail to Geoplateforme
 - use absolute value comparison in tests

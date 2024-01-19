@@ -1,37 +1,25 @@
 import logging
 import os
 import shutil
+import test.utils as tu
 
 import laspy
 import numpy as np
 
 from pdaltools.las_add_buffer import create_las_with_buffer
 
-test_path = os.path.dirname(os.path.abspath(__file__))
-tmp_path = os.path.join(test_path, "tmp")
-input_dir = os.path.join(test_path, "data")
-output_file = os.path.join(tmp_path, "cropped.las")
-
-coord_x = 77055
-coord_y = 627760
-# Note: neighbor tile 77050_627760 is cropped to simulate missing data in neighbors during merge
-input_file = os.path.join(input_dir, f"test_data_{coord_x}_{coord_y}_LA93_IGN69_ground.las")
-tile_width = 50
-tile_coord_scale = 10
-
-input_nb_points = 22343
-expected_output_nb_points = 40177
-expected_out_mins = [770540.01, 6277540.0]
-expected_out_maxs = [770610.0, 6277600.0]
+TEST_PATH = os.path.dirname(os.path.abspath(__file__))
+TMP_PATH = os.path.join(TEST_PATH, "tmp")
+INPUT_DIR = os.path.join(TEST_PATH, "data")
 
 
 def setup_module(module):
     try:
-        shutil.rmtree(tmp_path)
+        shutil.rmtree(TMP_PATH)
 
     except FileNotFoundError:
         pass
-    os.mkdir(tmp_path)
+    os.mkdir(TMP_PATH)
 
 
 # Utils functions
@@ -54,9 +42,21 @@ def get_2d_bounding_box(path):
 
 # Tests
 def test_create_las_with_buffer():
+    output_file = os.path.join(TMP_PATH, "buffer.las")
+
+    coord_x = 77055
+    coord_y = 627760
+    # Note: neighbor tile 77050_627760 is cropped to simulate missing data in neighbors during merge
+    input_file = os.path.join(INPUT_DIR, f"test_data_{coord_x}_{coord_y}_LA93_IGN69_ground.las")
+    tile_width = 50
+    tile_coord_scale = 10
+    expected_output_nb_points = 40177
+    expected_out_mins = [770540.01, 6277540.0]
+    expected_out_maxs = [770610.0, 6277600.0]
+
     buffer_width = 10
     create_las_with_buffer(
-        input_dir,
+        INPUT_DIR,
         input_file,
         output_file,
         buffer_width=buffer_width,
@@ -73,8 +73,8 @@ def test_create_las_with_buffer():
 
     # The following test does not work on the current test case as there is no tile on the left
     # and the top of the tile
-    assert np.all(np.isclose(out_mins, in_mins - buffer_width))
-    assert np.all(np.isclose(out_maxs, in_maxs + buffer_width))
+    tu.allclose_absolute(out_mins, in_mins - buffer_width, 1e-3)
+    tu.allclose_absolute(out_maxs, in_maxs + buffer_width, 1e-3)
 
     # check number of points
     assert get_nb_points(output_file) == expected_output_nb_points
@@ -82,6 +82,10 @@ def test_create_las_with_buffer():
     # Check contre valeur attendue
     assert np.all(out_mins == expected_out_mins)
     assert np.all(out_maxs == expected_out_maxs)
+
+    # Check output las version (input is 1.4)
+    json_info = tu.get_pdal_infos_summary(output_file)
+    assert json_info["summary"]["metadata"]["minor_version"] == 4
 
 
 if __name__ == "__main__":
