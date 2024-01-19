@@ -1,5 +1,6 @@
 # dev
 - fix add_buffer: propagate header infos from input to the output
+- update pdal.Writer params to make sure input format is forwarded except for the specified parameters
 
 # 1.5.0
 - switch colorisation source from Geoportail to Geoplateforme

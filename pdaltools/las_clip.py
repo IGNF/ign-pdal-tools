@@ -20,7 +20,7 @@ def las_crop(input_file: str, output_file: str, bounds, spatial_ref: str = "EPSG
         "pipeline": [
             {"type": "readers.las", "filename": input_file, "override_srs": spatial_ref, "nosrs": True},
             {"type": "filters.crop", "bounds": str(bounds)},
-            {"type": "writers.las", "a_srs": spatial_ref, "filename": output_file},
+            {"type": "writers.las", "a_srs": spatial_ref, "filename": output_file, "forward": "all"},
         ]
     }
     # Create json

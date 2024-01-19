@@ -145,7 +145,7 @@ def color(
         pipeline |= pdal.Filter.colorization(raster=tmp_ortho_irc.name, dimensions="Infrared:1:256.0")
 
     pipeline |= pdal.Writer.las(
-        filename=output_file, extra_dims=writer_extra_dims, minor_version="4", dataformat_id="8"
+        filename=output_file, extra_dims=writer_extra_dims, minor_version="4", dataformat_id="8", forward="all"
     )
 
     print("Traitement du nuage de point")
