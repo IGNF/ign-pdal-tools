@@ -2,10 +2,14 @@ import logging
 import os
 import shutil
 import test.utils as tu
+from test.utils import assert_header_info_are_similar
 
 import laspy
 import numpy as np
 
+from pdaltools.count_occurences.count_occurences_for_attribute import (
+    compute_count_one_file,
+)
 from pdaltools.las_add_buffer import create_las_with_buffer
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -43,18 +47,16 @@ def get_2d_bounding_box(path):
 # Tests
 def test_create_las_with_buffer():
     output_file = os.path.join(TMP_PATH, "buffer.las")
-
-    coord_x = 77055
-    coord_y = 627760
-    # Note: neighbor tile 77050_627760 is cropped to simulate missing data in neighbors during merge
-    input_file = os.path.join(INPUT_DIR, f"test_data_{coord_x}_{coord_y}_LA93_IGN69_ground.las")
+    # Note: this tile does not have a tile at its bottom
+    # And its left-side tile has been crop to have no data in the buffer area. This case must not generate any error
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69.laz")
     tile_width = 50
     tile_coord_scale = 10
-    expected_output_nb_points = 40177
-    expected_out_mins = [770540.01, 6277540.0]
-    expected_out_maxs = [770610.0, 6277600.0]
+    input_nb_points = 72770
+    expected_out_mins = [770545.0, 6277500.0]
+    expected_out_maxs = [770605.0, 6277555.0]
 
-    buffer_width = 10
+    buffer_width = 5
     create_las_with_buffer(
         INPUT_DIR,
         input_file,
@@ -77,15 +79,20 @@ def test_create_las_with_buffer():
     tu.allclose_absolute(out_maxs, in_maxs + buffer_width, 1e-3)
 
     # check number of points
-    assert get_nb_points(output_file) == expected_output_nb_points
+    assert get_nb_points(output_file) > input_nb_points
 
-    # Check contre valeur attendue
+    # Check boundaries
     assert np.all(out_mins == expected_out_mins)
     assert np.all(out_maxs == expected_out_maxs)
 
-    # Check output las version (input is 1.4)
-    json_info = tu.get_pdal_infos_summary(output_file)
-    assert json_info["summary"]["metadata"]["minor_version"] == 4
+    # Check the input header infos are preserved in the output
+    assert_header_info_are_similar(output_file, input_file)
+
+    # Check that classes are preserved (in particular classes over 31)
+    # Warning: classification values > 31 exist only for las 1.4 with dataformat_id >= 6
+    classes_counts = compute_count_one_file(output_file)
+
+    assert set(classes_counts.keys()) == {"1", "2", "3", "4", "5", "6", "64"}
 
 
 if __name__ == "__main__":

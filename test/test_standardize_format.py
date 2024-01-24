@@ -9,16 +9,11 @@ import pytest
 
 from pdaltools.standardize_format import exec_las2las, rewrite_with_pdal, standardize
 
-# Note: tile 77050_627760 is cropped to simulate missing data in neighbors during merge
-test_path = os.path.dirname(os.path.abspath(__file__))
-tmp_path = os.path.join(test_path, "tmp")
-input_dir = os.path.join(test_path, "data")
+TEST_PATH = os.path.dirname(os.path.abspath(__file__))
+TMP_PATH = os.path.join(TEST_PATH, "tmp")
+INPUT_DIR = os.path.join(TEST_PATH, "data")
 
-coord_x = 77055
-coord_y = 627760
-input_file = os.path.join(input_dir, f"test_data_{coord_x}_{coord_y}_LA93_IGN69_ground.las")
-output_file = os.path.join(tmp_path, "formatted.laz")
-multiple_params = [
+MUTLIPLE_PARAMS = [
     {"dataformat_id": 6, "a_srs": "EPSG:2154"},
     {"dataformat_id": 8, "a_srs": "EPSG:4326"},
 ]
@@ -26,14 +21,14 @@ multiple_params = [
 
 def setup_module(module):
     try:
-        shutil.rmtree(tmp_path)
+        shutil.rmtree(TMP_PATH)
 
     except FileNotFoundError:
         pass
-    os.mkdir(tmp_path)
+    os.mkdir(TMP_PATH)
 
 
-def _test_standardize_format_one_params_set(params):
+def _test_standardize_format_one_params_set(input_file, output_file, params):
     rewrite_with_pdal(input_file, output_file, params)
     # check file exists
     assert os.path.isfile(output_file)
@@ -58,8 +53,10 @@ def _test_standardize_format_one_params_set(params):
 
 
 def test_standardize_format():
-    for params in multiple_params:
-        _test_standardize_format_one_params_set(params)
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627760_LA93_IGN69.laz")
+    output_file = os.path.join(TMP_PATH, "formatted.laz")
+    for params in MUTLIPLE_PARAMS:
+        _test_standardize_format_one_params_set(input_file, output_file, params)
 
 
 def exec_lasinfo(input_file: str):
@@ -93,20 +90,20 @@ def test_standardize_does_NOT_produce_any_warning_with_Lasinfo():
     #     "/var/data/store-lidarhd/developpement/standaLAS/demo_standardization/Semis_2022_0584_6880_LA93_IGN69.laz"
     # )
 
-    input_file = os.path.join(test_path, "data/classified_laz/test_data_77050_627755_LA93_IGN69.laz")
-    output_file = os.path.join(tmp_path, "test_standardize_produce_no_warning_with_lasinfo.las")
+    input_file = os.path.join(TEST_PATH, "data/classified_laz/test_data_77050_627755_LA93_IGN69.laz")
+    output_file = os.path.join(TMP_PATH, "test_standardize_produce_no_warning_with_lasinfo.las")
 
     # if you want to see input_file warnings
     # assert_lasinfo_no_warning(input_file)
 
-    standardize(input_file, output_file, multiple_params[0])
+    standardize(input_file, output_file, MUTLIPLE_PARAMS[0])
     assert_lasinfo_no_warning(output_file)
 
 
 def test_standardize_malformed_laz():
-    input_file = os.path.join(test_path, "data/test_pdalfail_0643_6319_LA93_IGN69.laz")
-    output_file = os.path.join(tmp_path, "standardize_pdalfail_0643_6319_LA93_IGN69.laz")
-    standardize(input_file, output_file, multiple_params[0])
+    input_file = os.path.join(TEST_PATH, "data/test_pdalfail_0643_6319_LA93_IGN69.laz")
+    output_file = os.path.join(TMP_PATH, "standardize_pdalfail_0643_6319_LA93_IGN69.laz")
+    standardize(input_file, output_file, MUTLIPLE_PARAMS[0])
     assert os.path.isfile(output_file)
 
 
