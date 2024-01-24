@@ -1,26 +1,15 @@
 import logging
 import os
+from test.utils import assert_header_info_are_similar
 
 import laspy
 import numpy as np
 
 from pdaltools.las_merge import las_merge
 
-test_path = os.path.dirname(os.path.abspath(__file__))
-tmp_path = os.path.join(test_path, "tmp")
-input_dir = os.path.join(test_path, "data")
-output_file = os.path.join(tmp_path, "merged.las")
-
-coord_x = 77055
-coord_y = 627760
-input_file = os.path.join(input_dir, f"test_data_{coord_x}_{coord_y}_LA93_IGN69_ground.las")
-tile_width = 50
-tile_coord_scale = 10
-
-input_nb_points = 22343
-expected_output_nb_points = 154134
-expected_out_mins = [770500.0, 6277500.0]
-expected_out_maxs = [770650.0, 6277600.0]
+TEST_PATH = os.path.dirname(os.path.abspath(__file__))
+TMP_PATH = os.path.join(TEST_PATH, "tmp")
+INPUT_DIR = os.path.join(TEST_PATH, "data")
 
 
 # def setup_module(module):
@@ -52,7 +41,20 @@ def get_2d_bounding_box(path):
 
 # Tests
 def test_las_merge():
-    las_merge(input_dir, input_file, output_file, tile_width=tile_width, tile_coord_scale=tile_coord_scale)
+    coord_x = 77055
+    coord_y = 627760
+    input_file = os.path.join(INPUT_DIR, f"test_data_{coord_x}_{coord_y}_LA93_IGN69.laz")
+    output_file = os.path.join(TMP_PATH, "merged.las")
+    tile_width = 50
+    tile_coord_scale = 10
+    input_mins = [coord_x * tile_coord_scale, coord_y * tile_coord_scale - tile_width]
+    input_maxs = [coord_x * tile_coord_scale + tile_width, coord_y * tile_coord_scale]
+    expected_out_mins = [input_mins[0] - tile_width, input_mins[1] - tile_width]
+    expected_out_maxs = [input_maxs[0] + tile_width, input_maxs[1]]  # There is no tile above the tile to merge
+
+    expected_output_nb_points = 405937
+
+    las_merge(INPUT_DIR, input_file, output_file, tile_width=tile_width, tile_coord_scale=tile_coord_scale)
 
     # check file exists
     assert os.path.isfile(output_file)
@@ -64,9 +66,12 @@ def test_las_merge():
     # check number of points
     assert get_nb_points(output_file) == expected_output_nb_points
 
-    # Check contre valeur attendue
+    # check bounds are the expected ones
     assert np.all(out_mins == expected_out_mins)
     assert np.all(out_maxs == expected_out_maxs)
+
+    # check that the las format is preserved
+    assert_header_info_are_similar(output_file, input_file)
 
 
 if __name__ == "__main__":
