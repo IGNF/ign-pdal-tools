@@ -10,7 +10,8 @@ from pdaltools import color
 
 cwd = os.getcwd()
 
-TMPDIR = cwd + "/tmp/"
+TEST_PATH = os.path.dirname(os.path.abspath(__file__))
+TMPDIR = os.path.join(TEST_PATH, "tmp")
 
 
 def setup_module(module):
@@ -21,12 +22,9 @@ def setup_module(module):
     os.mkdir(TMPDIR)
 
 
-TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 INPUT_PATH = os.path.join(TEST_PATH, "data/test_noepsg_043500_629205_IGN69.laz")
-INPUT_PATH_SINGLE_POINT_CLOUD = os.path.join(TEST_PATH, "data/test_data_0436_6384_LA93_IGN69_single_point.laz")
 
-OUTPUT_FILE = TMPDIR + "Semis_2021_0435_6292_LA93_IGN69.las"
-OUTPUT_FILE_SINGLE_POINT_CLOUD = TMPDIR + "test_data_0436_6384_LA93_IGN69_single_point.colorized.laz"
+OUTPUT_FILE = os.path.join(TMPDIR, "Semis_2021_0435_6292_LA93_IGN69.colorized.las")
 
 
 @pytest.mark.geopf
@@ -56,13 +54,32 @@ def test_color_and_keeping_orthoimages():
 
 @pytest.mark.geopf
 def test_color_narrow_cloud():
+    input_path = os.path.join(TEST_PATH, "data/test_data_0436_6384_LA93_IGN69_single_point.laz")
+    output_path = os.path.join(TMPDIR, "test_data_0436_6384_LA93_IGN69_single_point.colorized.laz")
     # Test that clouds that are smaller in width or height to 20cm are still clorized without an error.
-    color.color(INPUT_PATH_SINGLE_POINT_CLOUD, OUTPUT_FILE_SINGLE_POINT_CLOUD, epsg)
+    color.color(input_path, output_path, epsg)
 
 
 @pytest.mark.geopf
 def test_download_image_ok():
-    color.download_image_from_geoplateforme(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15)
+    tif_output = os.path.join(TMPDIR, "download_image.tif")
+    color.download_image_from_geoplateforme(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15)
+
+
+@pytest.mark.geopf
+def test_color_epsg_2975_forced():
+    input_path = os.path.join(TEST_PATH, "data/sample_lareunion_epsg2975.laz")
+    output_path = os.path.join(TMPDIR, "sample_lareunion_epsg2975.colorized.laz")
+    # Test that clouds that are smaller in width or height to 20cm are still clorized without an error.
+    color.color(input_path, output_path, 2975)
+
+
+@pytest.mark.geopf
+def test_color_epsg_2975_detected():
+    input_path = os.path.join(TEST_PATH, "data/sample_lareunion_epsg2975.laz")
+    output_path = os.path.join(TMPDIR, "sample_lareunion_epsg2975.colorized.laz")
+    # Test that clouds that are smaller in width or height to 20cm are still clorized without an error.
+    color.color(input_path, output_path)
 
 
 @pytest.mark.geopf
