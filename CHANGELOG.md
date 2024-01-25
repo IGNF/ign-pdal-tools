@@ -1,4 +1,4 @@
-# dev
+# 1.5.1
 - fix add_buffer: propagate header infos from input to the output
 - update pdal.Writer params to make sure input format is forwarded except for the specified parameters
 
