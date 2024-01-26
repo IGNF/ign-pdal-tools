@@ -34,6 +34,14 @@ def get_pdal_infos_summary(f: str):
     return json_info
 
 
+def assert_header_info_are_similar(file_to_compare, expected):
+    expected_metadata = get_pdal_infos_summary(expected)["summary"]["metadata"]
+    file_to_compare_metadata = get_pdal_infos_summary(file_to_compare)["summary"]["metadata"]
+    assert file_to_compare_metadata["minor_version"] == expected_metadata["minor_version"]
+    assert file_to_compare_metadata["global_encoding"] == expected_metadata["global_encoding"]
+    assert file_to_compare_metadata["dataformat_id"] == expected_metadata["dataformat_id"]
+
+
 EXPECTED_DIMS_BY_DATAFORMAT = {
     6: set(
         [

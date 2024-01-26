@@ -60,7 +60,7 @@ def rewrite_with_pdal(input_file: str, output_file: str, params_from_parser: Dic
     # Update parameters with command line values
     params = get_writer_parameters(params_from_parser)
     pipeline = pdal.Reader.las(input_file)
-    pipeline |= pdal.Writer(filename=output_file, **params)
+    pipeline |= pdal.Writer(filename=output_file, forward="all", **params)
     pipeline.execute()
 
 

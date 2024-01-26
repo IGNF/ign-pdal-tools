@@ -13,7 +13,7 @@ DATA_PATH = os.path.join(TEST_PATH, "data")
 COORD_X = 77055
 COORD_Y = 627760
 
-INPUT_FILE = os.path.join(DATA_PATH, f"test_data_{COORD_X}_{COORD_Y}_LA93_IGN69_ground.las")
+INPUT_FILE = os.path.join(DATA_PATH, f"test_data_{COORD_X}_{COORD_Y}_LA93_IGN69.laz")
 
 TILE_WIDTH = 50
 TILE_COORD_SCALE = 10
@@ -70,7 +70,7 @@ def test_las_get_xy_bounds_with_buffer():
 def test_parse_filename():
     prefix, parsed_coord_x, parsed_coord_y, suffix = las_info.parse_filename(INPUT_FILE)
     assert prefix == "test_data"
-    assert suffix == "LA93_IGN69_ground.las"
+    assert suffix == "LA93_IGN69.laz"
     assert parsed_coord_x == COORD_X
     assert parsed_coord_y == COORD_Y
 

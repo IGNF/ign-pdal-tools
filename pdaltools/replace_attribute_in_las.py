@@ -86,7 +86,7 @@ def replace_values(
     pipeline |= pdal.Filter.assign(value=assignment_list)
     # the temp_attribute dimension should not be written as long as the writer has no "extra_dims"
     # parameter
-    pipeline |= pdal.Writer(filename=output_file, **writer_parameters)
+    pipeline |= pdal.Writer(filename=output_file, forward="all", **writer_parameters)
 
     pipeline.execute()
 

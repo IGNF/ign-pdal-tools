@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 
@@ -97,14 +96,14 @@ def las_merge(las_dir, input_file, merge_file, tile_width=1000, tile_coord_scale
         1000 * 1m (with 1m being the reference)
     """
     # List files to merge
-    Listfiles = create_list(las_dir, input_file, tile_width, tile_coord_scale)
-    if len(Listfiles) > 0:
+    files = create_list(las_dir, input_file, tile_width, tile_coord_scale)
+    if len(files) > 0:
         # Merge
-        information = {}
-        information = {"pipeline": Listfiles + [merge_file]}
-        merge = json.dumps(information, sort_keys=True, indent=4)
-        logging.info(merge)
-        pipeline = pdal.Pipeline(merge)
+        pipeline = pdal.Pipeline()
+        for f in files:
+            pipeline |= pdal.Reader.las(filename=f)
+        pipeline |= pdal.Filter.merge()
+        pipeline |= pdal.Writer.las(filename=merge_file, forward="all")
         pipeline.execute()
     else:
         raise ValueError("List of valid tiles is empty : stop processing")
