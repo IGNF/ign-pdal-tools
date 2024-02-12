@@ -1,11 +1,14 @@
 import argparse
 import logging
 import os
-from typing import Dict, List
+from typing import List
 
 import pdal
 
-from pdaltools.las_info import get_buffered_bounds_from_filename
+from pdaltools.las_info import (
+    get_buffered_bounds_from_filename,
+    get_writer_parameters_from_reader_metadata,
+)
 from pdaltools.las_merge import create_list
 
 
@@ -44,40 +47,6 @@ def create_las_with_buffer(
         tile_width=tile_width,
         tile_coord_scale=tile_coord_scale,
     )
-
-
-def get_writer_parameters_from_reader_metadata(metadata: Dict, a_srs=None) -> Dict:
-    """As pdal las writers does not permit to pass easily metadata from one file as
-    parameters for a writer, use a trick to generate writer parameters from the
-    reader metadata of a previous pipeline:
-    This function uses the metadata from the reader of a pipeline to provide parameters
-    to pass to the writer of another pipeline
-
-    To be removed once https://github.com/PDAL/python/issues/147 is solved
-
-    Args:
-        metadata (Dict): metadata of an executed pipeline (that can be accessed using pipeline.metadata)
-    Returns:
-        Dict: parameters to pass to a pdal writer
-    """
-
-    reader_metadata = metadata["metadata"]["readers.las"]
-
-    params = {
-        "major_version": reader_metadata["major_version"],
-        "minor_version": reader_metadata["minor_version"],
-        "global_encoding": reader_metadata["global_encoding"],
-        "extra_dims": "all",
-        "scale_x": reader_metadata["scale_x"],
-        "scale_y": reader_metadata["scale_y"],
-        "scale_z": reader_metadata["scale_z"],
-        "offset_x": reader_metadata["offset_x"],
-        "offset_y": reader_metadata["offset_y"],
-        "offset_z": reader_metadata["offset_z"],
-        "dataformat_id": reader_metadata["dataformat_id"],
-        "a_srs": a_srs if a_srs else reader_metadata["comp_spatialreference"],
-    }
-    return params
 
 
 def las_merge_and_crop(
