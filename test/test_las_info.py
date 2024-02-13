@@ -1,6 +1,7 @@
 import os
 import test.utils as tu
 
+import pdal
 import pytest
 
 from pdaltools import las_info
@@ -90,3 +91,43 @@ def test_get_buffered_bounds_from_filename_with_buffer():
     )
     assert xs == [770550 - buffer_width, 770600 + buffer_width]
     assert ys == [6277550 - buffer_width, 6277600 + buffer_width]
+
+
+def test_get_writer_parameters_from_reader_metadata():
+    output_file = os.path.join(TMP_PATH, "writer_with_parameters.las")
+    output_expected = os.path.join(TMP_PATH, "writer_with_forward.las")
+
+    # First generate the expected output from a pipeline in a single part:
+    pipeline = pdal.Pipeline()
+    pipeline |= pdal.Reader.las(filename=INPUT_FILE)
+    pipeline |= pdal.Writer.las(
+        filename=output_expected,
+        forward="all",
+    )
+    pipeline.execute()
+
+    # Use pdal info summary to get metadata about the las file format and not only those of the data
+    out_expected_metadata = tu.get_pdal_infos_summary(output_expected)["summary"]["metadata"]
+
+    # Generate output from a pipeline separated in 2 parts
+    pipeline1 = pdal.Pipeline()
+    pipeline1 |= pdal.Reader.las(filename=INPUT_FILE)
+    # At this point a useful pipeline wou
+    pipeline1.execute()
+    out_data = pipeline.arrays[0]
+    metadata = pipeline.metadata
+
+    # Here in the expected usecase, you would do stuff to modify your data
+    params = las_info.get_writer_parameters_from_reader_metadata(metadata)
+    pipeline2 = pdal.Pipeline(arrays=[out_data])
+    pipeline2 |= pdal.Writer(filename=output_file, forward="all", **params)
+    pipeline2.execute()
+
+    out_metadata = tu.get_pdal_infos_summary(output_file)["summary"]["metadata"]
+
+    # Pop metadata that we don't expect to be the same
+    for key in ["creation_year", "creation_doy", "software_id"]:
+        out_metadata.pop(key)
+        out_expected_metadata.pop(key)
+
+    assert out_metadata == out_expected_metadata
