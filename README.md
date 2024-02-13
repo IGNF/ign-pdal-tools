@@ -26,9 +26,21 @@ This library can be used in different ways:
 * used in a docker container: see documentation [Dockerfile](Dockerfile)
 
 # More details on the contained tools
+
 ## Colorization
 
 * [color.py](pdaltools/color.py): Colorize a point cloud from Geoplateforme data
+
+## Las infos
+
+Misc tools to get information on a las file, eg. retrieve metadata, find epsg value, find bounds, get parameters to pass to a writer. They are intended to be used from the pdaltools module, for example:
+
+```python
+from pdaltools import las_infos
+
+filename = ...
+las_infos.las_info_metadata(filename)
+```
 
 ## Stitching
 

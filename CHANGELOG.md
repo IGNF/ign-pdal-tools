@@ -1,4 +1,4 @@
-# dev
+# 1.5.2
 - refactor tool to propagate header infos from one pipeline to another to use it by itself
 
 # 1.5.1
