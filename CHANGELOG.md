@@ -1,3 +1,6 @@
+- color: choose streams for RGB colorization, and IRC colorization (doc https://geoservices.ign.fr/services-web-experts-ortho)
+- color: detect white images.
+
 # 1.5.2
 - refactor tool to propagate header infos from one pipeline to another to use it by itself
 
