@@ -1,3 +1,4 @@
+# 1.6.0
 - color: choose streams for RGB colorization, and IRC colorization (doc https://geoservices.ign.fr/services-web-experts-ortho)
 - color: detect white images.
 
