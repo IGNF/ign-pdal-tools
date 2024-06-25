@@ -3,8 +3,10 @@ import tempfile
 import time
 from math import ceil
 
+import numpy as np
 import pdal
 import requests
+from osgeo import gdal_array
 
 import pdaltools.las_info as las_info
 from pdaltools.unlock_file import copy_and_hack_decorator
@@ -58,7 +60,15 @@ def retry(times, delay, factor=2, debug=False):
     return decorator
 
 
-def download_image_from_geoplateforme(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout):
+def is_image_white(filename: str):
+    raster_array = gdal_array.LoadFile(filename)
+    band_is_white = [np.all(band == 255) for band in raster_array]
+    return np.all(band_is_white)
+
+
+def download_image_from_geoplateforme(
+    proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images
+):
     # Give single-point clouds a width/height of at least one pixel to have valid BBOX and SIZE
     if minx == maxx:
         maxx = minx + 1 / pixel_per_meter
@@ -88,6 +98,9 @@ def download_image_from_geoplateforme(proj, layer, minx, miny, maxx, maxy, pixel
     print(f"Ecriture du fichier: {outfile}")
     open(outfile, "wb").write(req.content)
 
+    if check_images and is_image_white(outfile):
+        raise ValueError(f"Downloaded image is white, with stream: {layer}")
+
 
 @copy_and_hack_decorator
 def color(
@@ -99,6 +112,9 @@ def color(
     color_rvb_enabled=True,
     color_ir_enabled=True,
     veget_index_file="",
+    check_images=False,
+    stream_RGB="ORTHOIMAGERY.ORTHOPHOTOS",
+    stream_IRC="ORTHOIMAGERY.ORTHOPHOTOS.IRC",
 ):
     metadata = las_info.las_info_metadata(input_file)
     minx, maxx, miny, maxy = las_info.get_bounds_from_header_info(metadata)
@@ -122,8 +138,9 @@ def color(
     if color_rvb_enabled:
         tmp_ortho = tempfile.NamedTemporaryFile()
         download_image_from_geoplateforme_retrying(
-            proj, "ORTHOIMAGERY.ORTHOPHOTOS", minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho.name, timeout_second
+            proj, stream_RGB, minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho.name, timeout_second, check_images
         )
+
         pipeline |= pdal.Filter.colorization(
             raster=tmp_ortho.name, dimensions="Red:1:256.0, Green:2:256.0, Blue:3:256.0"
         )
@@ -132,16 +149,9 @@ def color(
     if color_ir_enabled:
         tmp_ortho_irc = tempfile.NamedTemporaryFile()
         download_image_from_geoplateforme_retrying(
-            proj,
-            "ORTHOIMAGERY.ORTHOPHOTOS.IRC",
-            minx,
-            miny,
-            maxx,
-            maxy,
-            pixel_per_meter,
-            tmp_ortho_irc.name,
-            timeout_second,
+            proj, stream_IRC, minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho_irc.name, timeout_second, check_images
         )
+
         pipeline |= pdal.Filter.colorization(raster=tmp_ortho_irc.name, dimensions="Infrared:1:256.0")
 
     pipeline |= pdal.Writer.las(
@@ -158,7 +168,7 @@ def color(
 
 
 def parse_args():
-    parser = argparse.ArgumentParser("Colorize tool")
+    parser = argparse.ArgumentParser("Colorize tool", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("--input", "-i", type=str, required=True, help="Input file")
     parser.add_argument("--output", "-o", type=str, default="", help="Output file")
     parser.add_argument(
@@ -171,9 +181,39 @@ def parse_args():
     parser.add_argument(
         "--vegetation", type=str, default="", help="Vegetation file, value will be stored in Deviation field"
     )
+    parser.add_argument("--check-images", "-c", action="store_true", help="Check that downloaded image is not white")
+    parser.add_argument(
+        "--stream-RGB",
+        type=str,
+        default="ORTHOIMAGERY.ORTHOPHOTOS",
+        help="""WMS raster stream for RGB colorization:
+default stream (ORTHOIMAGERY.ORTHOPHOTOS) let the server choose the resolution
+for 20cm resolution rasters, use HR.ORTHOIMAGERY.ORTHOPHOTOS
+for 50 cm resolution rasters, use ORTHOIMAGERY.ORTHOPHOTOS.BDORTHO""",
+    )
+    parser.add_argument(
+        "--stream-IRC",
+        type=str,
+        default="ORTHOIMAGERY.ORTHOPHOTOS.IRC",
+        help="""WMS raster stream for IRC colorization. Default to ORTHOIMAGERY.ORTHOPHOTOS.IRC
+Documentation about possible stream : https://geoservices.ign.fr/services-web-experts-ortho""",
+    )
+
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    color(args.input, args.output, args.proj, args.resolution, args.timeout, args.rvb, args.ir, args.vegetation)
+    color(
+        input_file=args.input,
+        output_file=args.output,
+        proj=args.proj,
+        pixel_per_meter=args.resolution,
+        timeout_second=args.timeout,
+        color_rvb_enabled=args.rvb,
+        color_ir_enabled=args.ir,
+        veget_index_file=args.vegetation,
+        check_images=args.check_images,
+        stream_RGB=args.stream_RGB,
+        stream_IRC=args.stream_IRC,
+    )
