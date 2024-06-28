@@ -1,3 +1,6 @@
+# 1.7.0
+- las_remove_dimension: new tool to remove one or many dimensions
+
 # 1.6.0
 - color: choose streams for RGB colorization, and IRC colorization (doc https://geoservices.ign.fr/services-web-experts-ortho)
 - color: detect white images.
