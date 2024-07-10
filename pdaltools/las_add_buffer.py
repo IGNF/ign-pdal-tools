@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import tempfile
 from typing import List
 
 import pdal
@@ -10,6 +11,9 @@ from pdaltools.las_info import (
     get_writer_parameters_from_reader_metadata,
 )
 from pdaltools.las_merge import create_list
+from pdaltools.las_remove_dimensions import remove_dimensions_from_las
+
+ORIGINAL_TILE_TAG = "is_in_original"
 
 
 def create_las_with_buffer(
@@ -20,19 +24,27 @@ def create_las_with_buffer(
     spatial_ref: str = "EPSG:2154",
     tile_width: int = 1000,
     tile_coord_scale: int = 1000,
+    tag_original_tile: bool = False,
 ):
     """Merge lidar tiles around the queried tile and crop them in order to add a buffer
     to the tile (usually 100m).
+
     Args:
-        input_dir (str): directory of pointclouds (where you look for neigbors)
-        tile_filename (str): full path to the queried LIDAR tile
-        output_filename (str) : full path to the saved cropped tile
-        buffer_width (int): width of the border to add to the tile (in pixels)
-        spatial_ref (str): Spatial reference to use to override the one from input las.
-        tile width (int): width of tiles in meters (usually 1000m)
-        tile_coord_scale (int) : scale used in the filename to describe coordinates in meters
-                (usually 1000m)
+        input_dir (str): directory of pointclouds (where you look for neighbors)
+        tile_filename (str):  full path to the queried LIDAR tile
+        output_filename (str): full path to the saved cropped tile
+        buffer_width (int, optional): width of the border to add to the tile (in meters).
+        Defaults to 100.
+        spatial_ref (_type_, optional): Spatial reference to use to override the one from input las.
+        Defaults to "EPSG:2154".
+        tile_width (int, optional): width of tiles in meters. Defaults to 1000.
+        tile_coord_scale (int, optional): scale used in the filename to describe coordinates
+        in meters. Defaults to 1000.
+        tag_original_tile (bool, optional): if true, add a new "is_in_original" dimension
+        to the output las, equal to 1 on points that belong to the original tile, 0 on points
+        that belong to the added buffer. Defaults to False.
     """
+
     bounds = get_buffered_bounds_from_filename(
         tile_filename, buffer_width=buffer_width, tile_width=tile_width, tile_coord_scale=tile_coord_scale
     )
@@ -46,6 +58,7 @@ def create_las_with_buffer(
         spatial_ref,
         tile_width=tile_width,
         tile_coord_scale=tile_coord_scale,
+        tag_original_tile=tag_original_tile,
     )
 
 
@@ -57,6 +70,7 @@ def las_merge_and_crop(
     spatial_ref: str = "EPSG:2154",
     tile_width=1000,
     tile_coord_scale=1000,
+    tag_original_tile: bool = False,
 ):
     """Merge and crop las in a single pipeline (for buffer addition)
 
@@ -65,29 +79,40 @@ def las_merge_and_crop(
     - For each file:
         - read it
         - crop it according to the bounds
+        - optionally add a dimension to differentiate points from the central pointscloud
+        from those added as a buffer
         - keep the crop in memory
         - delete the pipeline object to release the memory taken by the las reader
     - Merge the already cropped data
 
     Args:
-        input_dir (str): directory of pointclouds (where you look for neigbors)
+        input_dir (str): directory of pointclouds (where you look for neighbors)
         tile_filename (str): full path to the queried LIDAR tile
-        bounds : 2D bounding box to crop to : provided as ([xmin, xmax], [ymin, ymax])
-        output_filename (str) : full path to the saved cropped tile
-        spatial_ref (str): spatial reference for the writer
-        tile width (int): width of tiles in meters (usually 1000m)
-        tile_coord_scale (int) : scale used in the filename to describe coordinates in meters
-                (usually 1000m)
+        bounds (List): 2D bounding box to crop to : provided as ([xmin, xmax], [ymin, ymax])
+        output_filename (str): full path to the saved cropped tile
+        spatial_ref (_type_, optional): spatial reference for the writer. Defaults to "EPSG:2154".
+        tile_width (int, optional): width of tiles in meters (usually 1000m). Defaults to 1000.
+        tile_coord_scale (int, optional): scale used in the filename to describe coordinates in meters.
+        Defaults to 1000.
+        tag_original_tile (bool, optional):  if true, add a new "is_in_original" dimension
+        to the output las, equal to 1 on points that belong to the original tile, 0 on points
+        that belong to the added buffer. Defaults to False.
+    Raises:
+        ValueError: if the list of tiles to merge is empty
     """
+
     # List files to merge
     files_to_merge = create_list(input_dir, tile_filename, tile_width, tile_coord_scale)
-
+    central_file = files_to_merge[-1]
     if len(files_to_merge) > 0:
         # Read and crop each file
         crops = []
         for f in files_to_merge:
             pipeline = pdal.Pipeline()
             pipeline |= pdal.Reader.las(filename=f, override_srs=spatial_ref)
+            if tag_original_tile:
+                pipeline |= pdal.Filter.ferry(dimensions=f"=>{ORIGINAL_TILE_TAG}")
+                pipeline |= pdal.Filter.assign(value=f"{ORIGINAL_TILE_TAG}={int(f == central_file)}")
             pipeline |= pdal.Filter.crop(bounds=str(bounds))
             pipeline.execute()
             if len(pipeline.arrays[0]) == 0:
@@ -95,10 +120,9 @@ def las_merge_and_crop(
             else:
                 crops.append(pipeline.arrays[0])
 
-            # Retrieve metadata before the pipeline is deleted
-            # As the last file of files_to_merge is the central one, metadata will contain the info
-            # from the central file after the last iteration of the for loop
-            metadata = pipeline.metadata
+            if f == central_file:
+                # Retrieve metadata before the pipeline is deleted
+                metadata = pipeline.metadata
             del pipeline
 
         params = get_writer_parameters_from_reader_metadata(metadata, a_srs=spatial_ref)
@@ -114,6 +138,23 @@ def las_merge_and_crop(
     else:
         raise ValueError("List of valid tiles is empty : stop processing")
     pass
+
+
+def remove_points_from_buffer(input_file: str, output_file: str):
+    """Remove the points that were added as a buffer to a las file using the "is_in_original"
+    dimension that has been added by create_las_with_buffer
+
+    Args:
+        input_file (str): path to the input file containing the "is_in_original" dimension
+        output_file (str): path to the output_file
+    """
+    with tempfile.NamedTemporaryFile(suffix="_with_additional_dim.las") as tmp_las:
+        pipeline = pdal.Pipeline() | pdal.Reader.las(input_file)
+        pipeline |= pdal.Filter.range(limits=f"{ORIGINAL_TILE_TAG}[1:1]")
+        pipeline |= pdal.Writer.las(filename=tmp_las.name, forward="all", extra_dims="all")
+        pipeline.execute()
+
+        remove_dimensions_from_las(tmp_las.name, dimensions=[ORIGINAL_TILE_TAG], output_las=output_file)
 
 
 def parse_args():
