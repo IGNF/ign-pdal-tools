@@ -45,9 +45,6 @@ jobs:
 
   test_local:
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/ign-pdal-tools
     permissions:
       contents: read
       packages: write
