@@ -1,4 +1,5 @@
 - las_remove_dimension: new tool to remove one or many dimensions
+- deploy on ghcr.io instead of dockerhub
 
 # 1.6.0
 - color: choose streams for RGB colorization, and IRC colorization (doc https://geoservices.ign.fr/services-web-experts-ortho)
