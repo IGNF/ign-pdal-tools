@@ -2,7 +2,9 @@ import argparse
 import logging
 import os
 import tempfile
-from typing import List
+from functools import wraps
+from pathlib import Path
+from typing import Callable, List
 
 import pdal
 
@@ -90,7 +92,7 @@ def las_merge_and_crop(
         tile_filename (str): full path to the queried LIDAR tile
         bounds (List): 2D bounding box to crop to : provided as ([xmin, xmax], [ymin, ymax])
         output_filename (str): full path to the saved cropped tile
-        spatial_ref (_type_, optional): spatial reference for the writer. Defaults to "EPSG:2154".
+        spatial_ref (str, optional): spatial reference for the writer. Defaults to "EPSG:2154".
         tile_width (int, optional): width of tiles in meters (usually 1000m). Defaults to 1000.
         tile_coord_scale (int, optional): scale used in the filename to describe coordinates in meters.
         Defaults to 1000.
@@ -155,6 +157,82 @@ def remove_points_from_buffer(input_file: str, output_file: str):
         pipeline.execute()
 
         remove_dimensions_from_las(tmp_las.name, dimensions=[ORIGINAL_TILE_TAG], output_las=output_file)
+
+
+def run_on_buffered_las(
+    buffer_width: int, spatial_ref: str, tile_width: int = 1000, tile_coord_scale: int = 1000
+) -> Callable:
+    """Decorator to apply a function that takes a las/laz as input and returns a las/laz output
+    on an input with an additional buffer, then remove the buffer points from the output
+
+    The first argument of the decorated function must be an input path
+    The second argument of the decorated function must be an output path
+
+    The buffer is added by merging lidar tiles around the queried tile and crop them based
+    on their filenames
+
+    Args:
+        buffer_width (int): width of the border to add to the tile (in meters)
+        spatial_ref (str): spatial reference for the writer. Example: "EPSG:2154".
+        tile_width (int, optional): width of tiles in meters (usually 1000m). Defaults to 1000.
+        tile_coord_scale (int, optional): scale used in the filename to describe coordinates in meters.
+        Defaults to 1000.
+
+    Raises:
+        FileNotFoundError: when the first argument of the decorated function is not an existing
+            file
+        FileNotFoundError:  when the second argument of the decorated function is not a path
+            with an existing parent folder
+
+    Returns:
+        Callable: decorated function
+    """
+    """Decorator to run a function that takes a las as input and returns a las output
+    on a las with an additional buffer, then remove the buffer points from the buffer points
+
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            input_file = args[0]
+            output_file = args[1]
+            if not Path(input_file).is_file():
+                raise FileNotFoundError(
+                    f"File {args[0]} not found. The first argument of a function decorated by "
+                    "'run_on_buffered_las' is expected to be the path to an existing input file."
+                )
+
+            if not Path(output_file).parent.is_dir():
+                raise FileNotFoundError(
+                    f"Parent folder for file {args[1]} not found. The second argument of a function "
+                    "decorated by 'run_on_buffered_las' is expected to be the path to an output "
+                    "file in an existing folder"
+                )
+
+            with (
+                tempfile.NamedTemporaryFile(suffix="_buffered_input.laz", dir=".") as buf_in,
+                tempfile.NamedTemporaryFile(suffix="_buffered_output.laz", dir=".") as buf_out,
+            ):
+                create_las_with_buffer(
+                    Path(input_file).parent,
+                    input_file,
+                    buf_in.name,
+                    buffer_width=buffer_width,
+                    spatial_ref=spatial_ref,
+                    tile_width=tile_width,
+                    tile_coord_scale=tile_coord_scale,
+                    tag_original_tile=True,
+                )
+                func(buf_in.name, buf_out.name, *args[2:], **kwargs)
+
+                remove_points_from_buffer(buf_out.name, output_file)
+
+            return
+
+        return wrapper
+
+    return decorator
 
 
 def parse_args():

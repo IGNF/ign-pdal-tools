@@ -10,7 +10,11 @@ import numpy as np
 from pdaltools.count_occurences.count_occurences_for_attribute import (
     compute_count_one_file,
 )
-from pdaltools.las_add_buffer import create_las_with_buffer, remove_points_from_buffer
+from pdaltools.las_add_buffer import (
+    create_las_with_buffer,
+    remove_points_from_buffer,
+    run_on_buffered_las,
+)
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMP_PATH = os.path.join(TEST_PATH, "tmp")
@@ -127,7 +131,6 @@ def test_create_las_with_buffer_with_tag():
     # check number of points with the additional tag
     assert get_nb_points(output_file) > input_nb_points
     count_points_from_original = compute_count_one_file(output_file, attribute="is_in_original")
-    print(count_points_from_original)
     assert count_points_from_original["1"] == input_nb_points
 
     # Check boundaries
@@ -170,6 +173,7 @@ def test_remove_points_from_buffer():
 
     remove_points_from_buffer(buffered_file, output_file)
     assert os.path.isfile(output_file)
+    assert get_nb_points(buffered_file) > get_nb_points(input_file)
     assert get_nb_points(output_file) == get_nb_points(input_file)
 
     # Check output dimensions are the same as input dimensions
@@ -183,6 +187,28 @@ def test_remove_points_from_buffer():
     assert_header_info_are_similar(output_file, input_file)
 
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    test_create_las_with_buffer()
+def test_run_on_buffered_las():
+    # Dummy example with copy only
+    buffer_width = 5
+    tile_width = 50
+    tile_coord_scale = 10
+    spatial_ref = "EPSG:2154"
+
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69.laz")
+    output_dir = os.path.join(TMP_PATH, "run_with_buffer")
+    os.makedirs(output_dir)
+    output_file = os.path.join(output_dir, "copied.laz")
+    decorated_copy = run_on_buffered_las(
+        buffer_width, spatial_ref=spatial_ref, tile_width=tile_width, tile_coord_scale=tile_coord_scale
+    )(shutil.copy)
+
+    decorated_copy(input_file, output_file)
+
+    # Check output dimensions are the same as input dimensions
+    output_dimensions = tu.get_pdal_infos_summary(output_file)["summary"]["dimensions"]
+    input_dimensions = tu.get_pdal_infos_summary(input_file)["summary"]["dimensions"]
+    assert output_dimensions == input_dimensions
+
+    # Check las content
+    assert get_nb_points(output_file) == get_nb_points(input_file)
+    assert compute_count_one_file(output_file) == compute_count_one_file(input_file)
