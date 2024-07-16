@@ -22,6 +22,7 @@ jobs:
       - name: setup-micromamba
         uses: mamba-org/setup-micromamba@v1.9.0
         with:
+          micromamba-version: '1.5.8-0'  # temporary fix as setup-mircomamba hangs with later mamba version
           environment-file: environment.yml
           environment-name: pdaltools  # activate the environment
           cache-environment: true
