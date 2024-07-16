@@ -53,17 +53,21 @@ clean:
 # Build/deploy Docker image
 ##############################
 
-PROJECT_NAME=ignimagelidar/ign-pdal-tools
+REGISTRY=ghcr.io
+NAMESPACE=ignf
+IMAGE_NAME=ign-pdal-tools
 VERSION=`python -m pdaltools._version`
+FULL_IMAGE_NAME=${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:${VERSION}
 
 docker-build: clean
-	docker build --no-cache -t ${PROJECT_NAME}:${VERSION} -f Dockerfile .
+	docker build --no-cache -t ${IMAGE_NAME}:${VERSION} -f Dockerfile .
 
 docker-test:
-	docker run --rm -it ${PROJECT_NAME}:${VERSION} python -m pytest -s
+	docker run --rm -it ${IMAGE_NAME}:${VERSION} python -m pytest -s
 
 docker-remove:
-	docker rmi -f `docker images | grep ${PROJECT_NAME} | tr -s ' ' | cut -d ' ' -f 3`
+	docker rmi -f `docker images | grep ${IMAGE_NAME}:${VERSION} | tr -s ' ' | cut -d ' ' -f 3`
 
 docker-deploy:
-	docker push ${PROJECT_NAME}:${VERSION}
+	docker tag ${IMAGE_NAME}:${VERSION} ${FULL_IMAGE_NAME}
+	docker push ${FULL_IMAGE_NAME}
