@@ -146,6 +146,9 @@ def remove_points_from_buffer(input_file: str, output_file: str):
     """Remove the points that were added as a buffer to a las file using the "is_in_original"
     dimension that has been added by create_las_with_buffer
 
+    Limitation: if any point has been added to the point cloud after adding the buffer, it
+    won't be preserved by this operation (only points from the original file are kept)
+
     Args:
         input_file (str): path to the input file containing the "is_in_original" dimension
         output_file (str): path to the output_file
@@ -169,7 +172,11 @@ def run_on_buffered_las(
     The second argument of the decorated function must be an output path
 
     The buffer is added by merging lidar tiles around the queried tile and crop them based
-    on their filenames
+    on their filenames.
+
+    Limitation: if any point has been added to the point cloud by the decorated function, it
+    won't be preserved by this operation (only points from the original file are kept)
+
 
     Args:
         buffer_width (int): width of the border to add to the tile (in meters)
