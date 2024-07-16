@@ -77,7 +77,7 @@ jobs:
 
       # See https://github.com/marketplace/actions/setup-micromamba
       - name: setup-micromamba
-        uses: mamba-org/setup-micromamba@v1.4.3
+        uses: mamba-org/setup-micromamba@v1.9.0
         with:
           environment-file: environment.yml
           environment-name: pdaltools  # activate the environment
