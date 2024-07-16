@@ -1,3 +1,4 @@
+# 1.7.0
 - las_remove_dimension: new tool to remove one or many dimensions
 - deploy on ghcr.io instead of dockerhub
 - Add tools to run functions on buffered las:
