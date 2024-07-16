@@ -1,3 +1,11 @@
+# 1.7.0
+- las_remove_dimension: new tool to remove one or many dimensions
+- deploy on ghcr.io instead of dockerhub
+- Add tools to run functions on buffered las:
+  - update create_las_with_buffer to enable saving which points are from the central las on a new dimension
+  - add a remove_points_from_buffer to remove the points that have this new dimension not set to 1
+  - add a decorator to run a function on a buffered las and return an output las only with the points from the original input
+
 # 1.6.0
 - color: choose streams for RGB colorization, and IRC colorization (doc https://geoservices.ign.fr/services-web-experts-ortho)
 - color: detect white images.
