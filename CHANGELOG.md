@@ -1,3 +1,6 @@
+# 1.7.1
+Same as 1.7.0 (new tag needed to publish on pypi due to incorrect package handling)
+
 # 1.7.0
 - las_remove_dimension: new tool to remove one or many dimensions
 - deploy on ghcr.io instead of dockerhub
