@@ -7,6 +7,7 @@
     - precision
     - no extra-dims
 """
+
 import argparse
 import os
 import subprocess as sp
@@ -42,6 +43,14 @@ def parse_args():
         "--record_format", choices=[6, 8], type=int, help="Record format: 6 (no color) or 8 (4 color channels)"
     )
     parser.add_argument("--projection", default="EPSG:2154", type=str, help="Projection, eg. EPSG:2154")
+    parser.add_argument(
+        "--extra_dims",
+        default=[],
+        nargs="*",
+        type=str,
+        help="List of extra dims to keep in the output (default=[], use 'all' to keep all extra dims), "
+        "extra_dims must be specified with their type (see pdal.writers.las documentation, eg 'dim1=double')",
+    )
 
     return parser.parse_args()
 
@@ -86,5 +95,5 @@ def standardize(input_file: str, output_file: str, params_from_parser: Dict) -> 
 
 if __name__ == "__main__":
     args = parse_args()
-    params_from_parser = dict(dataformat_id=args.record_format, a_srs=args.projection)
+    params_from_parser = dict(dataformat_id=args.record_format, a_srs=args.projection, extra_dims=args.extra_dims)
     standardize(args.input_file, args.output_file, params_from_parser)
