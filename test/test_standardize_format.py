@@ -14,8 +14,10 @@ TMP_PATH = os.path.join(TEST_PATH, "tmp")
 INPUT_DIR = os.path.join(TEST_PATH, "data")
 
 MUTLIPLE_PARAMS = [
-    {"dataformat_id": 6, "a_srs": "EPSG:2154"},
-    {"dataformat_id": 8, "a_srs": "EPSG:4326"},
+    {"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": []},
+    {"dataformat_id": 8, "a_srs": "EPSG:4326", "extra_dims": []},
+    {"dataformat_id": 8, "a_srs": "EPSG:2154", "extra_dims": ["dtm_marker=double", "dsm_marker=double"]},
+    {"dataformat_id": 8, "a_srs": "EPSG:2154", "extra_dims": "all"},
 ]
 
 
@@ -46,14 +48,18 @@ def _test_standardize_format_one_params_set(input_file, output_file, params):
     assert metadata["dataformat_id"] == params["dataformat_id"]
     # Check that there is no extra dim
     dimensions = set([d.strip() for d in json_info["summary"]["dimensions"].split(",")])
-    assert dimensions == EXPECTED_DIMS_BY_DATAFORMAT[params["dataformat_id"]]
+    if params["extra_dims"] == "all":
+        assert EXPECTED_DIMS_BY_DATAFORMAT[params["dataformat_id"]].issubset(dimensions)
+    else:
+        extra_dims_names = [dim.split("=")[0] for dim in params["extra_dims"]]
+        assert dimensions == EXPECTED_DIMS_BY_DATAFORMAT[params["dataformat_id"]].union(extra_dims_names)
 
     # TODO: Check srs
     # TODO: check precision
 
 
 def test_standardize_format():
-    input_file = os.path.join(INPUT_DIR, "test_data_77055_627760_LA93_IGN69.laz")
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
     output_file = os.path.join(TMP_PATH, "formatted.laz")
     for params in MUTLIPLE_PARAMS:
         _test_standardize_format_one_params_set(input_file, output_file, params)
