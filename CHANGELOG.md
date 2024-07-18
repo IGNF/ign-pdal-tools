@@ -1,3 +1,6 @@
+# 1.7.2
+- Add possibility to select extra dimensions to keep in standardization
+
 # 1.7.1
 Same as 1.7.0 (new tag needed to publish on pypi due to incorrect package handling)
 
