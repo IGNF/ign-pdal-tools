@@ -1,5 +1,6 @@
-# dev
+# 1.7.3
 - Add method to get a point cloud origin
+
 # 1.7.2
 - Add possibility to select extra dimensions to keep in standardization
 
