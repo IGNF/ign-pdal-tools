@@ -16,6 +16,8 @@ dependencies:
   - pytest
   - laspy
   - requests-mock
-  - build
   - twine
   - tqdm
+  - pip
+  - pip:
+    - build # Installed via pip after issues when creating the environment ("build does not exist")
