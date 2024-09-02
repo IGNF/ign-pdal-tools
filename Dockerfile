@@ -1,5 +1,7 @@
 FROM mambaorg/micromamba:latest as mamba_pdal
 COPY environment.yml /environment.yml
+# Using USER root seems to fix permission issues when building mamba environment with pip packages
+USER root
 RUN micromamba env create -n pdaltools -f /environment.yml
 
 

@@ -42,6 +42,18 @@ filename = ...
 las_infos.las_info_metadata(filename)
 ```
 
+## Point cloud infos
+
+Misc tools to get information on a point cloud (numpy array). Eg. get expected origin of a point cloud based on a square tiling:
+
+```python
+from pdaltools import pcd_infos
+
+points = ...
+pcd_infos.get_pointcloud_origin_from_tile_width(points, tile_width=1000)
+```
+
+
 ## Stitching
 
 * [las_clip.py](pdaltools/las_clip.py): crop a LAS file using 2d bounding box
