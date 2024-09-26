@@ -4,6 +4,7 @@ import os
 import pdal
 from pdaltools.las_info import get_writer_parameters_from_reader_metadata
 
+
 def remove_dimensions_from_las(input_las: str, dimensions: [str], output_las: str):
     """
     export new las without some dimensions
@@ -43,7 +44,7 @@ def parse_args():
         required=True,
         nargs="+",
         help="The dimension we would like to remove from the point cloud file ; be aware to not remove mandatory "
-             "dimensions of las"
+        "dimensions of las",
     )
 
     return parser.parse_args()

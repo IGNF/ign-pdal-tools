@@ -12,11 +12,14 @@ import argparse
 import os
 import subprocess as sp
 import tempfile
+import platform
+import numpy as np
 from typing import Dict
 
 import pdal
 
 from pdaltools.unlock_file import copy_and_hack_decorator
+from pdaltools.las_info import get_writer_parameters_from_reader_metadata
 
 STANDARD_PARAMETERS = dict(
     major_version="1",
@@ -32,6 +35,7 @@ STANDARD_PARAMETERS = dict(
     offset_z=0,
     dataformat_id=6,  # No color by default
     a_srs="EPSG:2154",
+    class_points_removed=[],  # remove points from class
 )
 
 
@@ -44,6 +48,13 @@ def parse_args():
     )
     parser.add_argument("--projection", default="EPSG:2154", type=str, help="Projection, eg. EPSG:2154")
     parser.add_argument(
+        "--class_points_removed",
+        default=[],
+        nargs="*",
+        type=str,
+        help="List of classes number. Points of this classes will be removed from the file",
+    )
+    parser.add_argument(
         "--extra_dims",
         default=[],
         nargs="*",
@@ -51,7 +62,6 @@ def parse_args():
         help="List of extra dims to keep in the output (default=[], use 'all' to keep all extra dims), "
         "extra_dims must be specified with their type (see pdal.writers.las documentation, eg 'dim1=double')",
     )
-
     return parser.parse_args()
 
 
@@ -61,20 +71,48 @@ def get_writer_parameters(new_parameters: Dict) -> Dict:
     override the standard ones
     """
     params = STANDARD_PARAMETERS | new_parameters
-
     return params
 
 
-def rewrite_with_pdal(input_file: str, output_file: str, params_from_parser: Dict) -> None:
+def remove_points_from_class(points, class_points_removed: []) :
+    input_dimensions = list(points.dtype.fields.keys())
+    dim_class = input_dimensions.index("Classification")
+
+    indice_pts_delete = [id for id in range(0, len(points)) if points[id][dim_class] in class_points_removed]
+    points_preserved = np.delete(points, indice_pts_delete)
+
+    if len(points_preserved) == 0:
+        raise Exception("All points removed !")
+
+    return points_preserved
+
+
+def rewrite_with_pdal(input_file: str, output_file: str, params_from_parser: Dict, class_points_removed: []) -> None:
     # Update parameters with command line values
-    params = get_writer_parameters(params_from_parser)
-    pipeline = pdal.Reader.las(input_file)
-    pipeline |= pdal.Writer(filename=output_file, forward="all", **params)
+    pipeline = pdal.Pipeline()
+    pipeline |= pdal.Reader.las(input_file)
     pipeline.execute()
+    points = pipeline.arrays[0]
+
+    if class_points_removed:
+        points = remove_points_from_class(points, class_points_removed)
+
+    #ToDo : it seems that the forward="all" doesn't work because we use a new pipeline
+    #   since we create a new pipeline, the 2 metadatas creation_doy and creation_year are update
+    #   to current date instead of forwarded from input LAS
+
+    params = get_writer_parameters(params_from_parser)
+    pipeline_end = pdal.Pipeline(arrays=[points])
+    pipeline_end |= pdal.Writer.las(output_file, forward="all", **params)
+    pipeline_end.execute()
 
 
 def exec_las2las(input_file: str, output_file: str):
-    r = sp.run(["las2las", "-i", input_file, "-o", output_file], stderr=sp.PIPE, stdout=sp.PIPE)
+    if platform.processor() == "arm" and platform.architecture()[0] == "64bit":
+        las2las = "las2las64"
+    else:
+        las2las = "las2las"
+    r = sp.run([las2las, "-i", input_file, "-o", output_file], stderr=sp.PIPE, stdout=sp.PIPE)
     if r.returncode == 1:
         msg = r.stderr.decode()
         print(msg)
@@ -86,14 +124,18 @@ def exec_las2las(input_file: str, output_file: str):
 
 
 @copy_and_hack_decorator
-def standardize(input_file: str, output_file: str, params_from_parser: Dict) -> None:
+def standardize(input_file: str, output_file: str, params_from_parser: Dict, class_points_removed: []) -> None:
     filename = os.path.basename(output_file)
     with tempfile.NamedTemporaryFile(suffix=filename) as tmp:
-        rewrite_with_pdal(input_file, tmp.name, params_from_parser)
+        rewrite_with_pdal(input_file, tmp.name, params_from_parser, class_points_removed)
         exec_las2las(tmp.name, output_file)
 
 
 if __name__ == "__main__":
     args = parse_args()
-    params_from_parser = dict(dataformat_id=args.record_format, a_srs=args.projection, extra_dims=args.extra_dims)
-    standardize(args.input_file, args.output_file, params_from_parser)
+    params_from_parser = dict(
+        dataformat_id=args.record_format,
+        a_srs=args.projection,
+        extra_dims=args.extra_dims,
+    )
+    standardize(args.input_file, args.output_file, params_from_parser, args.class_points_removed)
