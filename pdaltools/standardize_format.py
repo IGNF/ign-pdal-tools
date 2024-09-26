@@ -98,6 +98,8 @@ def rewrite_with_pdal(input_file: str, output_file: str, params_from_parser: Dic
         points = remove_points_from_class(points, class_points_removed)
 
     #ToDo : it seems that the forward="all" doesn't work because we use a new pipeline
+    #   since we create a new pipeline, the 2 metadatas creation_doy and creation_year are update
+    #   to current date instead of forwarded from input LAS
 
     params = get_writer_parameters(params_from_parser)
     pipeline_end = pdal.Pipeline(arrays=[points])
