@@ -8,8 +8,11 @@ on:
 
 
 jobs:
-  docker_build_and_test:
-    runs-on: ubuntu-latest
+  test_light:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     permissions:
         contents: read
         packages: write
