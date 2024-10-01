@@ -1,22 +1,26 @@
 import logging
 import os
+import platform
 import shutil
 import subprocess as sp
-import platform
-import json
 from test.utils import EXPECTED_DIMS_BY_DATAFORMAT, get_pdal_infos_summary
 
 import pdal
 import pytest
 
-from pdaltools.standardize_format import exec_las2las, rewrite_with_pdal, standardize, remove_points_from_class
+from pdaltools.count_occurences.count_occurences_for_attribute import (
+    compute_count_one_file,
+)
+from pdaltools.standardize_format import exec_las2las, rewrite_with_pdal, standardize
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMP_PATH = os.path.join(TEST_PATH, "tmp")
 INPUT_DIR = os.path.join(TEST_PATH, "data")
 
+DEFAULT_PARAMS = {"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": []}
+
 MUTLIPLE_PARAMS = [
-    {"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": []},
+    DEFAULT_PARAMS,
     {"dataformat_id": 8, "a_srs": "EPSG:4326", "extra_dims": []},
     {"dataformat_id": 8, "a_srs": "EPSG:2154", "extra_dims": ["dtm_marker=double", "dsm_marker=double"]},
     {"dataformat_id": 8, "a_srs": "EPSG:2154", "extra_dims": "all"},
@@ -32,7 +36,18 @@ def setup_module(module):
     os.mkdir(TMP_PATH)
 
 
-def _test_standardize_format_one_params_set(input_file, output_file, params):
+@pytest.mark.parametrize(
+    "params",
+    [
+        DEFAULT_PARAMS,
+        {"dataformat_id": 8, "a_srs": "EPSG:4326", "extra_dims": []},
+        {"dataformat_id": 8, "a_srs": "EPSG:2154", "extra_dims": ["dtm_marker=double", "dsm_marker=double"]},
+        {"dataformat_id": 8, "a_srs": "EPSG:2154", "extra_dims": "all"},
+    ],
+)
+def test_standardize_format(params):
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
+    output_file = os.path.join(TMP_PATH, "formatted.laz")
     rewrite_with_pdal(input_file, output_file, params, [])
     # check file exists
     assert os.path.isfile(output_file)
@@ -56,15 +71,35 @@ def _test_standardize_format_one_params_set(input_file, output_file, params):
         extra_dims_names = [dim.split("=")[0] for dim in params["extra_dims"]]
         assert dimensions == EXPECTED_DIMS_BY_DATAFORMAT[params["dataformat_id"]].union(extra_dims_names)
 
+    # Check that there is the expected number of points for each class
+    expected_points_counts = compute_count_one_file(input_file)
+
+    output_points_counts = compute_count_one_file(output_file)
+    assert output_points_counts == expected_points_counts
+
     # TODO: Check srs
     # TODO: check precision
 
 
-def test_standardize_format():
+@pytest.mark.parametrize(
+    "classes_to_remove",
+    [
+        [],
+        [2, 3],
+        [1, 2, 3, 4, 5, 6, 64],  # remove all classes
+    ],
+)
+def test_standardize_classes(classes_to_remove):
     input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
     output_file = os.path.join(TMP_PATH, "formatted.laz")
-    for params in MUTLIPLE_PARAMS:
-        _test_standardize_format_one_params_set(input_file, output_file, params)
+    rewrite_with_pdal(input_file, output_file, DEFAULT_PARAMS, classes_to_remove)
+    # Check that there is the expected number of points for each class
+    expected_points_counts = compute_count_one_file(input_file)
+    for cl in classes_to_remove:
+        expected_points_counts.pop(str(cl))
+
+    output_points_counts = compute_count_one_file(output_file)
+    assert output_points_counts == expected_points_counts
 
 
 def exec_lasinfo(input_file: str):
@@ -108,72 +143,15 @@ def test_standardize_does_NOT_produce_any_warning_with_Lasinfo():
     # if you want to see input_file warnings
     # assert_lasinfo_no_warning(input_file)
 
-    standardize(input_file, output_file, MUTLIPLE_PARAMS[0], [])
+    standardize(input_file, output_file, DEFAULT_PARAMS, [])
     assert_lasinfo_no_warning(output_file)
 
 
 def test_standardize_malformed_laz():
     input_file = os.path.join(TEST_PATH, "data/test_pdalfail_0643_6319_LA93_IGN69.laz")
     output_file = os.path.join(TMP_PATH, "standardize_pdalfail_0643_6319_LA93_IGN69.laz")
-    standardize(input_file, output_file, MUTLIPLE_PARAMS[0], [])
+    standardize(input_file, output_file, DEFAULT_PARAMS, [])
     assert os.path.isfile(output_file)
-
-
-def get_pipeline_metadata_cross_plateform(pipeline):
-    try:
-        metadata = json.loads(pipeline.metadata)
-    except TypeError:
-        d_metadata = json.dumps(pipeline.metadata)
-        metadata = json.loads(d_metadata)
-    return metadata
-
-def get_statistics_from_las_points(points):
-    pipeline = pdal.Pipeline(arrays=[points])
-    pipeline |= pdal.Filter.stats(dimensions="Classification", enumerate="Classification")
-    pipeline.execute()
-    metadata = get_pipeline_metadata_cross_plateform(pipeline)
-    statistic = metadata["metadata"]["filters.stats"]["statistic"]
-    return statistic[0]["count"], statistic[0]["values"]
-
-@pytest.mark.parametrize(
-    "classes_to_remove",
-    [
-        [2, 3],
-        [2, 3, 4],
-        [0, 1, 2, 3, 4, 5, 6],
-    ],
-)
-def test_remove_points_from_class(classes_to_remove):
-    input_file = os.path.join(TEST_PATH, "data/classified_laz/test_data_77050_627755_LA93_IGN69.laz")
-    output_file = os.path.join(TMP_PATH, "test_remove_points_from_class.laz")
-
-    # count points of class not in classes_to_remove (get the point we should have in fine)
-    pipeline = pdal.Pipeline() | pdal.Reader.las(input_file)
-
-    where = ' && '.join(["CLassification != " + str(cl) for cl in classes_to_remove])
-    pipeline |= pdal.Filter.stats(dimensions="Classification", enumerate="Classification", where=where)
-    pipeline.execute()
-
-    points = pipeline.arrays[0]
-    nb_points_before, class_before = get_statistics_from_las_points(points)
-
-    metadata = get_pipeline_metadata_cross_plateform(pipeline)
-    statistic = metadata["metadata"]["filters.stats"]["statistic"]
-    nb_points_to_get = statistic[0]["count"]
-
-    try:
-        points = remove_points_from_class(points, classes_to_remove)
-    except Exception as error:  # error because all points are removed
-        assert nb_points_to_get == 0
-        return
-
-    nb_points_after, class_after = get_statistics_from_las_points(points)
-
-    assert nb_points_before > 0
-    assert nb_points_before > nb_points_after
-    assert set(classes_to_remove).issubset(set(class_before))
-    assert not set(classes_to_remove).issubset(set(class_after))
-    assert nb_points_after == nb_points_to_get
 
 
 if __name__ == "__main__":

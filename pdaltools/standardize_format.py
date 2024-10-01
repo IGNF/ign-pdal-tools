@@ -10,16 +10,14 @@
 
 import argparse
 import os
+import platform
 import subprocess as sp
 import tempfile
-import platform
-import numpy as np
-from typing import Dict
+from typing import Dict, List
 
 import pdal
 
 from pdaltools.unlock_file import copy_and_hack_decorator
-from pdaltools.las_info import get_writer_parameters_from_reader_metadata
 
 STANDARD_PARAMETERS = dict(
     major_version="1",
@@ -74,37 +72,17 @@ def get_writer_parameters(new_parameters: Dict) -> Dict:
     return params
 
 
-def remove_points_from_class(points, class_points_removed: []) :
-    input_dimensions = list(points.dtype.fields.keys())
-    dim_class = input_dimensions.index("Classification")
-
-    indice_pts_delete = [id for id in range(0, len(points)) if points[id][dim_class] in class_points_removed]
-    points_preserved = np.delete(points, indice_pts_delete)
-
-    if len(points_preserved) == 0:
-        raise Exception("All points removed !")
-
-    return points_preserved
-
-
-def rewrite_with_pdal(input_file: str, output_file: str, params_from_parser: Dict, class_points_removed: []) -> None:
-    # Update parameters with command line values
+def rewrite_with_pdal(
+    input_file: str, output_file: str, params_from_parser: Dict, classes_to_remove: List = []
+) -> None:
+    params = get_writer_parameters(params_from_parser)
     pipeline = pdal.Pipeline()
     pipeline |= pdal.Reader.las(input_file)
+    if classes_to_remove:
+        expression = "&&".join([f"Classification != {c}" for c in classes_to_remove])
+        pipeline |= pdal.Filter.expression(expression=expression)
+    pipeline |= pdal.Writer(filename=output_file, forward="all", **params)
     pipeline.execute()
-    points = pipeline.arrays[0]
-
-    if class_points_removed:
-        points = remove_points_from_class(points, class_points_removed)
-
-    #ToDo : it seems that the forward="all" doesn't work because we use a new pipeline
-    #   since we create a new pipeline, the 2 metadatas creation_doy and creation_year are update
-    #   to current date instead of forwarded from input LAS
-
-    params = get_writer_parameters(params_from_parser)
-    pipeline_end = pdal.Pipeline(arrays=[points])
-    pipeline_end |= pdal.Writer.las(output_file, forward="all", **params)
-    pipeline_end.execute()
 
 
 def exec_las2las(input_file: str, output_file: str):

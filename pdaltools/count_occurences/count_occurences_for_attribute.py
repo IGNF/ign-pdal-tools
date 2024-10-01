@@ -34,7 +34,7 @@ def compute_count_one_file(filepath: str, attribute: str = "Classification") -> 
     pipeline |= pdal.Filter.stats(dimensions=attribute, count=attribute)
     pipeline.execute()
     # List of "class/count" on the only dimension that is counted
-    raw_counts = pipeline.metadata["metadata"]["filters.stats"]["statistic"][0]["counts"]
+    raw_counts = pipeline.metadata["metadata"]["filters.stats"]["statistic"][0].get("counts", [])
     split_counts = [c.split("/") for c in raw_counts]
     try:
         # Try to prettify the value by converting it to an integer (eg. for Classification that
