@@ -1,7 +1,5 @@
-# dev
-- Color: fix images bbox to prevent in edge cases where points were at the edge of the last pixel
-
 # 1.7.4
+- Color: fix images bbox to prevent in edge cases where points were at the edge of the last pixel
 - Add possibility to remove points of some classes in standardize
 
 # 1.7.3
