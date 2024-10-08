@@ -1,5 +1,8 @@
+# dev
+- Color: fix images bbox to prevent in edge cases where points were at the edge of the last pixel
+
 # 1.7.4
-- Add possibility to remove points of somes classes in standardize
+- Add possibility to remove points of some classes in standardize
 
 # 1.7.3
 - Add method to get a point cloud origin
