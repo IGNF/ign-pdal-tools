@@ -69,11 +69,11 @@ def is_image_white(filename: str):
 def download_image_from_geoplateforme(
     proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images
 ):
-    # Give single-point clouds a width/height of at least one pixel to have valid BBOX and SIZE
-    if minx == maxx:
-        maxx = minx + 1 / pixel_per_meter
-    if miny == maxy:
-        maxy = miny + 1 / pixel_per_meter
+    # Force a 1-pixel margin in the east and south borders
+    # to make sure that no point of the pointcloud is on the limit of the last pixel
+    # to prevent interpolation issues
+    maxx = maxx + 1 / pixel_per_meter
+    miny = miny - 1 / pixel_per_meter
 
     # for layer in layers:
     URL_GPP = "https://data.geopf.fr/wms-r/wms?"
@@ -136,22 +136,26 @@ def color(
 
     tmp_ortho = None
     if color_rvb_enabled:
-        tmp_ortho = tempfile.NamedTemporaryFile()
+        tmp_ortho = tempfile.NamedTemporaryFile(suffix="_rvb.tif")
         download_image_from_geoplateforme_retrying(
             proj, stream_RGB, minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho.name, timeout_second, check_images
         )
-
+        # Warning: the initial color is multiplied by 256 despite its initial 8-bits encoding
+        # which turns it to a 0 to 255*256 range.
+        # It is kept this way because of other dependencies that have been tuned to fit this range
         pipeline |= pdal.Filter.colorization(
             raster=tmp_ortho.name, dimensions="Red:1:256.0, Green:2:256.0, Blue:3:256.0"
         )
 
     tmp_ortho_irc = None
     if color_ir_enabled:
-        tmp_ortho_irc = tempfile.NamedTemporaryFile()
+        tmp_ortho_irc = tempfile.NamedTemporaryFile(suffix="_irc.tif")
         download_image_from_geoplateforme_retrying(
             proj, stream_IRC, minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho_irc.name, timeout_second, check_images
         )
-
+        # Warning: the initial color is multiplied by 256 despite its initial 8-bits encoding
+        # which turns it to a 0 to 255*256 range.
+        # It is kept this way because of other dependencies that have been tuned to fit this range
         pipeline |= pdal.Filter.colorization(raster=tmp_ortho_irc.name, dimensions="Infrared:1:256.0")
 
     pipeline |= pdal.Writer.las(

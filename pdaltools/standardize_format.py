@@ -10,9 +10,10 @@
 
 import argparse
 import os
+import platform
 import subprocess as sp
 import tempfile
-from typing import Dict
+from typing import Dict, List
 
 import pdal
 
@@ -32,6 +33,7 @@ STANDARD_PARAMETERS = dict(
     offset_z=0,
     dataformat_id=6,  # No color by default
     a_srs="EPSG:2154",
+    class_points_removed=[],  # remove points from class
 )
 
 
@@ -44,6 +46,13 @@ def parse_args():
     )
     parser.add_argument("--projection", default="EPSG:2154", type=str, help="Projection, eg. EPSG:2154")
     parser.add_argument(
+        "--class_points_removed",
+        default=[],
+        nargs="*",
+        type=str,
+        help="List of classes number. Points of this classes will be removed from the file",
+    )
+    parser.add_argument(
         "--extra_dims",
         default=[],
         nargs="*",
@@ -51,7 +60,6 @@ def parse_args():
         help="List of extra dims to keep in the output (default=[], use 'all' to keep all extra dims), "
         "extra_dims must be specified with their type (see pdal.writers.las documentation, eg 'dim1=double')",
     )
-
     return parser.parse_args()
 
 
@@ -61,20 +69,28 @@ def get_writer_parameters(new_parameters: Dict) -> Dict:
     override the standard ones
     """
     params = STANDARD_PARAMETERS | new_parameters
-
     return params
 
 
-def rewrite_with_pdal(input_file: str, output_file: str, params_from_parser: Dict) -> None:
-    # Update parameters with command line values
+def rewrite_with_pdal(
+    input_file: str, output_file: str, params_from_parser: Dict, classes_to_remove: List = []
+) -> None:
     params = get_writer_parameters(params_from_parser)
-    pipeline = pdal.Reader.las(input_file)
+    pipeline = pdal.Pipeline()
+    pipeline |= pdal.Reader.las(input_file)
+    if classes_to_remove:
+        expression = "&&".join([f"Classification != {c}" for c in classes_to_remove])
+        pipeline |= pdal.Filter.expression(expression=expression)
     pipeline |= pdal.Writer(filename=output_file, forward="all", **params)
     pipeline.execute()
 
 
 def exec_las2las(input_file: str, output_file: str):
-    r = sp.run(["las2las", "-i", input_file, "-o", output_file], stderr=sp.PIPE, stdout=sp.PIPE)
+    if platform.processor() == "arm" and platform.architecture()[0] == "64bit":
+        las2las = "las2las64"
+    else:
+        las2las = "las2las"
+    r = sp.run([las2las, "-i", input_file, "-o", output_file], stderr=sp.PIPE, stdout=sp.PIPE)
     if r.returncode == 1:
         msg = r.stderr.decode()
         print(msg)
@@ -86,14 +102,18 @@ def exec_las2las(input_file: str, output_file: str):
 
 
 @copy_and_hack_decorator
-def standardize(input_file: str, output_file: str, params_from_parser: Dict) -> None:
+def standardize(input_file: str, output_file: str, params_from_parser: Dict, class_points_removed: []) -> None:
     filename = os.path.basename(output_file)
     with tempfile.NamedTemporaryFile(suffix=filename) as tmp:
-        rewrite_with_pdal(input_file, tmp.name, params_from_parser)
+        rewrite_with_pdal(input_file, tmp.name, params_from_parser, class_points_removed)
         exec_las2las(tmp.name, output_file)
 
 
 if __name__ == "__main__":
     args = parse_args()
-    params_from_parser = dict(dataformat_id=args.record_format, a_srs=args.projection, extra_dims=args.extra_dims)
-    standardize(args.input_file, args.output_file, params_from_parser)
+    params_from_parser = dict(
+        dataformat_id=args.record_format,
+        a_srs=args.projection,
+        extra_dims=args.extra_dims,
+    )
+    standardize(args.input_file, args.output_file, params_from_parser, args.class_points_removed)
