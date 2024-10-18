@@ -1,5 +1,4 @@
 import argparse
-import os
 
 import pdal
 from pdaltools.las_info import get_writer_parameters_from_reader_metadata
