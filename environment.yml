@@ -8,6 +8,7 @@ dependencies:
   - requests
   - gdal
   - lastools
+  - geopandas
 # --------- dev dep --------- #
   - pre-commit # hooks for applying linters on commit
   - black # code formatting
