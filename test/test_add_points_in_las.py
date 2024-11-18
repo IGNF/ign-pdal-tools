@@ -2,83 +2,71 @@ import pytest
 import os
 import random as rand
 import tempfile
+import math
 
 import pdal
 
 import geopandas as gpd
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Point
 
 from pdaltools import add_points_in_las
 
-
+numeric_precision = 4
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(TEST_PATH, "data")
 INPUT_LAS = os.path.join(INPUT_DIR, "test_data_77055_627760_LA93_IGN69.laz")
 
-Xmin = 770550
-Ymin = 6277552
+Xmin = 770575
+Ymin = 6277575
 Zmin = 20
-Size = 50
+Size = 20
 
-def build_random_point():
-    X = Xmin + rand.uniform(0, 1) * Size
-    Y = Ymin + rand.uniform(0, 1) * Size
-    Z = Zmin + rand.uniform(0, 1) * 10
-    return Point(X, Y, Z)
+def distance3D(pt_geo, pt_las):
+    return round(
+        math.sqrt((pt_geo.x - pt_las['X']) ** 2 + (pt_geo.y - pt_las['Y']) ** 2 + (pt_geo.z - pt_las['Z']) ** 2),
+        numeric_precision,
+    )
 
-def build_random_geom(nb_geom : int, out_geom_file: str):
-
-    geom=[]
-
-    # add some points
-    for i in range(nb_geom):
-        geom.append(build_random_point())
-
-    # add some polygon:
-    for i in range(nb_geom):
-        coordinates = []
-        for i in range(4+nb_geom):
-            coordinates.append(build_random_point())
-        polygon = Polygon(coordinates)
-        geom.append(polygon)
-
+def add_point_in_las(pt_geo, only_inside):
+    geom = [pt_geo]
     series = gpd.GeoSeries(geom, crs="2154")
-    series.to_file(out_geom_file)
-
-    # return the number of points
-    return nb_geom + nb_geom*(4+nb_geom+1)
-
-@pytest.mark.parametrize("execution_number", range(3))
-def test_extract_points_from_geo(execution_number):
-
-    with tempfile.NamedTemporaryFile(suffix="_geom_tmp.geojson") as geom_file:
-        nb_points_to_extract = build_random_geom(rand.randint(5,20), geom_file.name)
-        points = add_points_in_las.extract_points_from_geo(geom_file.name)
-        assert nb_points_to_extract == len(points)
-
-
-def get_nb_points_from_las(input_las: str, dict_conditions = {}):
-    pipeline = pdal.Pipeline() | pdal.Reader.las(input_las)
-    pipeline.execute()
-    if not dict_conditions:
-        return len(pipeline.arrays[0])
-    return len([e for e in pipeline.arrays[0] if all(e[val] == dict_conditions[val] for val in dict_conditions)])
-
-
-@pytest.mark.parametrize("execution_number", range(3))
-def test_add_points_in_las(execution_number):
 
     with tempfile.NamedTemporaryFile(suffix="_geom_tmp.las") as out_las_file:
         with tempfile.NamedTemporaryFile(suffix="_geom_tmp.geojson") as geom_file:
-            nb_points_to_extract = build_random_geom(rand.randint(3, 10), geom_file.name)
+            series.to_file(geom_file.name)
+
             added_dimensions = {"Classification":64, "Intensity":1.}
-            add_points_in_las.add_points_in_las(INPUT_LAS, geom_file.name, out_las_file.name, added_dimensions)
-            nb_points_ini = get_nb_points_from_las(INPUT_LAS)
-            nb_points_to_find = nb_points_ini + nb_points_to_extract
-            nb_points_end = get_nb_points_from_las(out_las_file.name)
-            nb_points_end_class = get_nb_points_from_las(out_las_file.name, added_dimensions)
-            assert nb_points_end == nb_points_to_find
-            assert nb_points_end_class == nb_points_to_extract
+            add_points_in_las.add_points_in_las(INPUT_LAS, geom_file.name, out_las_file.name, only_inside, added_dimensions)
 
+            pipeline = pdal.Pipeline() | pdal.Reader.las(out_las_file.name)
+            pipeline.execute()
+            points_las = pipeline.arrays[0]
+            points_las = [e for e in points_las if all(e[val] == added_dimensions[val] for val in added_dimensions)]
+            return points_las
 
+def test_add_point_inside_las():
+    X = Xmin + rand.uniform(0, 1) * Size
+    Y = Ymin + rand.uniform(0, 1) * Size
+    Z = Zmin + rand.uniform(0, 1) * 10
+    pt_geo = Point(X, Y, Z)
+    points_las = add_point_in_las(pt_geo, True)
+    assert len(points_las) == 1
+    assert distance3D(pt_geo, points_las[0]) < 1 / numeric_precision
+
+def test_add_point_outside_las_no_control():
+    X = Xmin + rand.uniform(2, 3) * Size
+    Y = Ymin + rand.uniform(0, 1) * Size
+    Z = Zmin + rand.uniform(0, 1) * 10
+    pt_geo = Point(X, Y, Z)
+    points_las = add_point_in_las(pt_geo, False)
+    assert len(points_las) == 1
+    assert distance3D(pt_geo, points_las[0]) < 1 / numeric_precision
+
+def test_add_point_outside_las_with_control():
+    X = Xmin + rand.uniform(2, 3) * Size
+    Y = Ymin + rand.uniform(2, 3) * Size
+    Z = Zmin + rand.uniform(0, 1) * 10
+    pt_geo = Point(X, Y, Z)
+    points_las = add_point_in_las(pt_geo, True)
+    assert len(points_las) == 0
