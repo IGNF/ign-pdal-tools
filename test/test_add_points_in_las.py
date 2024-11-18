@@ -28,7 +28,7 @@ def distance3D(pt_geo, pt_las):
         numeric_precision,
     )
 
-def add_point_in_las(pt_geo, only_inside):
+def add_point_in_las(pt_geo, inside_las):
     geom = [pt_geo]
     series = gpd.GeoSeries(geom, crs="2154")
 
@@ -37,7 +37,7 @@ def add_point_in_las(pt_geo, only_inside):
             series.to_file(geom_file.name)
 
             added_dimensions = {"Classification":64, "Intensity":1.}
-            add_points_in_las.add_points_in_las(INPUT_LAS, geom_file.name, out_las_file.name, only_inside, added_dimensions)
+            add_points_in_las.add_points_in_las(INPUT_LAS, geom_file.name, out_las_file.name, inside_las, added_dimensions)
 
             pipeline = pdal.Pipeline() | pdal.Reader.las(out_las_file.name)
             pipeline.execute()
@@ -50,7 +50,7 @@ def test_add_point_inside_las():
     Y = Ymin + rand.uniform(0, 1) * Size
     Z = Zmin + rand.uniform(0, 1) * 10
     pt_geo = Point(X, Y, Z)
-    points_las = add_point_in_las(pt_geo, True)
+    points_las = add_point_in_las(pt_geo=pt_geo, inside_las=True)
     assert len(points_las) == 1
     assert distance3D(pt_geo, points_las[0]) < 1 / numeric_precision
 
@@ -59,7 +59,7 @@ def test_add_point_outside_las_no_control():
     Y = Ymin + rand.uniform(0, 1) * Size
     Z = Zmin + rand.uniform(0, 1) * 10
     pt_geo = Point(X, Y, Z)
-    points_las = add_point_in_las(pt_geo, False)
+    points_las = add_point_in_las(pt_geo=pt_geo, inside_las=False)
     assert len(points_las) == 1
     assert distance3D(pt_geo, points_las[0]) < 1 / numeric_precision
 
@@ -68,5 +68,5 @@ def test_add_point_outside_las_with_control():
     Y = Ymin + rand.uniform(2, 3) * Size
     Z = Zmin + rand.uniform(0, 1) * 10
     pt_geo = Point(X, Y, Z)
-    points_las = add_point_in_las(pt_geo, True)
+    points_las = add_point_in_las(pt_geo=pt_geo, inside_las=True)
     assert len(points_las) == 0
