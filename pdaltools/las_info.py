@@ -6,6 +6,8 @@ from typing import Dict, Tuple
 import osgeo.osr as osr
 import pdal
 
+from pdaltools.pcd_info import infer_tile_origin
+
 osr.UseExceptions()
 
 
@@ -17,11 +19,35 @@ def las_info_metadata(filename: str):
     return metadata
 
 
-def get_bounds_from_header_info(metadata):
+def get_bounds_from_header_info(metadata: Dict) -> Tuple[float, float, float, float]:
+    """Get bounds from metadata that has been extracted previously from the header of a las file
+
+    Args:
+        metadata (str): Dictonary containing metadata from a las file (as extracted with pipeline.quickinfo)
+
+    Returns:
+        Tuple[float, float, float, float]: minx, maxx, miny, maxy
+    """
     bounds = metadata["bounds"]
     minx, maxx, miny, maxy = bounds["minx"], bounds["maxx"], bounds["miny"], bounds["maxy"]
 
     return minx, maxx, miny, maxy
+
+
+def get_tile_origin_using_header_info(filename: str, tile_width: int = 1000) -> Tuple[int, int]:
+    """ "Get las file theoretical origin (xmin, ymax) for a data that originates from a square tesselation/tiling
+    using the tesselation tile width only, directly from its path
+    Args:
+        filename (str): path to the las file
+        tile_width (int, optional): Tesselation tile width (in meters). Defaults to 1000.
+
+    Returns:
+        Tuple[int, int]: (origin_x, origin_y) tile origin coordinates = theoretical (xmin, ymax)
+    """
+    metadata = las_info_metadata(filename)
+    minx, maxx, miny, maxy = get_bounds_from_header_info(metadata)
+
+    return infer_tile_origin(minx, maxx, miny, maxy, tile_width)
 
 
 def get_epsg_from_header_info(metadata):
