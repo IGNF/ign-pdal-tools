@@ -9,6 +9,7 @@ dependencies:
   - gdal
   - lastools
   - geopandas
+  - rasterstats
 # --------- dev dep --------- #
   - pre-commit # hooks for applying linters on commit
   - black # code formatting
