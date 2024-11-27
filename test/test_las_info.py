@@ -40,6 +40,11 @@ def test_get_bounds_from_quickinfo_metadata():
     assert bounds == (INPUT_MINS[0], INPUT_MAXS[0], INPUT_MINS[1], INPUT_MAXS[1])
 
 
+def test_get_tile_origin_using_header_info():
+    origin_x, origin_y = las_info.get_tile_origin_using_header_info(INPUT_FILE, tile_width=TILE_WIDTH)
+    assert (origin_x, origin_y) == (COORD_X * TILE_COORD_SCALE, COORD_Y * TILE_COORD_SCALE)
+
+
 def test_get_epsg_from_quickinfo_metadata_ok():
     metadata = las_info.las_info_metadata(INPUT_FILE)
     assert las_info.get_epsg_from_header_info(metadata) == "2154"

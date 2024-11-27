@@ -19,6 +19,7 @@ import pdal
 
 from pdaltools.unlock_file import copy_and_hack_decorator
 
+# Standard parameters to pass to the pdal writer
 STANDARD_PARAMETERS = dict(
     major_version="1",
     minor_version="4",  # Laz format version (pdal always write in 1.x format)
@@ -33,7 +34,6 @@ STANDARD_PARAMETERS = dict(
     offset_z=0,
     dataformat_id=6,  # No color by default
     a_srs="EPSG:2154",
-    class_points_removed=[],  # remove points from class
 )
 
 
