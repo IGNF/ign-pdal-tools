@@ -1,6 +1,7 @@
 # 1.7.5
 - Add tools to get tile origin from various point cloud data types (las file, numpy array, min/max values)
 - Raise more explicit error when looking a tile origin when the data width is smaller than the buffer size
+- Add method to add points from vector files (ex : shp, geojson, ...) inside las
 
 # 1.7.4
 - Color: fix images bbox to prevent in edge cases where points were at the edge of the last pixel

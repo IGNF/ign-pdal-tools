@@ -79,6 +79,10 @@ By default, `xcoord` and `ycoord` are given in kilometers and the shape of the t
 `readers.las: Global encoding WKT flag not set for point format 6 - 10.` which is due to TerraSolid
 malformed LAS output for LAS1.4 files with point format 6 to 10.
 
+## Add points in Las
+
+[add_points_in_las.py](pdaltools/add_points_in_las.py): add points from some vector files (ex: shp, geojson, ...) inside Las. Attributes values are given by default, but could be forced using the 'dimensions' option.  
+
 # Dev / Build
 
 ## Contribute
