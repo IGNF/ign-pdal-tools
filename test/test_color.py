@@ -146,3 +146,8 @@ def test_retry_param():
 
     with pytest.raises(requests.exceptions.HTTPError):
         raise_server_error()
+
+def test_tall_images():
+    input_path = os.path.join(TEST_PATH, "data/gib_las.las")
+    output_path = os.path.join(TMPDIR, "gib_las_out.laz")
+    color.color(input_path, output_path)
