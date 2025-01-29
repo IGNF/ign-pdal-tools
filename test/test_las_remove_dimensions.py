@@ -1,8 +1,9 @@
-import tempfile
-import pdal
-import numpy
-import os
 import logging
+import os
+import tempfile
+
+import numpy
+import pdal
 import pytest
 
 from pdaltools import las_remove_dimensions
@@ -33,7 +34,6 @@ def append_dimension(input_las: str, output_las: str):
 
 
 def test_remove_all_dimension():
-
     # get initial data
     points_ini = get_points(ini_las)
 
@@ -47,7 +47,6 @@ def test_remove_all_dimension():
 
 
 def test_remove_one_dimension():
-
     # get initial data
     points_ini = get_points(ini_las)
 
