@@ -11,7 +11,7 @@ from osgeo import gdal, gdal_array
 import pdaltools.las_info as las_info
 from pdaltools.unlock_file import copy_and_hack_decorator
 
-SIZE_MAX_IMAGE_GPF = 500
+SIZE_MAX_IMAGE_GPF = 250
 
 def pretty_time_delta(seconds):
     sign_string = "-" if seconds < 0 else ""
