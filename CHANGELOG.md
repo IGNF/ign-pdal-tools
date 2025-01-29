@@ -1,3 +1,6 @@
+- add_points_in_pointcloud.py replaces add_points_in_las.py
+- colorization : orthophotos could be downloaded by blocks and merged, in order to have small requests.
+
 # 1.7.10
 - Add function to add lines 2.5D (.GeoJSON or .shp) in pointcloud (.LAZ / .LAS)
 - Update function to add points (.GeoJSON) in pointcloud: let Z be parametrized
