@@ -1,3 +1,7 @@
+
+- remove add_points_in_las.py (replaced by add_points_in_pointcloud.py)
+- colorization : orthophotos can be downloaded by blocks and merged, in order for requests to match the maximum download size of the geoplateforme.
+
 # 1.7.11
 - Fix bug  "add_points_in_pointcloud.py" : keep all dimension (ex. intensity, etc.) from input pointcloud
 

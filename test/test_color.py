@@ -1,10 +1,13 @@
+import math
 import os
 import shutil
 from pathlib import Path
 
+import numpy
 import pytest
 import requests
 import requests_mock
+from osgeo import gdal
 
 from pdaltools import color
 
@@ -43,6 +46,7 @@ miny = 6291000
 maxx = 436000
 maxy = 6292000
 pixel_per_meter = 0.1
+size_max_image_gpf = 500
 
 
 @pytest.mark.geopf
@@ -63,7 +67,79 @@ def test_color_narrow_cloud():
 @pytest.mark.geopf
 def test_download_image_ok():
     tif_output = os.path.join(TMPDIR, "download_image.tif")
-    color.download_image_from_geoplateforme(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True)
+    color.download_image(
+        epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, size_max_image_gpf
+    )
+
+    # check there is no noData
+    raster = gdal.Open(tif_output)
+    for i in range(raster.RasterCount):
+        assert raster.GetRasterBand(i + 1).GetNoDataValue() is None
+
+
+@pytest.mark.geopf
+def test_download_image_ok_one_download():
+    tif_output = os.path.join(TMPDIR, "download_image.tif")
+    nb_request = color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 1000)
+    assert nb_request == 1
+
+    # check there is no noData
+    raster = gdal.Open(tif_output)
+    for i in range(raster.RasterCount):
+        assert raster.GetRasterBand(i + 1).GetNoDataValue() is None
+
+
+@pytest.mark.geopf
+def test_download_image_download_size_gpf_bigger():
+    tif_output = os.path.join(TMPDIR, "download_image_bigger.tif")
+    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 1005)
+
+    # check there is no noData
+    raster = gdal.Open(tif_output)
+    for i in range(raster.RasterCount):
+        assert raster.GetRasterBand(i + 1).GetNoDataValue() is None
+
+
+@pytest.mark.geopf
+def test_download_image_download_size_gpf_size_almost_ok():
+    tif_output = os.path.join(TMPDIR, "download_image_bigger.tif")
+    nb_request = color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 995)
+    assert nb_request == 4
+
+    # check there is no noData
+    raster = gdal.Open(tif_output)
+    for i in range(raster.RasterCount):
+        assert raster.GetRasterBand(i + 1).GetNoDataValue() is None
+
+
+@pytest.mark.parametrize("size_block", [100, 250, 500])
+def test_download_image_one_and_block(size_block):
+    tif_output_one = os.path.join(TMPDIR, "download_image_one.tif")
+    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output_one, 15, True, 1000)
+
+    tif_output_blocks = os.path.join(TMPDIR, "download_image_block.tif")
+    nb_request = color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output_blocks, 100, True, size_block)
+    assert nb_request == math.pow(1000/size_block, 2)
+
+    # due to GeoPlateforme interpolation, images could have small differences
+    # check images are almost the sames
+
+    raster_one = gdal.Open(tif_output_one)
+    raster_blocks = gdal.Open(tif_output_blocks)
+
+    r_one = numpy.array(raster_one.ReadAsArray())
+    r_blocks = numpy.array(raster_blocks.ReadAsArray())
+    assert r_one.size == r_blocks.size
+    r_diff = r_one - r_blocks
+
+    # images should be same as 5/1000 (tolerance)
+    assert numpy.count_nonzero(r_diff) < 0.005 * ((maxx - minx) * (maxy - miny) * math.pow(pixel_per_meter, 2))
+
+    # differences should be 1 or 255 (eq a variation of one on one RVB canal)
+    r_diff_nonzero = numpy.nonzero(r_diff)
+    for i in range(0, r_diff_nonzero[0].size):
+        diff = r_diff[r_diff_nonzero[0][i], r_diff_nonzero[1][i], r_diff_nonzero[2][i]]
+        assert diff == 1 or diff == 255
 
 
 @pytest.mark.geopf
@@ -105,14 +181,14 @@ def test_color_epsg_2975_detected():
 
 @pytest.mark.geopf
 def test_download_image_raise1():
-    retry_download = color.retry(2, 5)(color.download_image_from_geoplateforme)
+    retry_download = color.retry(times=2, delay=5, factor=2)(color.download_image_from_geoplateforme)
     with pytest.raises(requests.exceptions.HTTPError):
         retry_download(epsg, "MAUVAISE_COUCHE", minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15, True)
 
 
 @pytest.mark.geopf
 def test_download_image_raise2():
-    retry_download = color.retry(2, 5)(color.download_image_from_geoplateforme)
+    retry_download = color.retry(times=2, delay=5, factor=2)(color.download_image_from_geoplateforme)
     with pytest.raises(requests.exceptions.HTTPError):
         retry_download("9001", layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15, True)
 
@@ -121,7 +197,7 @@ def test_retry_on_server_error():
     with requests_mock.Mocker() as mock:
         mock.get(requests_mock.ANY, status_code=502, reason="Bad Gateway")
         with pytest.raises(requests.exceptions.HTTPError):
-            retry_download = color.retry(2, 1, 2)(color.download_image_from_geoplateforme)
+            retry_download = color.retry(times=2, delay=1, factor=2)(color.download_image_from_geoplateforme)
             retry_download(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15, True)
         history = mock.request_history
         assert len(history) == 3
@@ -131,7 +207,7 @@ def test_retry_on_connection_error():
     with requests_mock.Mocker() as mock:
         mock.get(requests_mock.ANY, exc=requests.exceptions.ConnectionError)
         with pytest.raises(requests.exceptions.ConnectionError):
-            retry_download = color.retry(2, 1)(color.download_image_from_geoplateforme)
+            retry_download = color.retry(times=2, delay=1, factor=2)(color.download_image_from_geoplateforme)
             retry_download(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15, True)
 
         history = mock.request_history
@@ -146,8 +222,3 @@ def test_retry_param():
 
     with pytest.raises(requests.exceptions.HTTPError):
         raise_server_error()
-
-def test_tall_images():
-    input_path = os.path.join(TEST_PATH, "data/gib_las.las")
-    output_path = os.path.join(TMPDIR, "gib_las_out.laz")
-    color.color(input_path, output_path)
