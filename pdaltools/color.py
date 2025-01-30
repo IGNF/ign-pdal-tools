@@ -11,7 +11,7 @@ from osgeo import gdal, gdal_array
 import pdaltools.las_info as las_info
 from pdaltools.unlock_file import copy_and_hack_decorator
 
-SIZE_MAX_IMAGE_GPF = 250
+SIZE_MAX_IMAGE_GPF = 100
 
 def pretty_time_delta(seconds):
     sign_string = "-" if seconds < 0 else ""
@@ -166,7 +166,7 @@ def color(
     writer_extra_dims = "all"
 
     # apply decorator to retry 3 times, and wait 30 seconds each times
-    download_image_from_geoplateforme_retrying = retry(7, 15, 2)(download_image_from_geoplateforme_tall)
+    download_image_from_geoplateforme_retrying = retry(7, 30, 2)(download_image_from_geoplateforme_tall)
 
     if veget_index_file and veget_index_file != "":
         print(f"Remplissage du champ Deviation à partir du fichier {veget_index_file}")
