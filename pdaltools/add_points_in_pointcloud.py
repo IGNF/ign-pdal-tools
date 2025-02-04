@@ -65,36 +65,38 @@ def add_points_to_las(
         output_las (str): Path to save the updated LIDAR file (LAS/LAZ format).
         virtual_points_classes (int): The classification value to assign to those virtual points (default: 66).
     """
-    # Check points with Z are not empty
-    if not input_points_with_z.empty:
-        # Extract XYZ coordinates and additional attribute (classification)
-        x_coords = input_points_with_z.geometry.x
-        y_coords = input_points_with_z.geometry.y
-        z_coords = input_points_with_z.RecupZ
-        classes = virtual_points_classes * np.ones(len(input_points_with_z.index))
+    # Check if input points are empty
+    if input_points_with_z.empty:
+        raise ValueError("No points to add. The input GeoDataFrame is empty.")
 
-        # Read the existing LIDAR file
-        with laspy.open(input_las, mode="r") as las:
-            las_data = las.read()
-            header = las.header
+    # Extract XYZ coordinates and additional attribute (classification)
+    x_coords = input_points_with_z.geometry.x
+    y_coords = input_points_with_z.geometry.y
+    z_coords = input_points_with_z.RecupZ
+    classes = virtual_points_classes * np.ones(len(input_points_with_z.index))
 
-            # Create a new header if the original header is missing or invalid
-            if header is None:
-                header = laspy.LasHeader(point_format=6, version="1.4")  # Example format and version
+    # Read the existing LIDAR file
+    with laspy.open(input_las, mode="r") as las:
+        las_data = las.read()
+        header = las.header
 
-            # Append the clipped points to the existing LIDAR data
-            new_x = np.concatenate([las_data.x, x_coords])
-            new_y = np.concatenate([las_data.y, y_coords])
-            new_z = np.concatenate([las_data.z, z_coords])
-            new_classes = np.concatenate([las_data.classification, classes])
+        # Create a new header if the original header is missing or invalid
+        if header is None:
+            header = laspy.LasHeader(point_format=6, version="1.4")  # Example format and version
 
-            # Create a new LAS file with updated data
-            updated_las = laspy.LasData(header)
-            updated_las.x = new_x
-            updated_las.y = new_y
-            updated_las.z = new_z
-            updated_las.classification = new_classes
+        # Append the clipped points to the existing LIDAR data
+        new_x = np.concatenate([las_data.x, x_coords])
+        new_y = np.concatenate([las_data.y, y_coords])
+        new_z = np.concatenate([las_data.z, z_coords])
+        new_classes = np.concatenate([las_data.classification, classes])
 
-            # Write the updated LAS file
-            with laspy.open(output_las, mode="w", header=header, do_compress=True) as writer:
-                writer.write_points(updated_las.points)
+        # Create a new LAS file with updated data
+        updated_las = laspy.LasData(header)
+        updated_las.x = new_x
+        updated_las.y = new_y
+        updated_las.z = new_z
+        updated_las.classification = new_classes
+
+        # Write the updated LAS file
+        with laspy.open(output_las, mode="w", header=header, do_compress=True) as writer:
+            writer.write_points(updated_las.points)

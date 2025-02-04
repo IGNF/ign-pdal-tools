@@ -7,7 +7,7 @@ from pdaltools import add_points_in_pointcloud
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMP_PATH = os.path.join(TEST_PATH, "data/output")
-DATA_LIDAR_PATH = os.path.join(TEST_PATH, "data/classified_laz")
+DATA_LIDAR_PATH = os.path.join(TEST_PATH, "data/decimated_laz")
 DATA_POINTS_PATH = os.path.join(TEST_PATH, "data/points_3d")
 
 INPUT_FILE = os.path.join(DATA_LIDAR_PATH, "test_semis_2023_0292_6833_LA93_IGN69.laz")
