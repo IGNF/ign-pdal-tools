@@ -1,3 +1,6 @@
+# 1.7.6
+- Add function to add points (.gGeoJSON) in pointcloud (.LAZ / .LAS)
+
 # 1.7.5
 - Add tools to get tile origin from various point cloud data types (las file, numpy array, min/max values)
 - Raise more explicit error when looking a tile origin when the data width is smaller than the buffer size
