@@ -1,3 +1,4 @@
+# 1.7.6
 - Add function to add points (.gGeoJSON) in pointcloud (.LAZ / .LAS)
 
 # 1.7.5
