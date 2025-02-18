@@ -1,9 +1,39 @@
+import argparse
+
 import geopandas as gpd
 import laspy
 import numpy as np
 from shapely.geometry import box
 
 from pdaltools.las_info import get_tile_origin_using_header_info
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser("TODO")
+    parser.add_argument("--input_geojson", "-ig", type=str, required=True, help="Input GeoJSON file")
+    parser.add_argument("--input_las", "-i", type=str, required=True, help="Input las file")
+    parser.add_argument("--output_las", "-o", type=str, required=False, default="", help="Output las file")
+    parser.add_argument(
+        "--virtual_points_classes",
+        "-c",
+        type=int,
+        default=66,
+        help="classification value to assign to those virtual points",
+    )
+    parser.add_argument(
+        "--spatial_ref",
+        type=str,
+        default="EPSG:2154",
+        help="spatial reference for the writer (required when running with a buffer)",
+    )
+    parser.add_argument(
+        "--tile_width",
+        type=int,
+        default=1000,
+        help="width of tiles in meters (required when running with a buffer)",
+    )
+
+    return parser.parse_args(argv)
 
 
 def get_tile_bbox(input_las, tile_width=1000) -> tuple:
@@ -23,7 +53,7 @@ def get_tile_bbox(input_las, tile_width=1000) -> tuple:
     return bbox
 
 
-def clip_3d_points_to_tile(input_points: str, input_las: str, crs: str) -> gpd.GeoDataFrame:
+def clip_3d_points_to_tile(input_points: str, input_las: str, crs: str, tile_width: int) -> gpd.GeoDataFrame:
     """
     Add points from a GeoJSON file in the LIDAR's tile.
 
@@ -31,12 +61,13 @@ def clip_3d_points_to_tile(input_points: str, input_las: str, crs: str) -> gpd.G
         input_points (str): Path to the input GeoJSON file with 3D points.
         input_las (str): Path to the LIDAR `.las/.laz` file.
         crs (str): CRS of the data, e.g., 'EPSG:2154'.
+        tile_width (int): Width of the tile in meters (default: 1000).
 
     Return:
         gpd.GeoDataFrame: Points 2d with "Z" value
     """
     # Compute the bounding box of the LIDAR tile
-    tile_bbox = get_tile_bbox(input_las)
+    tile_bbox = get_tile_bbox(input_las, tile_width)
 
     # Read the input GeoJSON with 3D points
     points_gdf = gpd.read_file(input_points)
@@ -100,3 +131,28 @@ def add_points_to_las(
         # Write the updated LAS file
         with laspy.open(output_las, mode="w", header=header, do_compress=True) as writer:
             writer.write_points(updated_las.points)
+
+
+def add_points_from_geojson_to_las(
+    input_geojson: str, input_las: str, output_las: str, virtual_points_classes: int, spatial_ref: str, tile_width: int
+):
+    """Add points with Z value(GeoJSON format) by LIDAR tiles (tiling file)
+
+    Args:
+        input_geojson (str): Path to the input GeoJSON file with 3D points.
+        input_las (str): Path to the LIDAR `.las/.laz` file.
+        output_las (str): Path to save the updated LIDAR file (LAS/LAZ format).
+        virtual_points_classes (int): The classification value to assign to those virtual points (default: 66).
+        spatial_ref (str): CRS of the data, e.g., 'EPSG:2154'.
+        tile_width (int): Width of the tile in meters (default: 1000).
+    """
+    # Clip points from GeoJSON by LIDAR tile
+    points_clipped = clip_3d_points_to_tile(input_geojson, input_las, spatial_ref, tile_width)
+
+    # Add points by LIDAR tile and save the result
+    add_points_to_las(points_clipped, input_las, output_las, virtual_points_classes)
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    add_points_from_geojson_to_las(**vars(args))
