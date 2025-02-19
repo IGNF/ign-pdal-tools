@@ -37,53 +37,12 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
-def get_epsg_from_las(input_las, default_epsg="EPSG:2154"):
-    """Extracts the EPSG code from a LAS file's metadata and returns it in 'EPSG:XXXX' format.
-    
-    If no EPSG code is directly found, attempts to infer it from WKT or PROJ.
-    If all attempts fail, returns a default EPSG code.
-    
-    Parameters:
-    - input_las (str): Path to the LAS file.
-    - default_epsg (str): The default EPSG code to return if none is found (default: 'EPSG:2154').
-
-    Returns:
-    - str: EPSG code in the format 'EPSG:XXXX'.
-    """
+def get_epsg_from_las(input_las):
+    """Extract EPSG code from LAS file metadata and return as 'EPSG:XXXX' format."""
     with laspy.open(input_las) as las:
-        try:
-            if hasattr(las.header, "spatial_reference") and las.header.spatial_reference:
-                # Attempt to retrieve EPSG directly
-                epsg_code = las.header.spatial_reference.to_epsg()
-                if epsg_code:
-                    return f"EPSG:{epsg_code}"
-                
-                # Retrieve available spatial reference formats (WKT / PROJ)
-                wkt = las.header.spatial_reference.to_wkt()
-                proj = las.header.spatial_reference.to_proj4()
-
-                # Convert WKT to EPSG if possible
-                if wkt:
-                    try:
-                        crs = CRS.from_wkt(wkt)
-                        if crs.to_epsg():
-                            return f"EPSG:{crs.to_epsg()}"
-                    except:
-                        pass
-
-                # Convert PROJ to EPSG if possible
-                if proj:
-                    try:
-                        crs = CRS.from_proj4(proj)
-                        if crs.to_epsg():
-                            return f"EPSG:{crs.to_epsg()}"
-                    except:
-                        pass
-        except AttributeError:
-            pass
-
-    # Return default EPSG if no valid code was found
-    return default_epsg
+        if hasattr(las.header, "spatial_reference") and las.header.spatial_reference:
+            epsg_code = las.header.spatial_reference.to_epsg()
+            return f"EPSG:{epsg_code}" if epsg_code else None
 
 
 def get_tile_bbox(input_las, tile_width=1000) -> tuple:
@@ -205,6 +164,8 @@ def add_points_from_geojson_to_las(
     """
     if not spatial_ref:
         spatial_ref = get_epsg_from_las(input_las)
+        if spatial_ref is None:
+            raise RuntimeError(f"Invalid CRS: {spatial_ref}")
 
     # Clip points from GeoJSON by LIDAR tile
     points_clipped = clip_3d_points_to_tile(input_geojson, input_las, spatial_ref, tile_width)
