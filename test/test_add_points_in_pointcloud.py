@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import pdal
+import pytest
 
 from pdaltools import add_points_in_pointcloud
 
@@ -12,6 +13,7 @@ DATA_LIDAR_PATH = os.path.join(TEST_PATH, "data/decimated_laz")
 DATA_POINTS_PATH = os.path.join(TEST_PATH, "data/points_3d")
 
 INPUT_FILE = os.path.join(DATA_LIDAR_PATH, "test_semis_2023_0292_6833_LA93_IGN69.laz")
+INPUT_FILE_WITHOUT_EPSG = os.path.join(DATA_LIDAR_PATH, "test_semis_2023_0292_6833_LA93_IGN69_with_no_epsg.laz")
 INPUT_POINTS = os.path.join(DATA_POINTS_PATH, "Points_virtuels_0292_6833.geojson")
 OUTPUT_FILE = os.path.join(TMP_PATH, "test_semis_2023_0292_6833_LA93_IGN69.laz")
 
@@ -41,6 +43,10 @@ def test_clip_3d_points_to_tile_from_epsg_none():
 
 
 def test_add_line_to_lidar():
+    # Ensure the output file doesn't exist before the test
+    if Path(OUTPUT_FILE).exists():
+        os.remove(OUTPUT_FILE)
+
     points_clipped = add_points_in_pointcloud.clip_3d_points_to_tile(INPUT_POINTS, INPUT_FILE, "EPSG:2154", 1000)
 
     add_points_in_pointcloud.add_points_to_las(points_clipped, INPUT_FILE, OUTPUT_FILE, "EPSG:2154", 68)
@@ -62,6 +68,10 @@ def test_add_line_to_lidar():
 
 
 def test_add_line_to_lidar_from_epsg_none():
+    # Ensure the output file doesn't exist before the test
+    if Path(OUTPUT_FILE).exists():
+        os.remove(OUTPUT_FILE)
+
     points_clipped = add_points_in_pointcloud.clip_3d_points_to_tile(INPUT_POINTS, INPUT_FILE, None, 1000)
 
     add_points_in_pointcloud.add_points_to_las(points_clipped, INPUT_FILE, OUTPUT_FILE, None, 68)
@@ -89,6 +99,10 @@ def test_get_tile_bbox_small():
 
 
 def test_add_line_to_lidar_small():
+    # Ensure the output file doesn't exist before the test
+    if Path(OUTPUT_FILE_SMALL).exists():
+        os.remove(OUTPUT_FILE_SMALL)
+
     # Tile is not complete (NOT 1km * 1km)
     points_clipped = add_points_in_pointcloud.clip_3d_points_to_tile(
         INPUT_POINTS_SMALL, INPUT_FILE_SMALL, "EPSG:2154", 1000
@@ -113,17 +127,26 @@ def test_add_line_to_lidar_small():
 
 
 def test_add_points_from_geojson_to_las():
+    # Ensure the output file doesn't exist before the test
+    if Path(OUTPUT_FILE).exists():
+        os.remove(OUTPUT_FILE)
+
     add_points_in_pointcloud.add_points_from_geojson_to_las(
         INPUT_POINTS, INPUT_FILE, OUTPUT_FILE, 68, "EPSG:2154", 1000
     )
     assert Path(OUTPUT_FILE).exists()  # check output exists
 
 
-def test_add_points_from_geojson_to_las_from_epsg_none():
-    add_points_in_pointcloud.add_points_from_geojson_to_las(
-        INPUT_POINTS, INPUT_FILE, OUTPUT_FILE, 68, None, 1000
-    )
-    assert Path(OUTPUT_FILE).exists()  # check output exists
+def test_add_points_from_geojson_to_las_no_epsg():
+    # Ensure the output file doesn't exist before the test
+    if Path(OUTPUT_FILE).exists():
+        os.remove(OUTPUT_FILE)
+
+    with pytest.raises(RuntimeError):
+        add_points_in_pointcloud.add_points_from_geojson_to_las(
+            INPUT_POINTS, INPUT_FILE_WITHOUT_EPSG, OUTPUT_FILE, 68, None, 1000
+        )
+        assert not Path(OUTPUT_FILE).exists()  # check output not exists
 
 
 def test_parse_args():
