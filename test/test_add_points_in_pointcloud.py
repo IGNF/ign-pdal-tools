@@ -13,7 +13,6 @@ DATA_LIDAR_PATH = os.path.join(TEST_PATH, "data/decimated_laz")
 DATA_POINTS_PATH = os.path.join(TEST_PATH, "data/points_3d")
 
 INPUT_FILE = os.path.join(DATA_LIDAR_PATH, "test_semis_2023_0292_6833_LA93_IGN69.laz")
-INPUT_FILE_WITHOUT_EPSG = os.path.join(DATA_LIDAR_PATH, "test_semis_2023_0292_6833_LA93_IGN69_with_no_epsg.laz")
 INPUT_POINTS = os.path.join(DATA_POINTS_PATH, "Points_virtuels_0292_6833.geojson")
 OUTPUT_FILE = os.path.join(TMP_PATH, "test_semis_2023_0292_6833_LA93_IGN69.laz")
 
@@ -142,11 +141,12 @@ def test_add_points_from_geojson_to_las_no_epsg():
     if Path(OUTPUT_FILE).exists():
         os.remove(OUTPUT_FILE)
 
-    with pytest.raises(RuntimeError):
+    INPUT_FILE_WITHOUT_EPSG = os.path.join(TEST_PATH, "data/test_noepsg_043500_629205_IGN69.laz")
+
+    with pytest.raises(RuntimeError, match="does not have a valid EPSG code"):
         add_points_in_pointcloud.add_points_from_geojson_to_las(
             INPUT_POINTS, INPUT_FILE_WITHOUT_EPSG, OUTPUT_FILE, 68, None, 1000
         )
-        assert not Path(OUTPUT_FILE).exists()  # check output not exists
 
 
 def test_parse_args():
