@@ -1,3 +1,6 @@
+# 1.7.7
+- Add parameters and "main" to function "add points (.GeoJSON) in pointcloud (.LAZ / .LAS)"
+
 # 1.7.6
 - Add function to add points (.gGeoJSON) in pointcloud (.LAZ / .LAS)
 
