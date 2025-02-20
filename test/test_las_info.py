@@ -136,3 +136,17 @@ def test_get_writer_parameters_from_reader_metadata():
         out_expected_metadata.pop(key)
 
     assert out_metadata == out_expected_metadata
+
+
+def test_get_epsg_from_las_no_epsg():
+    input_file = os.path.join(DATA_PATH, "test_noepsg_043500_629205_IGN69.laz")
+
+    crs = las_info.get_epsg_from_las(input_file)
+    assert crs is None
+
+
+def test_get_epsg_from_las_with_epsg():
+    input_file = os.path.join(DATA_PATH, "test_data_77050_627755_LA93_IGN69.laz")
+
+    crs = las_info.get_epsg_from_las(input_file)
+    assert crs == "EPSG:2154"

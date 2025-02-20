@@ -3,6 +3,7 @@ import logging
 import os
 from typing import Dict, Tuple
 
+import laspy
 import osgeo.osr as osr
 import pdal
 
@@ -211,3 +212,20 @@ def get_writer_parameters_from_reader_metadata(metadata: Dict, a_srs=None) -> Di
         "a_srs": a_srs if a_srs else reader_metadata["comp_spatialreference"],
     }
     return params
+
+
+def get_epsg_from_las(filename: str) -> str:
+    """Extract EPSG code from LAS file metadata and return as 'EPSG:XXXX' format.
+
+    Args:
+        filename (str): full path of file for which to get the bounding box
+
+    Returns:
+        str : CRS's value of the data in 'EPSG:XXXX' format, or None if not found.
+    """
+    with laspy.open(filename) as las:
+        crs = las.header.parse_crs()
+        if crs is None:
+            return None  # Return None if CRS is not defined
+        epsg_code = crs.to_epsg()
+        return f"EPSG:{epsg_code}" if epsg_code else None
