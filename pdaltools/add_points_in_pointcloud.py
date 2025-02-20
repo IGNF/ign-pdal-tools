@@ -4,9 +4,10 @@ import geopandas as gpd
 import laspy
 import numpy as np
 from pyproj import CRS
+from pyproj.exceptions import CRSError
 from shapely.geometry import box
 
-from pdaltools.las_info import get_tile_origin_using_header_info
+from pdaltools.las_info import get_epsg_from_las, get_tile_origin_using_header_info
 
 
 def parse_args(argv=None):
@@ -35,14 +36,6 @@ def parse_args(argv=None):
     )
 
     return parser.parse_args(argv)
-
-
-def get_epsg_from_las(input_las):
-    """Extract EPSG code from LAS file metadata and return as 'EPSG:XXXX' format."""
-    with laspy.open(input_las) as las:
-        if hasattr(las.header, "spatial_reference") and las.header.spatial_reference:
-            epsg_code = las.header.spatial_reference.to_epsg()
-            return f"EPSG:{epsg_code}" if epsg_code else None
 
 
 def get_tile_bbox(input_las, tile_width=1000) -> tuple:
@@ -119,19 +112,14 @@ def add_points_to_las(
         las_data = las.read()
         header = las.header
 
+        if not header:
+            header = laspy.LasHeader(point_format=8, version="1.4")
         if crs:
             try:
                 crs_obj = CRS.from_user_input(crs)  # Convert to a pyproj.CRS object
-            except Exception:
+            except CRSError:
                 raise ValueError(f"Invalid CRS: {crs}")
-
-        # Ensure LAS header has the correct CRS
-        if header is None:
-            header = laspy.LasHeader(point_format=8, version="1.4")
-            if crs is not None:
-                header.add_crs(crs_obj)  # Use CRS object instead of a string
-        elif crs:
-            header.add_crs(crs_obj)  # Ensure the header gets the CRS object
+            header.add_crs(crs_obj)
 
         # Append new points
         new_x = np.concatenate([las_data.x, x_coords])
@@ -161,11 +149,14 @@ def add_points_from_geojson_to_las(
         virtual_points_classes (int): The classification value to assign to those virtual points (default: 66).
         spatial_ref (str): CRS of the data.
         tile_width (int): Width of the tile in meters (default: 1000).
+
+    Raises:
+        RuntimeError: If the input LAS file has no valid EPSG code.
     """
     if not spatial_ref:
         spatial_ref = get_epsg_from_las(input_las)
         if spatial_ref is None:
-            raise RuntimeError(f"Invalid CRS: {spatial_ref}")
+            raise RuntimeError(f"LAS file {input_las} does not have a valid EPSG code.")
 
     # Clip points from GeoJSON by LIDAR tile
     points_clipped = clip_3d_points_to_tile(input_geojson, input_las, spatial_ref, tile_width)
