@@ -52,6 +52,10 @@ def test_copy_and_hack_decorator_color():
     assert os.path.isfile(LAS_FILE)
 
 
+@pytest.mark.xfail(
+    reason="Unlock is deprecated as versions of pdal >= 2.7.2 don't raise an error anymore when GlobalEncoding "
+    "is not set correctly for WKT see https://github.com/PDAL/PDAL/releases/tag/2.7.2"
+)
 def test_unlock_file():
     TMP_FILE = os.path.join(TMPDIR, "unlock_file.laz")
     shutil.copy(LAZ_FILE, TMP_FILE)
