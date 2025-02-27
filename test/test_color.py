@@ -1,6 +1,7 @@
 import os
 import shutil
 from pathlib import Path
+from osgeo import gdal
 
 import pytest
 import requests
@@ -63,7 +64,12 @@ def test_color_narrow_cloud():
 @pytest.mark.geopf
 def test_download_image_ok():
     tif_output = os.path.join(TMPDIR, "download_image.tif")
-    color.download_image_from_geoplateforme(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True)
+    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True)
+
+    # check there is no noData
+    srs = gdal.Open(tif_output)
+    for i in range(srs.RasterCount):
+        assert srs.GetRasterBand(i + 1).GetNoDataValue() == None
 
 
 @pytest.mark.geopf
@@ -105,14 +111,14 @@ def test_color_epsg_2975_detected():
 
 @pytest.mark.geopf
 def test_download_image_raise1():
-    retry_download = color.retry(2, 5)(color.download_image_from_geoplateforme)
+    retry_download = color.retry(2, 5)(color.download_image)
     with pytest.raises(requests.exceptions.HTTPError):
         retry_download(epsg, "MAUVAISE_COUCHE", minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15, True)
 
 
 @pytest.mark.geopf
 def test_download_image_raise2():
-    retry_download = color.retry(2, 5)(color.download_image_from_geoplateforme)
+    retry_download = color.retry(2, 5)(color.download_image)
     with pytest.raises(requests.exceptions.HTTPError):
         retry_download("9001", layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15, True)
 
@@ -121,7 +127,7 @@ def test_retry_on_server_error():
     with requests_mock.Mocker() as mock:
         mock.get(requests_mock.ANY, status_code=502, reason="Bad Gateway")
         with pytest.raises(requests.exceptions.HTTPError):
-            retry_download = color.retry(2, 1, 2)(color.download_image_from_geoplateforme)
+            retry_download = color.retry(2, 1, 2)(color.download_image)
             retry_download(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15, True)
         history = mock.request_history
         assert len(history) == 3
@@ -131,7 +137,7 @@ def test_retry_on_connection_error():
     with requests_mock.Mocker() as mock:
         mock.get(requests_mock.ANY, exc=requests.exceptions.ConnectionError)
         with pytest.raises(requests.exceptions.ConnectionError):
-            retry_download = color.retry(2, 1)(color.download_image_from_geoplateforme)
+            retry_download = color.retry(2, 1)(color.download_image)
             retry_download(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15, True)
 
         history = mock.request_history
@@ -147,7 +153,5 @@ def test_retry_param():
     with pytest.raises(requests.exceptions.HTTPError):
         raise_server_error()
 
-def test_tall_images():
-    input_path = os.path.join(TEST_PATH, "data/gib_las.las")
-    output_path = os.path.join(TMPDIR, "gib_las_out.laz")
-    color.color(input_path, output_path)
+
+

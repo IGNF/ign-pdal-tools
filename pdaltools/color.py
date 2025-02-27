@@ -11,7 +11,7 @@ from osgeo import gdal, gdal_array
 import pdaltools.las_info as las_info
 from pdaltools.unlock_file import copy_and_hack_decorator
 
-SIZE_MAX_IMAGE_GPF = 100
+SIZE_MAX_IMAGE_GPF = 250
 
 def pretty_time_delta(seconds):
     sign_string = "-" if seconds < 0 else ""
@@ -103,32 +103,32 @@ def download_image_from_geoplateforme(
         raise ValueError(f"Downloaded image is white, with stream: {layer}")
 
 
-def download_image_from_geoplateforme_tall(
+def download_image(
     proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images
 ):
     size_x_p = (maxx - minx)
     size_y_p = (maxy - miny)
 
-    # the image size is ok
+    # the image size is under SIZE_MAX_IMAGE_GPF
     if size_x_p<SIZE_MAX_IMAGE_GPF and size_y_p<SIZE_MAX_IMAGE_GPF:
         return download_image_from_geoplateforme(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images)
 
-    # the image is taller than the max size of GPF
+    # the image is taller than the SIZE_MAX_IMAGE_GPF
     # it's preferable to calcul it by paving
-    nb_cell_x = int(size_x_p / SIZE_MAX_IMAGE_GPF) +1
-    nb_cell_y = int(size_y_p / SIZE_MAX_IMAGE_GPF) +1
+    nb_cell_x = int(size_x_p / SIZE_MAX_IMAGE_GPF) + 1
+    nb_cell_y = int(size_y_p / SIZE_MAX_IMAGE_GPF) + 1
 
-    with tempfile.TemporaryDirectory() as tmpdirname:
+    with tempfile.TemporaryDirectory() as tmp_dir_name:
         tmp_gpg_ortho = []
-        for l in range(0,nb_cell_y):
-            for c in range(0,nb_cell_x):
+        for l in range(0, nb_cell_y):
+            for c in range(0, nb_cell_x):
 
                 minx_cell = minx + c*SIZE_MAX_IMAGE_GPF
                 maxx_cell = minx_cell + SIZE_MAX_IMAGE_GPF
                 miny_cell = miny + l*SIZE_MAX_IMAGE_GPF
                 maxy_cell = miny_cell + SIZE_MAX_IMAGE_GPF
 
-                tmp_gpf_cell = tmpdirname + "/cell_"+str(c)+"_"+str(l)+".tif"
+                tmp_gpf_cell = tmp_dir_name + "/cell_"+str(c)+"_"+str(l)+".tif"
                 download_image_from_geoplateforme(proj, layer, minx_cell, miny_cell, maxx_cell, maxy_cell, pixel_per_meter,
                                                 tmp_gpf_cell, timeout, check_images)
                 tmp_gpg_ortho.append(tmp_gpf_cell)
@@ -165,8 +165,8 @@ def color(
 
     writer_extra_dims = "all"
 
-    # apply decorator to retry 3 times, and wait 30 seconds each times
-    download_image_from_geoplateforme_retrying = retry(7, 30, 2)(download_image_from_geoplateforme_tall)
+    # apply decorator to retry 5 times, and wait 30 seconds each times
+    download_image_from_geoplateforme_retrying = retry(5, 30, 2)(download_image)
 
     if veget_index_file and veget_index_file != "":
         print(f"Remplissage du champ Deviation à partir du fichier {veget_index_file}")
