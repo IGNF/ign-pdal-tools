@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from pathlib import Path
 from typing import Dict, Tuple
 
 import laspy
@@ -160,7 +161,14 @@ def parse_filename(file: str):
     For example Semis_2021_0000_1111_LA93_IGN69.las"""
     basename = os.path.basename(file)  # Make sure that we work on the base name and not the full path
 
-    prefix1, prefix2, coordx, coordy, suffix = basename.split("_", 4)
+    try:
+        prefix1, prefix2, coordx, coordy, suffix = basename.split("_", 4)
+    except ValueError:
+        raise ValueError(
+            f"Filename {Path(file).name} does not have the expected format. "
+            "Expected prefix1_prefix2_coordx_coordy_suffix"
+        )
+
     prefix = f"{prefix1}_{prefix2}"
 
     return prefix, int(coordx), int(coordy), suffix
