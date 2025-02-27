@@ -1,4 +1,5 @@
 import argparse
+import shutil
 
 import geopandas as gpd
 import laspy
@@ -81,9 +82,14 @@ def add_points_to_las(
         crs (str): CRS of the data.
         virtual_points_classes (int): The classification value to assign to those virtual points (default: 66).
     """
-    # Check if input points are empty
+
     if input_points_with_z.empty:
-        raise ValueError("No points to add. The input GeoDataFrame is empty.")
+        print(
+            "No points to add. All points of the geojson file are outside the tile. Copying the input file to output"
+        )
+        shutil.copy(input_las, output_las)
+
+        return
 
     # Extract XYZ coordinates and additional attribute (classification)
     x_coords = input_points_with_z.geometry.x
