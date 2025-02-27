@@ -9,7 +9,7 @@ import pdaltools.las_info
 from pdaltools import add_points_in_pointcloud
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
-TMP_PATH = os.path.join(TEST_PATH, "data/output")
+TMP_PATH = os.path.join(TEST_PATH, "tmp/add_points_in_pointcloud")
 DATA_LIDAR_PATH = os.path.join(TEST_PATH, "data/decimated_laz")
 DATA_POINTS_PATH = os.path.join(TEST_PATH, "data/points_3d")
 
@@ -23,7 +23,7 @@ OUTPUT_FILE_SMALL = os.path.join(TMP_PATH, "test_semis_2021_0382_6565_LA93_IGN69
 
 
 def setup_module(module):
-    os.makedirs("test/data/output", exist_ok=True)
+    os.makedirs(TMP_PATH, exist_ok=True)
 
 
 def test_clip_3d_points_to_tile():
