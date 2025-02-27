@@ -51,6 +51,23 @@ def get_tile_origin_using_header_info(filename: str, tile_width: int = 1000) -> 
     return infer_tile_origin(minx, maxx, miny, maxy, tile_width)
 
 
+def get_tile_bbox(input_las, tile_width=1000) -> tuple:
+    """
+    Get the theoretical bounding box (xmin, ymin, xmax, ymax) of a LIDAR tile
+    using its origin and the predefined tile width.
+
+    Args:
+        input_las (str): Path to the LIDAR `.las/.laz` file.
+        tile_width (int): Width of the tile in meters (default: 1000).
+
+    Returns:
+        tuple: Bounding box as (xmin, ymin, xmax, ymax).
+    """
+    origin_x, origin_y = get_tile_origin_using_header_info(input_las, tile_width)
+    bbox = (origin_x, origin_y - tile_width, origin_x + tile_width, origin_y)
+    return bbox
+
+
 def get_epsg_from_header_info(metadata):
     if "srs" not in metadata.keys():
         raise RuntimeError("EPSG could not be inferred from metadata: No 'srs' key in metadata.")

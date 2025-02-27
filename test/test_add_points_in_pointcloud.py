@@ -5,6 +5,7 @@ from pathlib import Path
 import pdal
 import pytest
 
+import pdaltools.las_info
 from pdaltools import add_points_in_pointcloud
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -23,11 +24,6 @@ OUTPUT_FILE_SMALL = os.path.join(TMP_PATH, "test_semis_2021_0382_6565_LA93_IGN69
 
 def setup_module(module):
     os.makedirs("test/data/output", exist_ok=True)
-
-
-def test_get_tile_bbox():
-    bbox = add_points_in_pointcloud.get_tile_bbox(INPUT_FILE, 1000)
-    assert bbox == (292000.0, 6832000.0, 293000.0, 6833000.0)  # check the bbox from LIDAR tile
 
 
 def test_clip_3d_points_to_tile():
@@ -93,7 +89,7 @@ def test_add_line_to_lidar_from_epsg_none():
 
 def test_get_tile_bbox_small():
     # Tile is not complete (NOT 1km * 1km)
-    bbox = add_points_in_pointcloud.get_tile_bbox(INPUT_FILE_SMALL, 1000)
+    bbox = pdaltools.las_info.get_tile_bbox(INPUT_FILE_SMALL, 1000)
     assert bbox == (382000.0, 6564000.0, 383000.0, 6565000.0)  # return BBOX 1km * 1km
 
 
