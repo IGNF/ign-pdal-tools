@@ -1,4 +1,5 @@
 import argparse
+import shutil
 
 import geopandas as gpd
 import laspy
@@ -7,7 +8,7 @@ from pyproj import CRS
 from pyproj.exceptions import CRSError
 from shapely.geometry import box
 
-from pdaltools.las_info import get_epsg_from_las, get_tile_origin_using_header_info
+from pdaltools.las_info import get_epsg_from_las, get_tile_bbox
 
 
 def parse_args(argv=None):
@@ -36,23 +37,6 @@ def parse_args(argv=None):
     )
 
     return parser.parse_args(argv)
-
-
-def get_tile_bbox(input_las, tile_width=1000) -> tuple:
-    """
-    Get the theoretical bounding box (xmin, ymin, xmax, ymax) of a LIDAR tile
-    using its origin and the predefined tile width.
-
-    Args:
-        input_las (str): Path to the LIDAR `.las/.laz` file.
-        tile_width (int): Width of the tile in meters (default: 1000).
-
-    Returns:
-        tuple: Bounding box as (xmin, ymin, xmax, ymax).
-    """
-    origin_x, origin_y = get_tile_origin_using_header_info(input_las)
-    bbox = (origin_x, origin_y - tile_width, origin_x + tile_width, origin_y)
-    return bbox
 
 
 def clip_3d_points_to_tile(input_points: str, input_las: str, crs: str, tile_width: int) -> gpd.GeoDataFrame:
@@ -98,9 +82,14 @@ def add_points_to_las(
         crs (str): CRS of the data.
         virtual_points_classes (int): The classification value to assign to those virtual points (default: 66).
     """
-    # Check if input points are empty
+
     if input_points_with_z.empty:
-        raise ValueError("No points to add. The input GeoDataFrame is empty.")
+        print(
+            "No points to add. All points of the geojson file are outside the tile. Copying the input file to output"
+        )
+        shutil.copy(input_las, output_las)
+
+        return
 
     # Extract XYZ coordinates and additional attribute (classification)
     x_coords = input_points_with_z.geometry.x

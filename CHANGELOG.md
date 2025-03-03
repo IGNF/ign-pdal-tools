@@ -1,3 +1,8 @@
+# 1.7.8
+- Update dependency versions
+- make count_occurences usable as a package
+- add_points_to_pointcloud does not raise an error when there is no point in the tile
+
 # 1.7.7
 - Add parameters and "main" to function "add points (.GeoJSON) in pointcloud (.LAZ / .LAS)"
 

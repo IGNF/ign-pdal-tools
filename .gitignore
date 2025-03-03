@@ -4,3 +4,6 @@ __pycache__
 ign_pdal_tools.egg-info
 dist
 *.idea*
+
+# QGIS generated copc
+*.copc.laz
