@@ -1,4 +1,4 @@
-# dev
+# 1.7.8
 - Update dependency versions
 - make count_occurences usable as a package
 - add_points_to_pointcloud does not raise an error when there is no point in the tile
