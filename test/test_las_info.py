@@ -45,6 +45,27 @@ def test_get_tile_origin_using_header_info():
     assert (origin_x, origin_y) == (COORD_X * TILE_COORD_SCALE, COORD_Y * TILE_COORD_SCALE)
 
 
+@pytest.mark.parametrize(
+    "tile_filename, tile_width, expected_bbox",
+    [
+        (  # Standard 1000m tile width
+            os.path.join(DATA_PATH, "decimated_laz", "test_semis_2023_0292_6833_LA93_IGN69.laz"),
+            1000,
+            (292000.0, 6832000.0, 293000.0, 6833000.0),
+        ),
+        (
+            # Test 50m tile
+            INPUT_FILE,
+            50,
+            (INPUT_MINS[0], INPUT_MINS[1], INPUT_MAXS[0], INPUT_MAXS[1]),
+        ),
+    ],
+)
+def test_get_tile_bbox(tile_filename, tile_width, expected_bbox):
+    bbox = las_info.get_tile_bbox(tile_filename, tile_width)
+    assert bbox == expected_bbox  # check the bbox from LIDAR tile
+
+
 def test_get_epsg_from_quickinfo_metadata_ok():
     metadata = las_info.las_info_metadata(INPUT_FILE)
     assert las_info.get_epsg_from_header_info(metadata) == "2154"

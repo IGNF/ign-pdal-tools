@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from pathlib import Path
 from typing import Dict, Tuple
 
 import laspy
@@ -49,6 +50,23 @@ def get_tile_origin_using_header_info(filename: str, tile_width: int = 1000) -> 
     minx, maxx, miny, maxy = get_bounds_from_header_info(metadata)
 
     return infer_tile_origin(minx, maxx, miny, maxy, tile_width)
+
+
+def get_tile_bbox(input_las, tile_width=1000) -> tuple:
+    """
+    Get the theoretical bounding box (xmin, ymin, xmax, ymax) of a LIDAR tile
+    using its origin and the predefined tile width.
+
+    Args:
+        input_las (str): Path to the LIDAR `.las/.laz` file.
+        tile_width (int): Width of the tile in meters (default: 1000).
+
+    Returns:
+        tuple: Bounding box as (xmin, ymin, xmax, ymax).
+    """
+    origin_x, origin_y = get_tile_origin_using_header_info(input_las, tile_width)
+    bbox = (origin_x, origin_y - tile_width, origin_x + tile_width, origin_y)
+    return bbox
 
 
 def get_epsg_from_header_info(metadata):
@@ -143,7 +161,14 @@ def parse_filename(file: str):
     For example Semis_2021_0000_1111_LA93_IGN69.las"""
     basename = os.path.basename(file)  # Make sure that we work on the base name and not the full path
 
-    prefix1, prefix2, coordx, coordy, suffix = basename.split("_", 4)
+    try:
+        prefix1, prefix2, coordx, coordy, suffix = basename.split("_", 4)
+    except ValueError:
+        raise ValueError(
+            f"Filename {Path(file).name} does not have the expected format. "
+            "Expected prefix1_prefix2_coordx_coordy_suffix"
+        )
+
     prefix = f"{prefix1}_{prefix2}"
 
     return prefix, int(coordx), int(coordy), suffix
