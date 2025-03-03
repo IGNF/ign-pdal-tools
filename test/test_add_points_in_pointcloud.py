@@ -15,13 +15,15 @@ TMP_PATH = os.path.join(TEST_PATH, "tmp/add_points_in_pointcloud")
 DATA_LIDAR_PATH = os.path.join(TEST_PATH, "data/decimated_laz")
 DATA_POINTS_PATH = os.path.join(TEST_PATH, "data/points_3d")
 
-INPUT_FILE = os.path.join(DATA_LIDAR_PATH, "test_semis_2023_0292_6833_LA93_IGN69.laz")
+INPUT_PCD = os.path.join(DATA_LIDAR_PATH, "test_semis_2023_0292_6833_LA93_IGN69.laz")
 INPUT_POINTS = os.path.join(DATA_POINTS_PATH, "Points_virtuels_0292_6833.geojson")
 OUTPUT_FILE = os.path.join(TMP_PATH, "test_semis_2023_0292_6833_LA93_IGN69.laz")
 
-INPUT_FILE_SMALL = os.path.join(DATA_LIDAR_PATH, "test_semis_2021_0382_6565_LA93_IGN69.laz")
-INPUT_POINTS_SMALL = os.path.join(DATA_POINTS_PATH, "Points_virtuels_0382_6565.geojson")
-OUTPUT_FILE_SMALL = os.path.join(TMP_PATH, "test_semis_2021_0382_6565_LA93_IGN69.laz")
+# Cropped las tile used to test adding points that belong to the theorical tile but not to the
+# effective las file extent
+INPUT_PCD_CROPPED = os.path.join(DATA_LIDAR_PATH, "test_semis_2021_0382_6565_LA93_IGN69_cropped.laz")
+INPUT_POINTS_FOR_CROPPED_PCD = os.path.join(DATA_POINTS_PATH, "Points_virtuels_0382_6565.geojson")
+OUTPUT_FILE_CROPPED_PCD = os.path.join(TMP_PATH, "test_semis_2021_0382_6565_LA93_IGN69.laz")
 
 
 def setup_module(module):
@@ -37,16 +39,16 @@ def setup_module(module):
 )
 def test_clip_3d_points_to_tile(epsg):
     # With EPSG
-    points_clipped = add_points_in_pointcloud.clip_3d_points_to_tile(INPUT_POINTS, INPUT_FILE, epsg, 1000)
+    points_clipped = add_points_in_pointcloud.clip_3d_points_to_tile(INPUT_POINTS, INPUT_PCD, epsg, 1000)
     assert len(points_clipped) == 678  # check the entity's number of points
 
 
 @pytest.mark.parametrize(
     "input_file, epsg, expected_nb_points",
     [
-        (INPUT_FILE, "EPSG:2154", 2423),  # should work when providing an epsg value
-        (INPUT_FILE, None, 2423),  # Should also work with no epsg value (get from las file)
-        (INPUT_FILE_SMALL, None, 2423),
+        (INPUT_PCD, "EPSG:2154", 2423),  # should work when providing an epsg value
+        (INPUT_PCD, None, 2423),  # Should also work with no epsg value (get from las file)
+        (INPUT_PCD_CROPPED, None, 2423),
     ],
 )
 def test_add_points_to_las(input_file, epsg, expected_nb_points):
@@ -65,15 +67,20 @@ def test_add_points_to_las(input_file, epsg, expected_nb_points):
 @pytest.mark.parametrize(
     "input_file, input_points, epsg, expected_nb_points",
     [
-        (INPUT_FILE, INPUT_POINTS, None, 678),  # should add only points within tile extent
-        (INPUT_FILE_SMALL, INPUT_POINTS_SMALL, None, 186),
+        (INPUT_PCD, INPUT_POINTS, None, 678),  # should add only points within tile extent
+        (INPUT_PCD_CROPPED, INPUT_POINTS_FOR_CROPPED_PCD, None, 186),
         (
-            INPUT_FILE_SMALL,
+            INPUT_PCD_CROPPED,
             INPUT_POINTS,
             None,
             0,
         ),  # Should add no points when there is only points outside the tile extent
-        (INPUT_FILE_SMALL, INPUT_POINTS_SMALL, "EPSG:2154", 186),  # Should work with or without an input epsg
+        (
+            INPUT_PCD_CROPPED,
+            INPUT_POINTS_FOR_CROPPED_PCD,
+            "EPSG:2154",
+            186,
+        ),  # Should work with or without an input epsg
     ],
 )
 def test_add_points_from_geojson_to_las(input_file, input_points, epsg, expected_nb_points):
