@@ -2,11 +2,12 @@ import argparse
 import tempfile
 import time
 from math import ceil
+from pathlib import Path
 
 import numpy as np
 import pdal
 import requests
-from osgeo import gdal_array
+from osgeo import gdal, gdal_array
 
 import pdaltools.las_info as las_info
 from pdaltools.unlock_file import copy_and_hack_decorator
@@ -69,6 +70,19 @@ def is_image_white(filename: str):
 def download_image_from_geoplateforme(
     proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images
 ):
+    """
+    Download image using a wms request to geoplateforme.
+
+    Args:
+      proj: projection of the downloaded image.
+      layer: wich kind of image is downloaed (ORTHOIMAGERY.ORTHOPHOTOS, ORTHOIMAGERY.ORTHOPHOTOS.IRC, ...).
+      minx, miny, maxx, maxy: box of the downloaded image.
+      pixel_per_meter: resolution of the downloaded image.
+      outfile: file name of the downloaed file
+      timeout: time after the request is canceled
+      check_images: check if images is not a white image
+    """
+
     # Force a 1-pixel margin in the east and south borders
     # to make sure that no point of the pointcloud is on the limit of the last pixel
     # to prevent interpolation issues
@@ -103,6 +117,69 @@ def download_image_from_geoplateforme(
 
 
 @copy_and_hack_decorator
+def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images, size_max_gpf):
+    """
+    download image from geoplateforme with call of download_image_from_geoplateforme() :
+    image are downloaded in blocks then merged, in order to limit the size of geoplateforme requests.
+
+    Args:
+      proj: projection of the downloaded image.
+      layer: wich kind of image is downloaed (ORTHOIMAGERY.ORTHOPHOTOS, ORTHOIMAGERY.ORTHOPHOTOS.IRC, ...).
+      minx, miny, maxx, maxy: box of the downloaded image.
+      pixel_per_meter: resolution of the downloaded image.
+      outfile: file name of the downloaed file
+      timeout: time after the request is canceled
+      check_images: check if images is not a white image
+      size_max_gpf: block size of downloaded images.
+    """
+
+    # apply decorator to retry 5 times, and wait 30 seconds each times
+    download_image_from_geoplateforme_retrying = retry(5, 30, 2)(download_image_from_geoplateforme)
+
+    size_x_p = maxx - minx
+    size_y_p = maxy - miny
+
+    # the image size is under SIZE_MAX_IMAGE_GPF
+    if size_x_p <= size_max_gpf and size_y_p <= size_max_gpf:
+        return download_image_from_geoplateforme_retrying(
+            proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images
+        )
+
+    # the image is bigger than the SIZE_MAX_IMAGE_GPF
+    # it's preferable to compute it by paving
+    nb_cell_x = int(size_x_p / size_max_gpf)
+    nb_cell_y = int(size_y_p / size_max_gpf)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_gpg_ortho = []
+        for line in range(0, nb_cell_y):
+            for col in range(0, nb_cell_x):
+                minx_cell = minx + col * size_max_gpf
+                maxx_cell = minx_cell + size_max_gpf
+                miny_cell = miny + line * size_max_gpf
+                maxy_cell = miny_cell + size_max_gpf
+
+                cells_ortho_paths = str(Path(tmp_dir)) + f"cell_{col}_{line}.tif"
+                download_image_from_geoplateforme_retrying(
+                    proj,
+                    layer,
+                    minx_cell,
+                    miny_cell,
+                    maxx_cell,
+                    maxy_cell,
+                    pixel_per_meter,
+                    cells_ortho_paths,
+                    timeout,
+                    check_images,
+                )
+                tmp_gpg_ortho.append(cells_ortho_paths)
+
+        # merge the cells
+        with tempfile.NamedTemporaryFile(suffix="_gpf.vrt") as tmp_vrt:
+            gdal.BuildVRT(tmp_vrt.name, tmp_gpg_ortho)
+            gdal.Translate(outfile, tmp_vrt.name)
+
+
 def color(
     input_file: str,
     output_file: str,
@@ -115,6 +192,7 @@ def color(
     check_images=False,
     stream_RGB="ORTHOIMAGERY.ORTHOPHOTOS",
     stream_IRC="ORTHOIMAGERY.ORTHOPHOTOS.IRC",
+    size_max_gpf=250,
 ):
     metadata = las_info.las_info_metadata(input_file)
     minx, maxx, miny, maxy = las_info.get_bounds_from_header_info(metadata)
@@ -126,9 +204,6 @@ def color(
 
     writer_extra_dims = "all"
 
-    # apply decorator to retry 3 times, and wait 30 seconds each times
-    download_image_from_geoplateforme_retrying = retry(7, 15, 2)(download_image_from_geoplateforme)
-
     if veget_index_file and veget_index_file != "":
         print(f"Remplissage du champ Deviation à partir du fichier {veget_index_file}")
         pipeline |= pdal.Filter.colorization(raster=veget_index_file, dimensions="Deviation:1:256.0")
@@ -137,8 +212,18 @@ def color(
     tmp_ortho = None
     if color_rvb_enabled:
         tmp_ortho = tempfile.NamedTemporaryFile(suffix="_rvb.tif")
-        download_image_from_geoplateforme_retrying(
-            proj, stream_RGB, minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho.name, timeout_second, check_images
+        download_image(
+            proj,
+            stream_RGB,
+            minx,
+            miny,
+            maxx,
+            maxy,
+            pixel_per_meter,
+            tmp_ortho.name,
+            timeout_second,
+            check_images,
+            size_max_gpf,
         )
         # Warning: the initial color is multiplied by 256 despite its initial 8-bits encoding
         # which turns it to a 0 to 255*256 range.
@@ -150,8 +235,18 @@ def color(
     tmp_ortho_irc = None
     if color_ir_enabled:
         tmp_ortho_irc = tempfile.NamedTemporaryFile(suffix="_irc.tif")
-        download_image_from_geoplateforme_retrying(
-            proj, stream_IRC, minx, miny, maxx, maxy, pixel_per_meter, tmp_ortho_irc.name, timeout_second, check_images
+        download_image(
+            proj,
+            stream_IRC,
+            minx,
+            miny,
+            maxx,
+            maxy,
+            pixel_per_meter,
+            tmp_ortho_irc.name,
+            timeout_second,
+            check_images,
+            size_max_gpf,
         )
         # Warning: the initial color is multiplied by 256 despite its initial 8-bits encoding
         # which turns it to a 0 to 255*256 range.
@@ -202,6 +297,14 @@ for 50 cm resolution rasters, use ORTHOIMAGERY.ORTHOPHOTOS.BDORTHO""",
         help="""WMS raster stream for IRC colorization. Default to ORTHOIMAGERY.ORTHOPHOTOS.IRC
 Documentation about possible stream : https://geoservices.ign.fr/services-web-experts-ortho""",
     )
+    parser.add_argument(
+        "--sizeMaxGPF",
+        type=int,
+        default=250,
+        help="Size maximum of downloaded images."
+        " If input file needs more, severals"
+        " images are downloaded and merged.",
+    )
 
     return parser.parse_args()
 
@@ -220,4 +323,5 @@ if __name__ == "__main__":
         check_images=args.check_images,
         stream_RGB=args.stream_RGB,
         stream_IRC=args.stream_IRC,
+        size_max_gpf=args.sizeMaxGPF,
     )
