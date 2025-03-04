@@ -71,8 +71,18 @@ def download_image_from_geoplateforme(
     proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images
 ):
     """
-    download image from geoplateforme
+    Download image using a wms request to geoplateforme.
+
+    Args:
+      proj: projection of the downloaded image.
+      layer: wich kind of image is downloaed (ORTHOIMAGERY.ORTHOPHOTOS, ORTHOIMAGERY.ORTHOPHOTOS.IRC, ...).
+      minx, miny, maxx, maxy: box of the downloaded image.
+      pixel_per_meter: resolution of the downloaded image.
+      outfile: file name of the downloaed file
+      timeout: time after the request is canceled
+      check_images: check if images is not a white image
     """
+
     # Force a 1-pixel margin in the east and south borders
     # to make sure that no point of the pointcloud is on the limit of the last pixel
     # to prevent interpolation issues
@@ -109,10 +119,18 @@ def download_image_from_geoplateforme(
 @copy_and_hack_decorator
 def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images, size_max_gpf):
     """
-    download image from geoplateforme : image are downloaded in blocks then merged,
-    in order to limit the size of geoplateforme requests.
-    the 'size_max_gpf' option sets the block size.
-    This function calls 'download_image_from_geoplateforme' for each block.
+    download image from geoplateforme with call of download_image_from_geoplateforme() :
+    image are downloaded in blocks then merged, in order to limit the size of geoplateforme requests.
+
+    Args:
+      proj: projection of the downloaded image.
+      layer: wich kind of image is downloaed (ORTHOIMAGERY.ORTHOPHOTOS, ORTHOIMAGERY.ORTHOPHOTOS.IRC, ...).
+      minx, miny, maxx, maxy: box of the downloaded image.
+      pixel_per_meter: resolution of the downloaded image.
+      outfile: file name of the downloaed file
+      timeout: time after the request is canceled
+      check_images: check if images is not a white image
+      size_max_gpf: block size of downloaded images.
     """
 
     # apply decorator to retry 5 times, and wait 30 seconds each times

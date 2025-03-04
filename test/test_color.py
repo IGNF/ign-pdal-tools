@@ -46,7 +46,7 @@ miny = 6291000
 maxx = 436000
 maxy = 6292000
 pixel_per_meter = 0.1
-size_max_image_gpf = 250
+size_max_image_gpf = 500
 
 
 @pytest.mark.geopf
