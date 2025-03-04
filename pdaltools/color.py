@@ -109,9 +109,9 @@ def download_image_from_geoplateforme(
 @copy_and_hack_decorator
 def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images, size_max_gpf):
     """
-    download image from geoplateforme : image are download in blocks ther merged,
+    download image from geoplateforme : image are downloaded in blocks then merged,
     in order to limit the size of geoplateforme requests.
-    the 'size_max_gpf' option permit to fix the block size.
+    the 'size_max_gpf' option sets the block size.
     This function calls 'download_image_from_geoplateforme' for each block.
     """
 
