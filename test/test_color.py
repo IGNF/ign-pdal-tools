@@ -116,7 +116,7 @@ def test_download_image_one_and_block(size_block):
     color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output_one, 15, True, 1000)
 
     tif_output_blocks = os.path.join(TMPDIR, "download_image_block.tif")
-    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output_blocks, 50, True, size_block)
+    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output_blocks, 100, True, size_block)
 
     # due to GeoPlateforme interpolation, images could have small differences
     # check images are almost the sames
