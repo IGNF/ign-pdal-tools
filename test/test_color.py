@@ -88,6 +88,28 @@ def test_download_image_ok_one_download():
         assert srs.GetRasterBand(i + 1).GetNoDataValue() is None
 
 
+@pytest.mark.geopf
+def test_download_image_download_size_gpf_bigger():
+    tif_output = os.path.join(TMPDIR, "download_image_bigger.tif")
+    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 1005)
+
+    # check there is no noData
+    srs = gdal.Open(tif_output)
+    for i in range(srs.RasterCount):
+        assert srs.GetRasterBand(i + 1).GetNoDataValue() is None
+
+
+@pytest.mark.geopf
+def test_download_image_download_size_gpf_size_almost_ok():
+    tif_output = os.path.join(TMPDIR, "download_image_bigger.tif")
+    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 999)
+
+    # check there is no noData
+    srs = gdal.Open(tif_output)
+    for i in range(srs.RasterCount):
+        assert srs.GetRasterBand(i + 1).GetNoDataValue() is None
+
+
 @pytest.mark.parametrize("size_block", [100, 250, 500])
 def test_download_image_one_and_block(size_block):
     tif_output_one = os.path.join(TMPDIR, "download_image_one.tif")
