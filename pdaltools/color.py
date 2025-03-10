@@ -80,7 +80,7 @@ def download_image_from_geoplateforme(
       pixel_per_meter: resolution of the downloaded image.
       outfile: file name of the downloaded file
       timeout: delay after which the request is canceled (in seconds)
-      check_images: check if images is not a white image
+      check_images (bool): enable checking if the output image is not a white image
     """
 
     # Force a 1-pixel margin in the east and south borders
