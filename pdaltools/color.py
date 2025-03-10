@@ -75,7 +75,7 @@ def download_image_from_geoplateforme(
 
     Args:
       proj: projection of the downloaded image.
-      layer: wich kind of image is downloaed (ORTHOIMAGERY.ORTHOPHOTOS, ORTHOIMAGERY.ORTHOPHOTOS.IRC, ...).
+      layer: which kind of image is downloaded (ORTHOIMAGERY.ORTHOPHOTOS, ORTHOIMAGERY.ORTHOPHOTOS.IRC, ...).
       minx, miny, maxx, maxy: box of the downloaded image.
       pixel_per_meter: resolution of the downloaded image.
       outfile: file name of the downloaed file
