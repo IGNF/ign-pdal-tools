@@ -79,7 +79,7 @@ def download_image_from_geoplateforme(
       minx, miny, maxx, maxy: box of the downloaded image.
       pixel_per_meter: resolution of the downloaded image.
       outfile: file name of the downloaded file
-      timeout: time after the request is canceled
+      timeout: delay after which the request is canceled (in seconds)
       check_images: check if images is not a white image
     """
 
