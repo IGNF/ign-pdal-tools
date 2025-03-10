@@ -74,7 +74,7 @@ def download_image_from_geoplateforme(
     Download image using a wms request to geoplateforme.
 
     Args:
-      proj: projection of the downloaded image.
+      proj (int): epsg code for the projection of the downloaded image.
       layer: which kind of image is downloaded (ORTHOIMAGERY.ORTHOPHOTOS, ORTHOIMAGERY.ORTHOPHOTOS.IRC, ...).
       minx, miny, maxx, maxy: box of the downloaded image.
       pixel_per_meter: resolution of the downloaded image.
