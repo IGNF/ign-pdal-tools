@@ -78,7 +78,7 @@ def download_image_from_geoplateforme(
       layer: which kind of image is downloaded (ORTHOIMAGERY.ORTHOPHOTOS, ORTHOIMAGERY.ORTHOPHOTOS.IRC, ...).
       minx, miny, maxx, maxy: box of the downloaded image.
       pixel_per_meter: resolution of the downloaded image.
-      outfile: file name of the downloaed file
+      outfile: file name of the downloaded file
       timeout: time after the request is canceled
       check_images: check if images is not a white image
     """
