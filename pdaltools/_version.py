@@ -1,4 +1,4 @@
-__version__ = "1.7.8"
+__version__ = "1.7.8.test_color_errors1."
 
 
 if __name__ == "__main__":
