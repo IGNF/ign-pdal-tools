@@ -37,12 +37,6 @@ def retry(times, delay, factor=2, debug=False):
                 need_retry = False
                 try:
                     return func(*args, **kwargs)
-                except requests.exceptions.HTTPError as err:
-                    if "Server Error" in str(err):
-                        print("HTTP Error:", err)
-                        need_retry = True
-                    else:
-                        raise err
                 except requests.exceptions.RequestException as err:
                     print("Connection Error:", err)
                     need_retry = True
@@ -127,7 +121,7 @@ def color(
     writer_extra_dims = "all"
 
     # apply decorator to retry 3 times, and wait 30 seconds each times
-    download_image_from_geoplateforme_retrying = retry(7, 15, 2)(download_image_from_geoplateforme)
+    download_image_from_geoplateforme_retrying = retry(9, 5, 2)(download_image_from_geoplateforme)
 
     if veget_index_file and veget_index_file != "":
         print(f"Remplissage du champ Deviation à partir du fichier {veget_index_file}")
