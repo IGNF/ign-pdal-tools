@@ -38,12 +38,6 @@ def retry(times, delay, factor, debug=False):
                 need_retry = False
                 try:
                     return func(*args, **kwargs)
-                except requests.exceptions.HTTPError as err:
-                    if "Server Error" in str(err):
-                        print("HTTP Error:", err)
-                        need_retry = True
-                    else:
-                        raise err
                 except requests.exceptions.RequestException as err:
                     print("Connection Error:", err)
                     need_retry = True
