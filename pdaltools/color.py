@@ -29,7 +29,7 @@ def pretty_time_delta(seconds):
         return "%s%ds" % (sign_string, seconds)
 
 
-def retry(times, delay, factor=2, debug=False):
+def retry(times, delay, factor, debug=False):
     def decorator(func):
         def newfn(*args, **kwargs):
             attempt = 1
@@ -135,8 +135,7 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
     return the number of effective requests
     """
 
-    # apply decorator to retry 5 times, and wait 30 seconds each times
-    download_image_from_geoplateforme_retrying = retry(5, 30, 2)(download_image_from_geoplateforme)
+    download_image_from_geoplateforme_retrying = retry(times=9, delay=5, factor=2)(download_image_from_geoplateforme)
 
     size_x_p = maxx - minx
     size_y_p = maxy - miny
