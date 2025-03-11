@@ -37,15 +37,15 @@ def retry(times, delay, factor=2, debug=False):
                 need_retry = False
                 try:
                     return func(*args, **kwargs)
-                except requests.exceptions.ConnectionError as err:
-                    print("Connection Error:", err)
-                    need_retry = True
                 except requests.exceptions.HTTPError as err:
                     if "Server Error" in str(err):
                         print("HTTP Error:", err)
                         need_retry = True
                     else:
                         raise err
+                except requests.exceptions.RequestException as err:
+                    print("Connection Error:", err)
+                    need_retry = True
                 if need_retry:
                     print(f"{attempt}/{times} Nouvel essai après une pause de {pretty_time_delta(new_delay)} .. ")
                     if not debug:
