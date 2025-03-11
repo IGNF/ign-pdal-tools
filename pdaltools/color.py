@@ -119,7 +119,7 @@ def download_image_from_geoplateforme(
 @copy_and_hack_decorator
 def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images, size_max_gpf):
     """
-    download image from geoplateforme with call of download_image_from_geoplateforme() :
+    Download image using a wms request to geoplateforme with call of download_image_from_geoplateforme() :
     image are downloaded in blocks then merged, in order to limit the size of geoplateforme requests.
 
     Args:
@@ -131,6 +131,8 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
       timeout: time after the request is canceled
       check_images: check if images is not a white image
       size_max_gpf: block size of downloaded images.
+
+    return the number of effective requests
     """
 
     # apply decorator to retry 5 times, and wait 30 seconds each times
@@ -141,14 +143,15 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
 
     # the image size is under SIZE_MAX_IMAGE_GPF
     if size_x_p <= size_max_gpf and size_y_p <= size_max_gpf:
-        return download_image_from_geoplateforme_retrying(
+        download_image_from_geoplateforme_retrying(
             proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images
         )
+        return 1
 
     # the image is bigger than the SIZE_MAX_IMAGE_GPF
     # it's preferable to compute it by paving
-    nb_cell_x = int(size_x_p / size_max_gpf)
-    nb_cell_y = int(size_y_p / size_max_gpf)
+    nb_cell_x = ceil(size_x_p / size_max_gpf)
+    nb_cell_y = ceil(size_y_p / size_max_gpf)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_gpg_ortho = []
@@ -179,6 +182,7 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
             gdal.BuildVRT(tmp_vrt.name, tmp_gpg_ortho)
             gdal.Translate(outfile, tmp_vrt.name)
 
+    return nb_cell_x*nb_cell_y
 
 def color(
     input_file: str,

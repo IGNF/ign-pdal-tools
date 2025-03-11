@@ -72,20 +72,21 @@ def test_download_image_ok():
     )
 
     # check there is no noData
-    srs = gdal.Open(tif_output)
-    for i in range(srs.RasterCount):
-        assert srs.GetRasterBand(i + 1).GetNoDataValue() is None
+    raster = gdal.Open(tif_output)
+    for i in range(raster.RasterCount):
+        assert raster.GetRasterBand(i + 1).GetNoDataValue() is None
 
 
 @pytest.mark.geopf
 def test_download_image_ok_one_download():
     tif_output = os.path.join(TMPDIR, "download_image.tif")
-    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 1000)
+    nb_request = color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 1000)
+    assert nb_request == 1
 
     # check there is no noData
-    srs = gdal.Open(tif_output)
-    for i in range(srs.RasterCount):
-        assert srs.GetRasterBand(i + 1).GetNoDataValue() is None
+    raster = gdal.Open(tif_output)
+    for i in range(raster.RasterCount):
+        assert raster.GetRasterBand(i + 1).GetNoDataValue() is None
 
 
 @pytest.mark.geopf
@@ -94,20 +95,21 @@ def test_download_image_download_size_gpf_bigger():
     color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 1005)
 
     # check there is no noData
-    srs = gdal.Open(tif_output)
-    for i in range(srs.RasterCount):
-        assert srs.GetRasterBand(i + 1).GetNoDataValue() is None
+    raster = gdal.Open(tif_output)
+    for i in range(raster.RasterCount):
+        assert raster.GetRasterBand(i + 1).GetNoDataValue() is None
 
 
 @pytest.mark.geopf
 def test_download_image_download_size_gpf_size_almost_ok():
     tif_output = os.path.join(TMPDIR, "download_image_bigger.tif")
-    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 999)
+    nb_request = color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 995)
+    assert nb_request == 4
 
     # check there is no noData
-    srs = gdal.Open(tif_output)
-    for i in range(srs.RasterCount):
-        assert srs.GetRasterBand(i + 1).GetNoDataValue() is None
+    raster = gdal.Open(tif_output)
+    for i in range(raster.RasterCount):
+        assert raster.GetRasterBand(i + 1).GetNoDataValue() is None
 
 
 @pytest.mark.parametrize("size_block", [100, 250, 500])
@@ -116,16 +118,18 @@ def test_download_image_one_and_block(size_block):
     color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output_one, 15, True, 1000)
 
     tif_output_blocks = os.path.join(TMPDIR, "download_image_block.tif")
-    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output_blocks, 100, True, size_block)
+    nb_request = color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output_blocks, 100, True, size_block)
+    assert nb_request == math.pow(1000/size_block, 2)
 
     # due to GeoPlateforme interpolation, images could have small differences
     # check images are almost the sames
 
-    srs_one = gdal.Open(tif_output_one)
-    srs_blocks = gdal.Open(tif_output_blocks)
+    raster_one = gdal.Open(tif_output_one)
+    raster_blocks = gdal.Open(tif_output_blocks)
 
-    r_one = numpy.array(srs_one.ReadAsArray())
-    r_blocks = numpy.array(srs_blocks.ReadAsArray())
+    r_one = numpy.array(raster_one.ReadAsArray())
+    r_blocks = numpy.array(raster_blocks.ReadAsArray())
+    assert r_one.size == r_blocks.size
     r_diff = r_one - r_blocks
 
     # images should be same as 5/1000 (tolerance)
