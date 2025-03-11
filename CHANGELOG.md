@@ -1,3 +1,4 @@
+# 1.7.9
 - color: handle all request exceptions
 
 # 1.7.8
