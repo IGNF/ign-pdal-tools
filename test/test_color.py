@@ -181,14 +181,14 @@ def test_color_epsg_2975_detected():
 
 @pytest.mark.geopf
 def test_download_image_raise1():
-    retry_download = color.retry(2, 5)(color.download_image_from_geoplateforme)
+    retry_download = color.retry(times=2, delay=5, factor=2)(color.download_image_from_geoplateforme)
     with pytest.raises(requests.exceptions.HTTPError):
         retry_download(epsg, "MAUVAISE_COUCHE", minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15, True)
 
 
 @pytest.mark.geopf
 def test_download_image_raise2():
-    retry_download = color.retry(2, 5)(color.download_image_from_geoplateforme)
+    retry_download = color.retry(times=2, delay=5, factor=2)(color.download_image_from_geoplateforme)
     with pytest.raises(requests.exceptions.HTTPError):
         retry_download("9001", layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15, True)
 
@@ -197,7 +197,7 @@ def test_retry_on_server_error():
     with requests_mock.Mocker() as mock:
         mock.get(requests_mock.ANY, status_code=502, reason="Bad Gateway")
         with pytest.raises(requests.exceptions.HTTPError):
-            retry_download = color.retry(2, 1, 2)(color.download_image_from_geoplateforme)
+            retry_download = color.retry(times=2, delay=1, factor=2)(color.download_image_from_geoplateforme)
             retry_download(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15, True)
         history = mock.request_history
         assert len(history) == 3
@@ -207,7 +207,7 @@ def test_retry_on_connection_error():
     with requests_mock.Mocker() as mock:
         mock.get(requests_mock.ANY, exc=requests.exceptions.ConnectionError)
         with pytest.raises(requests.exceptions.ConnectionError):
-            retry_download = color.retry(2, 1)(color.download_image_from_geoplateforme)
+            retry_download = color.retry(times=2, delay=1, factor=2)(color.download_image_from_geoplateforme)
             retry_download(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, OUTPUT_FILE, 15, True)
 
         history = mock.request_history
@@ -216,7 +216,7 @@ def test_retry_on_connection_error():
 
 def test_retry_param():
     # Here you can change retry params
-    @color.retry(9, 5, 2, True)
+    @color.retry(times=9, delay=5, factor=2, debug=True)
     def raise_server_error():
         raise requests.exceptions.HTTPError("Server Error")
 
