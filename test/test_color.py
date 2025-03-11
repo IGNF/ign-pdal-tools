@@ -140,7 +140,7 @@ def test_retry_on_connection_error():
 
 def test_retry_param():
     # Here you can change retry params
-    @color.retry(7, 15, 2, True)
+    @color.retry(times=9, delay=5, factor=2, debug=True)
     def raise_server_error():
         raise requests.exceptions.HTTPError("Server Error")
 
