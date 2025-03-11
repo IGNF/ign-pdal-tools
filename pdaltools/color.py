@@ -136,7 +136,8 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
     """
 
     # apply decorator to retry 5 times, and wait 30 seconds each times
-    download_image_from_geoplateforme_retrying = retry(5, 30, 2)(download_image_from_geoplateforme)
+    #download_image_from_geoplateforme_retrying = retry(5, 30, 2)(download_image_from_geoplateforme)
+    download_image_from_geoplateforme_retrying = download_image_from_geoplateforme
 
     size_x_p = maxx - minx
     size_y_p = maxy - miny
