@@ -1,3 +1,6 @@
+# 1.7.9
+- color: handle all request exceptions
+
 # 1.7.8
 - Update dependency versions
 - make count_occurences usable as a package
