@@ -6,14 +6,16 @@ import laspy
 import numpy as np
 from pyproj import CRS
 from pyproj.exceptions import CRSError
-from shapely.geometry import box, Point
+from shapely.geometry import Point, box
 
 from pdaltools.las_info import get_epsg_from_las, get_tile_bbox
 
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser("Add points from GeoJSON in LIDAR tile")
-    parser.add_argument("--input_geojson", "-ig", type=str, required=True, help="Input GeoJSON file")
+    parser.add_argument(
+        "--input_geometry", "-ig", type=str, required=True, help="Input Geometry file (GeoJSON or Shapefile)"
+    )
     parser.add_argument("--input_las", "-i", type=str, required=True, help="Input las file")
     parser.add_argument("--output_las", "-o", type=str, required=True, default="", help="Output las file")
     parser.add_argument(
@@ -41,11 +43,21 @@ def parse_args(argv=None):
         default=0,
         help="spacing between generated points in meters",
     )
+    parser.add_argument(
+        "--altitude_name",
+        "-z",
+        type=str,
+        required=True,
+        default="RecupZ",
+        help="altitude column name from input geometry",
+    )
 
     return parser.parse_args(argv)
 
 
-def clip_3d_points_to_tile(input_points: gpd.GeoDataFrame, input_las: str, crs: str, tile_width: int) -> gpd.GeoDataFrame:
+def clip_3d_points_to_tile(
+    input_points: gpd.GeoDataFrame, input_las: str, crs: str, tile_width: int
+) -> gpd.GeoDataFrame:
     """
     Add points from a GeoDataFrame in the LIDAR's tile.
 
@@ -133,13 +145,14 @@ def add_points_to_las(
             writer.write_points(updated_las.points)
 
 
-def generate_3d_points_from_lines(geojson_line_path: str, spacing: float) -> gpd.GeoDataFrame:
+def generate_3d_points_from_lines(geojson_line_path: str, spacing: float, altitude_name: str) -> gpd.GeoDataFrame:
     """
-    Generate regularly spaced 3D points from 2.5D lines in a GeoJSON file. 
+    Generate regularly spaced 3D points from 2.5D lines in a GeoJSON file.
 
     Args:
         geojson_line_path (str): Path to the input GeoJSON file with 2.5D lines.
         spacing (float): Spacing between generated points in meters.
+        altitude_name (str): Altitude column name from input geometry
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with generated 3D points.
@@ -155,7 +168,7 @@ def generate_3d_points_from_lines(geojson_line_path: str, spacing: float) -> gpd
     # Generate 3D points
     for feature in gdf.itertuples():
         line = feature.geometry
-        z_value = feature.RecupZ
+        z_value = getattr(feature, altitude_name, None)
         length = line.length
         num_points = int(np.ceil(length / spacing))
         distances = np.linspace(0, length, num_points)
@@ -167,26 +180,32 @@ def generate_3d_points_from_lines(geojson_line_path: str, spacing: float) -> gpd
         z_values.extend([z_value] * num_points)
 
     # Create a GeoDataFrame with the new points
-    points_gdf = gpd.GeoDataFrame({
-        'geometry': [Point(x, y, z) for x, y, z in zip(x_coords, y_coords, z_values)]
-    })
+    points_gdf = gpd.GeoDataFrame({"geometry": [Point(x, y, z) for x, y, z in zip(x_coords, y_coords, z_values)]})
 
     return points_gdf
 
 
-def add_points_from_geojson_to_las(
-    input_geojson: str, input_las: str, output_las: str, virtual_points_classes: int, spatial_ref: str, tile_width: int, spacing: float
+def add_points_from_geometry_to_las(
+    input_geometry: str,
+    input_las: str,
+    output_las: str,
+    virtual_points_classes: int,
+    spatial_ref: str,
+    tile_width: int,
+    spacing: float,
+    altitude_name: str,
 ):
-    """Add points with Z value(GeoJSON format) by LIDAR tiles (tiling file)
+    """Add points with Z value by LIDAR tiles (tiling file)
 
     Args:
-        input_geojson (str): Path to the input GeoJSON file with 3D points.
+        input_geometry (str): Path to the input geometry file (GeoJSON or Shapefile) with 3D points.
         input_las (str): Path to the LIDAR `.las/.laz` file.
         output_las (str): Path to save the updated LIDAR file (LAS/LAZ format).
         virtual_points_classes (int): The classification value to assign to those virtual points (default: 66).
         spatial_ref (str): CRS of the data.
         tile_width (int): Width of the tile in meters (default: 1000).
         spacing (float): Spacing between generated points in meters.
+        altitude_name (str): Altitude column name from input geometry
 
     Raises:
         RuntimeError: If the input LAS file has no valid EPSG code.
@@ -197,22 +216,23 @@ def add_points_from_geojson_to_las(
             raise RuntimeError(f"LAS file {input_las} does not have a valid EPSG code.")
 
     # Read the input GeoJSON
-    gdf = gpd.read_file(input_geojson)
+    gdf = gpd.read_file(input_geometry)
     if gdf.crs is None:
         gdf.set_crs(epsg=spatial_ref, inplace=True)
 
-
     # Check the geometry type
-    if gdf.geometry.geom_type.unique() == ['Point'] or gdf.geometry.geom_type.unique() == ['MultiPoint']:
+    if gdf.geometry.geom_type.unique() == ["Point"] or gdf.geometry.geom_type.unique() == ["MultiPoint"]:
         # Add the Z dimension from the 'RecupZ' property
-        gdf['geometry'] = gdf.apply(lambda row: Point(row['geometry'].x, row['geometry'].y, row['RecupZ']), axis=1)
+        gdf["geometry"] = gdf.apply(
+            lambda row: Point(row["geometry"].x, row["geometry"].y, row[altitude_name]), axis=1
+        )
         # If the geometry type is Point, use the points directly
-        points_gdf = gdf[['geometry']].copy()
-    elif gdf.geometry.geom_type.unique() == ['LineString'] or gdf.geometry.geom_type.unique() == ['MultiLineString']:
+        points_gdf = gdf[["geometry"]].copy()
+    elif gdf.geometry.geom_type.unique() == ["LineString"] or gdf.geometry.geom_type.unique() == ["MultiLineString"]:
         # If the geometry type is LineString, generate 3D points
-        points_gdf = generate_3d_points_from_lines(input_geojson, spacing)
+        points_gdf = generate_3d_points_from_lines(input_geometry, spacing, altitude_name)
     else:
-        raise ValueError("Unsupported geometry type in the input GeoJSON file.")
+        raise ValueError("Unsupported geometry type in the input Geometry file.")
 
     # Clip points from GeoJSON by LIDAR tile
     points_clipped = clip_3d_points_to_tile(points_gdf, input_las, spatial_ref, tile_width)
@@ -223,4 +243,4 @@ def add_points_from_geojson_to_las(
 
 if __name__ == "__main__":
     args = parse_args()
-    add_points_from_geojson_to_las(**vars(args))
+    add_points_from_geometry_to_las(**vars(args))

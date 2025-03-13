@@ -1,3 +1,6 @@
+# 1.7.9
+- Add function to add lines 2.5D (.GeoJSON or .shp) in pointcloud (.LAZ / .LAS)
+
 # 1.7.8
 - Update dependency versions
 - make count_occurences usable as a package
@@ -7,7 +10,7 @@
 - Add parameters and "main" to function "add points (.GeoJSON) in pointcloud (.LAZ / .LAS)"
 
 # 1.7.6
-- Add function to add points (.gGeoJSON) in pointcloud (.LAZ / .LAS)
+- Add function to add points (.GeoJSON) in pointcloud (.LAZ / .LAS)
 
 # 1.7.5
 - Add tools to get tile origin from various point cloud data types (las file, numpy array, min/max values)
