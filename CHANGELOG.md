@@ -1,3 +1,6 @@
+- add_points_in_pointcloud.py replaces add_points_in_las.py
+- colorization : orthophotos could be download by block and merge, in order to have small requests.
+
 # 1.7.9
 - color: handle all request exceptions
 
