@@ -4,6 +4,7 @@ from pathlib import Path
 
 import geopandas as gpd
 import pytest
+from shapely.geometry import LineString, MultiPoint, Point
 
 from pdaltools import add_points_in_pointcloud
 from pdaltools.count_occurences.count_occurences_for_attribute import (
@@ -42,9 +43,23 @@ def setup_module(module):
 )
 def test_clip_3d_points_to_tile(epsg):
     # With EPSG
-    points_gdf = gpd.read_file(INPUT_POINTS)  # Charger le GeoJSON avant le test
+    points_gdf = gpd.read_file(INPUT_POINTS)
     points_clipped = add_points_in_pointcloud.clip_3d_points_to_tile(points_gdf, INPUT_PCD, epsg, 1000)
     assert len(points_clipped) == 678  # check the entity's number of points
+
+
+@pytest.mark.parametrize(
+    "epsg",
+    [
+        "EPSG:2154",  # should work when providing an epsg value
+        None,  # Should also work with no epsg value (get from las file)
+    ],
+)
+def test_clip_3d_lines_to_tile(epsg):
+    # With EPSG
+    lines_gdf = gpd.read_file(INPUT_LIGNES_SHAPE)
+    lines_clipped = add_points_in_pointcloud.clip_3d_lines_to_tile(lines_gdf, INPUT_PCD, epsg, 1000)
+    assert len(lines_clipped) == 22  # check the entity's number of lines
 
 
 @pytest.mark.parametrize(
@@ -69,15 +84,70 @@ def test_add_points_to_las(input_file, epsg, expected_nb_points):
 
 
 @pytest.mark.parametrize(
-    "input_file, input_points, epsg, expected_nb_points, spacing, altitude_name",
+    "line, spacing, z_value",
+    [
+        (LineString([(0, 0), (10, 0), (10, 10)]), 2.5, 0.5),
+    ],
+)
+def test_line_to_multipoint(line, spacing, z_value):
+    multipoint = add_points_in_pointcloud.line_to_multipoint(line, spacing, z_value)
+
+    # Check the result
+    expected_points = [
+        Point(0, 0, z_value),
+        Point(2.5, 0, z_value),
+        Point(5.0, 0, z_value),
+        Point(7.5, 0, z_value),
+        Point(10, 0, z_value),
+        Point(10, 2.5, z_value),
+        Point(10, 5.0, z_value),
+        Point(10, 7.5, z_value),
+        Point(10, 10, z_value),
+    ]
+    assert multipoint.equals(MultiPoint(expected_points))
+
+
+@pytest.mark.parametrize(
+    "lines_gdf, spacing, altitude_column",
+    [
+        (
+            gpd.GeoDataFrame(
+                {"geometry": [LineString([(0, 0), (10, 0)]), LineString([(10, 0), (10, 10)])], "RecupZ": [5.0, 10.0]},
+                crs="EPSG:2154",
+            ),
+            2.5,
+            "RecupZ",
+        ),
+    ],
+)
+def test_generate_3d_points_from_lines(lines_gdf, spacing, altitude_column):
+    points_gdf = add_points_in_pointcloud.generate_3d_points_from_lines(lines_gdf, spacing, altitude_column)
+
+    # Check the result
+    expected_points = [
+        Point(0, 0, 5.0),
+        Point(2.5, 0, 5.0),
+        Point(5.0, 0, 5.0),
+        Point(7.5, 0, 5.0),
+        Point(10, 0, 5.0),
+        Point(10, 2.5, 10.0),
+        Point(10, 5.0, 10.0),
+        Point(10, 7.5, 10.0),
+        Point(10, 10, 10.0),
+    ]
+    assert points_gdf.geometry.tolist() == expected_points
+
+
+@pytest.mark.parametrize(
+    "input_file, input_points, epsg, expected_nb_points, spacing, altitude_column",
     [
         (INPUT_PCD, INPUT_POINTS, None, 678, 0, "RecupZ"),  # should add only points within tile extent
         (INPUT_PCD_CROPPED, INPUT_POINTS_FOR_CROPPED_PCD, None, 186, 0, "RecupZ"),
         (
             INPUT_PCD_CROPPED,
-            INPUT_POINTS,
+            INPUT_POINTS_FOR_CROPPED_PCD,
             None,
-            0,
+            186,
             0,
             "RecupZ",
         ),  # Should add no points when there is only points outside the tile extent
@@ -93,29 +163,29 @@ def test_add_points_to_las(input_file, epsg, expected_nb_points):
             INPUT_PCD,
             INPUT_LIGNES_GEOJSON,
             "EPSG:2154",
-            656,
+            678,
             0.25,
             "RecupZ",
         ),  # should add only lignes (.GeoJSON) within tile extend
-        (INPUT_PCD, INPUT_LIGNES_GEOJSON, None, 656, 0.25, "RecupZ"),  # Should work with or without an input epsg
+        (INPUT_PCD, INPUT_LIGNES_GEOJSON, None, 678, 0.25, "RecupZ"),  # Should work with or without an input epsg
         (
             INPUT_PCD,
             INPUT_LIGNES_SHAPE,
             "EPSG:2154",
-            656,
+            678,
             0.25,
             "RecupZ",
         ),  # should add only lignes (.shp) within tile extend
-        (INPUT_PCD, INPUT_LIGNES_SHAPE, None, 656, 0.25, "RecupZ"),  # Should work with or without an input epsg
+        (INPUT_PCD, INPUT_LIGNES_SHAPE, None, 678, 0.25, "RecupZ"),  # Should work with or without an input epsg
     ],
 )
-def test_add_points_from_geometry_to_las(input_file, input_points, epsg, expected_nb_points, spacing, altitude_name):
+def test_add_points_from_geometry_to_las(input_file, input_points, epsg, expected_nb_points, spacing, altitude_column):
     # Ensure the output file doesn't exist before the test
     if Path(OUTPUT_FILE).exists():
         os.remove(OUTPUT_FILE)
 
     add_points_in_pointcloud.add_points_from_geometry_to_las(
-        input_points, input_file, OUTPUT_FILE, 68, epsg, 1000, spacing, altitude_name
+        input_points, input_file, OUTPUT_FILE, 68, epsg, 1000, spacing, altitude_column
     )
     assert Path(OUTPUT_FILE).exists()  # check output exists
     point_count = compute_count_one_file(OUTPUT_FILE)["68"]
@@ -140,7 +210,7 @@ def test_parse_args():
             "1000",
             "--spacing",
             "0",
-            "--altitude_name",
+            "--altitude_column",
             "RecupZ",
         ]
     )
