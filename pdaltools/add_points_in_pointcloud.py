@@ -59,7 +59,7 @@ def clip_3d_lines_to_tile(
     input_lines: gpd.GeoDataFrame, input_las: str, crs: str, tile_width: int
 ) -> gpd.GeoDataFrame:
     """
-    Clip lines from a GeoDataFrame to the LIDAR's tile.
+    Select lines from a GeoDataFrame that intersect the the LIDAR tile.
 
     Args:
         input_lines (gpd.GeoDataFrame): GeoDataFrame with lines.
