@@ -1,5 +1,5 @@
 - Add function to add lines 2.5D (.GeoJSON or .shp) in pointcloud (.LAZ / .LAS)
-- Update function to add points (.GeoJSON) in pointcloud: let Z be parametrize
+- Update function to add points (.GeoJSON) in pointcloud: let Z be parametrized
 
 # 1.7.9
 - color: handle all request exceptions
