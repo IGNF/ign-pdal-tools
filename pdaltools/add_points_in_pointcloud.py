@@ -47,8 +47,8 @@ def parse_args(argv=None):
         "--altitude_column",
         "-z",
         type=str,
-        required=True,
-        default="RecupZ",
+        required=False,
+        default=None,
         help="altitude column name from input geometry",
     )
 
