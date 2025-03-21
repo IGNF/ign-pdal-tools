@@ -89,7 +89,7 @@ def clip_3d_points_to_tile(
     input_points: gpd.GeoDataFrame, input_las: str, crs: str, tile_width: int
 ) -> gpd.GeoDataFrame:
     """
-    Add points from a GeoDataFrame in the LIDAR's tile.
+    Select points from a GeoDataFrame that intersec the LIDAR tile
 
     Args:
         input_points (gpd.GeoDataFrame): GeoDataFrame with 3D points.
