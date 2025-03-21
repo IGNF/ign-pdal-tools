@@ -280,7 +280,7 @@ def add_points_from_geometry_to_las(
     if len(unique_geom_type) != 1:
         raise ValueError("Several geometry types found in geometry file. This case is not handled.")
 
-    if unique_geom_type == ["Point"] or unique_geom_type == ["MultiPoint"]:
+    if unique_geom_type in ["Point", "MultiPoint"]:
         # Add the Z dimension from the 'RecupZ' property
         gdf["geometry"] = gdf.apply(
             lambda row: Point(row["geometry"].x, row["geometry"].y, row[altitude_column]), axis=1
