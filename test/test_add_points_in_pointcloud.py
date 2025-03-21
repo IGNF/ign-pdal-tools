@@ -166,7 +166,7 @@ def test_generate_3d_points_from_lines(lines_gdf, spacing, altitude_column):
             678,
             0.25,
             "RecupZ",
-        ),  # should add only lignes (.GeoJSON) within tile extend
+        ),  # should add only lines (.GeoJSON) within tile extend
         (INPUT_PCD, INPUT_LIGNES_GEOJSON, None, 678, 0.25, "RecupZ"),  # Should work with or without an input epsg
         (
             INPUT_PCD,
