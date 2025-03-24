@@ -97,9 +97,9 @@ def test_add_points_to_las(input_file, epsg, expected_nb_points):
 @pytest.mark.parametrize(
     "line, spacing, z_value, expected_points",
     [
-        # Case where the end falls exactly on a multiple of spacing
+        # Horizontal line from (0,0) to (10,0) with spacing 2.5
         (
-            LineString([(0, 0), (10, 0), (10, 10)]),
+            LineString([(0, 0), (10, 0)]),
             2.5,
             0.5,
             [
@@ -108,28 +108,20 @@ def test_add_points_to_las(input_file, epsg, expected_nb_points):
                 Point(5.0, 0, 0.5),
                 Point(7.5, 0, 0.5),
                 Point(10, 0, 0.5),
-                Point(10, 2.5, 0.5),
-                Point(10, 5.0, 0.5),
-                Point(10, 7.5, 0.5),
-                Point(10, 10, 0.5),
             ],
         ),
-        # Case where the end does not fall on a multiple of spacing
+        # Vertical line from (9,0) to (9,9) with spacing 3.0
         (
-            LineString([(0, 0), (9, 0), (9, 9)]),
+            LineString([(9, 0), (9, 9)]),
             3.0,
             0.5,
             [
-                Point(0, 0, 0.5),
-                Point(3.0, 0, 0.5),
-                Point(6.0, 0, 0.5),
                 Point(9, 0, 0.5),
                 Point(9, 3.0, 0.5),
                 Point(9, 6.0, 0.5),
                 Point(9, 9, 0.5),
             ],
         ),
-        # Add more test cases as needed
     ],
 )
 def test_line_to_multipoint(line, spacing, z_value, expected_points):

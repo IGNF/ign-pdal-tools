@@ -171,7 +171,7 @@ def add_points_to_las(
             writer.write_points(updated_las.points)
 
 
-def line_to_multipoint(line, spacing, z_value):
+def line_to_multipoint(line, spacing: float, z_value: float = None):
     """
     Convert a LineString to a MultiPoint with equally spaced points and a given Z value.
 
@@ -183,20 +183,15 @@ def line_to_multipoint(line, spacing, z_value):
     Returns:
         shapely.geometry.MultiPoint: A MultiPoint geometry with the generated points.
     """
-    if z_value is None:
-        # Create points along the line with spacing
-        length = line.length
-        distances = np.arange(0, length + spacing, spacing)
-        points = [line.interpolate(distance) for distance in distances]
+    # Create points along the line with spacing
+    length = line.length
+    distances = np.arange(0, length + spacing, spacing)
+    points = [line.interpolate(distance) for distance in distances]
 
+    if z_value is None:
         # Create a MultiPoint geometry with Z values
         multipoint = MultiPoint([Point(point.x, point.y, point.z) for point in points])
     else:
-        # Create points along the line with spacing
-        length = line.length
-        distances = np.arange(0, length + spacing, spacing)
-        points = [line.interpolate(distance) for distance in distances]
-
         # Create a MultiPoint geometry with Z values
         multipoint = MultiPoint([Point(point.x, point.y, z_value) for point in points])
 
