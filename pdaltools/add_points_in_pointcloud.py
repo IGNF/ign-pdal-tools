@@ -49,14 +49,14 @@ def parse_args(argv=None):
         type=str,
         required=False,
         default=None,
-        help="altitude column name from input geometry",
+        help="altitude column name from input geometry (use point.z if altitude_column is not set)",
     )
 
     return parser.parse_args(argv)
 
 
 def clip_3d_lines_to_tile(
-    input_lines: gpd.GeoDataFrame, input_las: str, crs: str, tile_width: int
+    input_lines: gpd.GeoDataFrame, input_las: str, crs: str, tile_width: int = 1000
 ) -> gpd.GeoDataFrame:
     """
     Select lines from a GeoDataFrame that intersect the the LIDAR tile.
@@ -86,10 +86,10 @@ def clip_3d_lines_to_tile(
 
 
 def clip_3d_points_to_tile(
-    input_points: gpd.GeoDataFrame, input_las: str, crs: str, tile_width: int
+    input_points: gpd.GeoDataFrame, input_las: str, crs: str, tile_width: int = 1000
 ) -> gpd.GeoDataFrame:
     """
-    Select points from a GeoDataFrame that intersec the LIDAR tile
+    Select points from a GeoDataFrame that intersect the LIDAR tile
 
     Args:
         input_points (gpd.GeoDataFrame): GeoDataFrame with 3D points.
@@ -110,13 +110,13 @@ def clip_3d_points_to_tile(
     bbox_polygon = box(*tile_bbox)
 
     # Clip the points to the bounding box
-    clipped_points = input_points[input_points.intersects(bbox_polygon)].copy()
+    clipped_points = input_points[input_points.intersects(bbox_polygon)]
 
     return clipped_points
 
 
 def add_points_to_las(
-    input_points_with_z: gpd.GeoDataFrame, input_las: str, output_las: str, crs: str, virtual_points_classes=66
+    input_points_with_z: gpd.GeoDataFrame, input_las: str, output_las: str, crs: str, virtual_points_classes: int = 66
 ):
     """Add points (3D points in LAZ format) by LIDAR tiles (tiling file)
 
@@ -186,14 +186,14 @@ def line_to_multipoint(line, spacing: float, z_value: float = None):
     # Create points along the line with spacing
     length = line.length
     distances = np.arange(0, length + spacing, spacing)
-    points = [line.interpolate(distance) for distance in distances]
+    points_2d = [line.interpolate(distance) for distance in distances]
 
-    if z_value is None:
-        # Create a MultiPoint geometry with Z values
-        multipoint = MultiPoint([Point(point.x, point.y, point.z) for point in points])
+    if line.has_z:
+        multipoint = MultiPoint([Point(point.x, point.y, point.z) for point in points_2d])
     else:
-        # Create a MultiPoint geometry with Z values
-        multipoint = MultiPoint([Point(point.x, point.y, z_value) for point in points])
+        if z_value is None:
+            raise ValueError("z_value must be provided for 2D lines.")
+        multipoint = MultiPoint([Point(point.x, point.y, z_value) for point in points_2d])
 
     return multipoint
 
@@ -218,7 +218,7 @@ def generate_3d_points_from_lines(
                     and Z coordinates are not available in the geometry.
     """
     # Check if altitude_column is provided and exists in the GeoDataFrame
-    if altitude_column and altitude_column not in lines_gdf.columns:
+    if altitude_column and (altitude_column not in lines_gdf.columns):
         raise ValueError("altitude_column must exist in the GeoDataFrame if provided.")
 
     if altitude_column:
@@ -235,10 +235,7 @@ def generate_3d_points_from_lines(
             raise ValueError("Geometries do not have Z values and altitude_column is not provided.")
 
     # Explode the MultiPoint geometries into individual points
-    points_gdf = lines_gdf.explode(index_parts=False).reset_index(drop=True)
-
-    # Removes duplicates by keeping the first point encountered at each position
-    points_gdf = points_gdf.dissolve().explode(index_parts=False).reset_index(drop=True)
+    points_gdf = lines_gdf.dissolve().explode(index_parts=False).reset_index(drop=True)
 
     return points_gdf
 
@@ -267,7 +264,8 @@ def add_points_from_geometry_to_las(
 
     Raises:
         RuntimeError: If the input LAS file has no valid EPSG code.
-        ValueError: Unsupported geometry type in the input Geometry file.
+        ValueError: Unsupported geometry type in the input Geometry file OR
+                    The parameters "spacing" <= 0.
     """
     if not spatial_ref:
         spatial_ref = get_epsg_from_las(input_las)
@@ -306,14 +304,13 @@ def add_points_from_geometry_to_las(
             )
             # If the geometry type is Point, use the points directly
             points_gdf = gdf[["geometry"]]
-    elif unique_geom_type == ["LineString"] or unique_geom_type == ["MultiLineString"]:
+    elif unique_geom_type in ["LineString", "MultiLineString"]:
         gdf = clip_3d_lines_to_tile(gdf, input_las, spatial_ref, tile_width)
         # If the geometry type is LineString, generate 3D points
-        if spacing > 0:
-            points_gdf = generate_3d_points_from_lines(gdf, spacing, altitude_column)
+        if spacing <= 0:
+            raise ValueError("The parameters spacing <= 0.")
         else:
-            points_gdf = generate_3d_points_from_lines(gdf, 0.25, altitude_column)
-            print("If spacing == 0 ou spacing < 0, it's not possible -> spacing = 0.25 cm (default)")
+            points_gdf = generate_3d_points_from_lines(gdf, spacing, altitude_column)
     else:
         raise ValueError("Unsupported geometry type in the input Geometry file.")
 

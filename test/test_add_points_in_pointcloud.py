@@ -43,13 +43,12 @@ def setup_module(module):
     "input_file, epsg",
     [
         (INPUT_POINTS_2D, "EPSG:2154"),  # should work when providing an epsg value + GeoJSON POINTS 2D
-        (INPUT_POINTS_3D, "EPSG:2154"),  # should work when providing an epsg value + GeoJSON POINTS 2D
+        (INPUT_POINTS_3D, "EPSG:2154"),  # should work when providing an epsg value + GeoJSON POINTS 3D
         (INPUT_POINTS_2D, None),  # Should also work with no epsg value (get from las file) + GeoJSON POINTS 2D
-        (INPUT_POINTS_3D, None),  # Should also work with no epsg value (get from las file) + GeoJSON POINTS 2D
+        (INPUT_POINTS_3D, None),  # Should also work with no epsg value (get from las file) + GeoJSON POINTS 3D
     ],
 )
 def test_clip_3d_points_to_tile(input_file, epsg):
-    # With EPSG and input points
     points_input = gpd.read_file(input_file)
     points_clipped = add_points_in_pointcloud.clip_3d_points_to_tile(points_input, INPUT_PCD, epsg, 1000)
     assert len(points_clipped) == 678  # check the entity's number of points
@@ -67,10 +66,15 @@ def test_clip_3d_points_to_tile(input_file, epsg):
     ],
 )
 def test_clip_3d_lines_to_tile(input_file, epsg):
-    # With EPSG
+    # With lines contains in the LIDAR tile
     lines_input = gpd.read_file(input_file)
     lines_clipped = add_points_in_pointcloud.clip_3d_lines_to_tile(lines_input, INPUT_PCD, epsg, 1000)
     assert len(lines_clipped) == 22  # check the entity's number of lines
+
+    # Without lines contains in the LIDAR tile
+    lines_input = gpd.read_file(input_file)
+    lines_clipped = add_points_in_pointcloud.clip_3d_lines_to_tile(lines_input, INPUT_PCD_CROPPED, epsg, 1000)
+    assert len(lines_clipped) == 0  # check the entity's number of lines
 
 
 @pytest.mark.parametrize(
@@ -97,29 +101,33 @@ def test_add_points_to_las(input_file, epsg, expected_nb_points):
 @pytest.mark.parametrize(
     "line, spacing, z_value, expected_points",
     [
-        # Horizontal line from (0,0) to (10,0) with spacing 2.5
+        # End point is a multiple of spacing, z_value is provided
         (
-            LineString([(0, 0), (10, 0)]),
-            2.5,
+            LineString([(0, 0), (4, 0)]),
+            2,
             0.5,
             [
                 Point(0, 0, 0.5),
-                Point(2.5, 0, 0.5),
-                Point(5.0, 0, 0.5),
-                Point(7.5, 0, 0.5),
-                Point(10, 0, 0.5),
+                Point(2, 0, 0.5),
+                Point(4, 0, 0.5),
             ],
         ),
-        # Vertical line from (9,0) to (9,9) with spacing 3.0
+        # End point is not a multiple of spacing, z_value is provided
         (
             LineString([(9, 0), (9, 9)]),
-            3.0,
+            5,
+            0.5,
+            [Point(9, 0, 0.5), Point(9, 5, 0.5), Point(9, 9, 0.5)],
+        ),
+        # End point is not a multiple of spacing, z_value is provided in point.z instead of z_value
+        (
+            LineString([(0, 0, 1), (4, 0, 1)]),
+            2,
             0.5,
             [
-                Point(9, 0, 0.5),
-                Point(9, 3.0, 0.5),
-                Point(9, 6.0, 0.5),
-                Point(9, 9, 0.5),
+                Point(0, 0, 1),
+                Point(2, 0, 1),
+                Point(4, 0, 1),
             ],
         ),
     ],
@@ -184,27 +192,10 @@ def test_generate_3d_points_from_lines(lines_gdf, spacing, altitude_column, expe
 @pytest.mark.parametrize(
     "input_file, input_points, epsg, expected_nb_points, spacing, altitude_column",
     [
-        (INPUT_PCD, INPUT_POINTS_2D, None, 678, 0, "RecupZ"),  # should add only points 2.5D within tile extent
-        (INPUT_PCD, INPUT_POINTS_3D, None, 678, 0, None),  # should add only points 3D within tile extent
+        (INPUT_PCD, INPUT_POINTS_2D, "EPSG:2154", 678, 0, "RecupZ"),  # should add only points 2.5D within tile extent
+        (INPUT_PCD, INPUT_POINTS_3D, "EPSG:2154", 678, 0, None),  # should add only points 3D within tile extent
         (INPUT_PCD_CROPPED, INPUT_POINTS_3D_FOR_CROPPED_PCD, "EPSG:2154", 186, 0, None),
-        (INPUT_PCD_CROPPED, INPUT_POINTS_3D_FOR_CROPPED_PCD, None, 186, 0, None),
-        (INPUT_PCD_CROPPED, INPUT_POINTS_2D_FOR_CROPPED_PCD, None, 186, 0, "RecupZ"),
-        (
-            INPUT_PCD_CROPPED,
-            INPUT_POINTS_2D_FOR_CROPPED_PCD,
-            None,
-            186,
-            0,
-            "RecupZ",
-        ),  # Should add no points when there is only points outside the tile extent
-        (
-            INPUT_PCD_CROPPED,
-            INPUT_POINTS_2D_FOR_CROPPED_PCD,
-            "EPSG:2154",
-            186,
-            0,
-            "RecupZ",
-        ),  # Should work with or without an input epsg
+        (INPUT_PCD_CROPPED, INPUT_POINTS_2D_FOR_CROPPED_PCD, "EPSG:2154", 186, 0, "RecupZ"),
         (
             INPUT_PCD,
             INPUT_LIGNES_2D_GEOJSON,
@@ -215,23 +206,13 @@ def test_generate_3d_points_from_lines(lines_gdf, spacing, altitude_column, expe
         ),  # should add only lines (.GeoJSON) within tile extend
         (
             INPUT_PCD,
-            INPUT_LIGNES_2D_GEOJSON,
-            "EPSG:2154",
-            678,
-            0,
-            "RecupZ",
-        ),
-        (INPUT_PCD, INPUT_LIGNES_2D_GEOJSON, None, 678, 0.25, "RecupZ"),  # Should work with or without an input epsg
-        (
-            INPUT_PCD,
             INPUT_LIGNES_SHAPE,
             "EPSG:2154",
             678,
             0.25,
             "RecupZ",
         ),  # should add only lignes (.shp) within tile extend
-        (INPUT_PCD, INPUT_LIGNES_SHAPE, None, 678, 0.25, "RecupZ"),  # Should work with or without an input epsg
-        (INPUT_PCD, INPUT_LIGNES_SHAPE, "EPSG:2154", 678, 0.25, "RecupZ"),  # Should work with or with an input epsg
+        (INPUT_PCD, INPUT_LIGNES_SHAPE, None, 678, 0.25, "RecupZ"),  # Should work with or with an input epsg
         (
             INPUT_PCD,
             INPUT_LIGNES_3D_GEOJSON,
@@ -240,14 +221,6 @@ def test_generate_3d_points_from_lines(lines_gdf, spacing, altitude_column, expe
             0.25,
             None,
         ),  # Should work with or without an input epsg and without altitude_column
-        (
-            INPUT_PCD,
-            INPUT_LIGNES_3D_GEOJSON,
-            "EPSG:2154",
-            678,
-            0.25,
-            None,
-        ),  # Should work with or with an input epsg and without altitude_column
     ],
 )
 def test_add_points_from_geometry_to_las(input_file, input_points, epsg, expected_nb_points, spacing, altitude_column):
