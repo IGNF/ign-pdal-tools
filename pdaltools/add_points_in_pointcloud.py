@@ -186,14 +186,14 @@ def line_to_multipoint(line, spacing: float, z_value: float = None):
     # Create points along the line with spacing
     length = line.length
     distances = np.arange(0, length + spacing, spacing)
-    points_2d = [line.interpolate(distance) for distance in distances]
+    points_nd = [line.interpolate(distance) for distance in distances]
 
     if line.has_z:
-        multipoint = MultiPoint([Point(point.x, point.y, point.z) for point in points_2d])
+        multipoint = MultiPoint([Point(point.x, point.y, point.z) for point in points_nd])
     else:
         if z_value is None:
             raise ValueError("z_value must be provided for 2D lines.")
-        multipoint = MultiPoint([Point(point.x, point.y, z_value) for point in points_2d])
+        multipoint = MultiPoint([Point(point.x, point.y, z_value) for point in points_nd])
 
     return multipoint
 
@@ -290,6 +290,7 @@ def add_points_from_geometry_to_las(
         raise ValueError("Several geometry types found in geometry file. This case is not handled.")
 
     if unique_geom_type in ["Point", "MultiPoint"]:
+        gdf = gdf.explode(index_parts=False).reset_index(drop=True)
         if altitude_column:
             # Add the Z dimension from the 'RecupZ' property
             gdf["geometry"] = gdf.apply(
@@ -305,10 +306,14 @@ def add_points_from_geometry_to_las(
             # If the geometry type is Point, use the points directly
             points_gdf = gdf[["geometry"]]
     elif unique_geom_type in ["LineString", "MultiLineString"]:
+        gdf = gdf.explode(index_parts=False).reset_index(drop=True)
         gdf = clip_3d_lines_to_tile(gdf, input_las, spatial_ref, tile_width)
         # If the geometry type is LineString, generate 3D points
         if spacing <= 0:
-            raise ValueError("The parameters spacing <= 0.")
+            raise NotImplementedError(
+                f"add_points_from_geometry_to_las requires spacing > 0 to run on (Multi)LineString geometries, \
+                but the values provided are geometry type: {unique_geom_type} and spacing = {spacing} "
+            )
         else:
             points_gdf = generate_3d_points_from_lines(gdf, spacing, altitude_column)
     else:

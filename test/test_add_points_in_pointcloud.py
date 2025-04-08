@@ -56,6 +56,7 @@ def test_clip_3d_points_to_tile(input_file, epsg):
 
 @pytest.mark.parametrize(
     "input_file, epsg",
+    # Test on the same geomtries contained in various geometry formats
     [
         (INPUT_LIGNES_SHAPE, "EPSG:2154"),  # should work when providing an epsg value + shapefile
         (INPUT_LIGNES_2D_GEOJSON, "EPSG:2154"),  # should work when providing an epsg value + GeoJSON 2D
@@ -66,12 +67,12 @@ def test_clip_3d_points_to_tile(input_file, epsg):
     ],
 )
 def test_clip_3d_lines_to_tile(input_file, epsg):
-    # With lines contains in the LIDAR tile
+    # With lines contained in the LIDAR tile
     lines_input = gpd.read_file(input_file)
     lines_clipped = add_points_in_pointcloud.clip_3d_lines_to_tile(lines_input, INPUT_PCD, epsg, 1000)
     assert len(lines_clipped) == 22  # check the entity's number of lines
 
-    # Without lines contains in the LIDAR tile
+    # Without lines contained in the LIDAR tile
     lines_input = gpd.read_file(input_file)
     lines_clipped = add_points_in_pointcloud.clip_3d_lines_to_tile(lines_input, INPUT_PCD_CROPPED, epsg, 1000)
     assert len(lines_clipped) == 0  # check the entity's number of lines
@@ -234,6 +235,38 @@ def test_add_points_from_geometry_to_las(input_file, input_points, epsg, expecte
     assert Path(OUTPUT_FILE).exists()  # check output exists
     point_count = compute_count_one_file(OUTPUT_FILE)["68"]
     assert point_count == expected_nb_points  # Add all points from geojson
+
+
+@pytest.mark.parametrize(
+    "input_file, input_points, epsg, spacing, altitude_column",
+    [
+        (INPUT_PCD, INPUT_LIGNES_SHAPE, None, 0, "RecupZ"),  # spacing <= 0
+        (INPUT_PCD, INPUT_LIGNES_SHAPE, None, -5, "RecupZ"),  # spacing < 0
+        (
+            INPUT_PCD,
+            INPUT_LIGNES_3D_GEOJSON,
+            None,
+            0,
+            None,
+        ),  # spacing <= 0
+    ],
+)
+def test_add_points_from_geometry_to_las_nok(input_file, input_points, epsg, spacing, altitude_column):
+    # Ensure the output file doesn't exist before the test
+    if Path(OUTPUT_FILE).exists():
+        os.remove(OUTPUT_FILE)
+
+    with pytest.raises(RuntimeError, match=".*LineString.*spacing.*"):
+        add_points_in_pointcloud.add_points_from_geometry_to_las(
+            input_points,
+            input_file,
+            OUTPUT_FILE,
+            68,
+            epsg,
+            1000,
+            spacing,
+            altitude_column,
+        )
 
 
 def test_parse_args():
