@@ -256,7 +256,7 @@ def test_add_points_from_geometry_to_las_nok(input_file, input_points, epsg, spa
     if Path(OUTPUT_FILE).exists():
         os.remove(OUTPUT_FILE)
 
-    with pytest.raises(RuntimeError, match=".*LineString.*spacing.*"):
+    with pytest.raises(NotImplementedError, match=".*LineString.*spacing.*"):
         add_points_in_pointcloud.add_points_from_geometry_to_las(
             input_points,
             input_file,
