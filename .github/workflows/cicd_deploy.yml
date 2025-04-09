@@ -104,4 +104,4 @@ jobs:
         run: make build
 
       - name: pypi-publish
-        uses: pypa/gh-action-pypi-publish@v1.8.6
+        uses: pypa/gh-action-pypi-publish@v1.12.4
