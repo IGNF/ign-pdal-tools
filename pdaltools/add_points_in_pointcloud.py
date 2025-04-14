@@ -155,17 +155,34 @@ def add_points_to_las(
                 raise ValueError(f"Invalid CRS: {crs}")
             header.add_crs(crs_obj)
 
-        # Append new points
-        new_x = np.concatenate([las_data.x, x_coords])
-        new_y = np.concatenate([las_data.y, y_coords])
-        new_z = np.concatenate([las_data.z, z_coords])
-        new_classes = np.concatenate([las_data.classification, classes])
+        # Create the new points (LIDAR) with 3D points
+        new_points = laspy.ScaleAwarePointRecord.zeros(len(x_coords), header=header)
+        new_points.x = x_coords
+        new_points.y = y_coords
+        new_points.z = z_coords
+        new_points.classification = classes
 
+        # Set default values ("0") for all other dimensions
+        filled_dims = {"X", "Y", "Z", "classification"}
+        for dimension in header.point_format.dimensions:
+            if dimension.name not in filled_dims:
+                default_value = 0
+                new_points[dimension.name] = np.full(len(x_coords), default_value)
+
+        # Merge existing and new points
+        total_points = len(las_data.points) + len(new_points)
+        merged_points = laspy.ScaleAwarePointRecord.zeros(total_points, header=header)
+
+        for dimension in header.point_format.dimensions:
+            name = dimension.name
+            merged_points[name] = np.concatenate([
+                las_data[name],
+                new_points[name]
+            ])
+
+        # Write merged points to output file
         updated_las = laspy.LasData(header)
-        updated_las.x = new_x
-        updated_las.y = new_y
-        updated_las.z = new_z
-        updated_las.classification = new_classes
+        updated_las.points = merged_points
 
         with laspy.open(output_las, mode="w", header=header, do_compress=True) as writer:
             writer.write_points(updated_las.points)
