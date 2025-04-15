@@ -1,5 +1,4 @@
 import argparse
-import shutil
 from shutil import copy2
 
 import geopandas as gpd
@@ -133,7 +132,7 @@ def add_points_to_las(
         print(
             "No points to add. All points of the geojson file are outside the tile. Copying the input file to output"
         )
-        shutil.copy(input_las, output_las)
+        copy2(input_las, output_las)
 
         return
 
@@ -155,22 +154,22 @@ def add_points_to_las(
                 raise ValueError(f"Invalid CRS: {crs}")
             header.add_crs(crs_obj)
 
-        # Copy data pointcloud
-        copy2(input_las, output_las)
+    # Copy data pointcloud
+    copy2(input_las, output_las)
 
-        # Add the new points with 3D points
-        nb_points = len(x_coords)
-        with laspy.open(output_las, mode="a") as output_las:  # mode `a` for adding points
-            new_points = laspy.ScaleAwarePointRecord.zeros(
-                nb_points, header=output_las.header
-            )  # create nb_points points with "0" everywhere
-            # then fill in the gaps (X, Y, Z an classification)
-            new_points.x = x_coords.astype(new_points.x.dtype)
-            new_points.y = y_coords.astype(new_points.y.dtype)
-            new_points.z = z_coords.astype(new_points.z.dtype)
-            new_points.classification = classes.astype(new_points.classification.dtype)
+    # Add the new points with 3D points
+    nb_points = len(x_coords)
+    with laspy.open(output_las, mode="a") as output_las:  # mode `a` for adding points
+        new_points = laspy.ScaleAwarePointRecord.zeros(
+            nb_points, header=output_las.header
+        )  # create nb_points points with "0" everywhere
+        # then fill in the gaps (X, Y, Z an classification)
+        new_points.x = x_coords.astype(new_points.x.dtype)
+        new_points.y = y_coords.astype(new_points.y.dtype)
+        new_points.z = z_coords.astype(new_points.z.dtype)
+        new_points.classification = classes.astype(new_points.classification.dtype)
 
-            output_las.append_points(new_points)
+        output_las.append_points(new_points)
 
 
 def line_to_multipoint(line, spacing: float, z_value: float = None):
