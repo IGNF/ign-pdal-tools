@@ -110,11 +110,6 @@ def test_add_points_to_las(input_file, epsg, expected_nb_points):
     # Check total point count
     assert len(updated_las.points) == original_count + added_count
 
-    # Ensure original points retain their gps_time and intensity
-    assert np.all(updated_las.gps_time[:original_count] == original_las.gps_time)
-    assert np.all(updated_las.intensity[:original_count] == original_las.intensity)
-
-    # Ensure added points have zero values for gps_time, intensity, etc
     default_zero_fields = [
         "gps_time",
         "intensity",
@@ -122,7 +117,18 @@ def test_add_points_to_las(input_file, epsg, expected_nb_points):
         "number_of_returns",
         "scan_direction_flag",
         "edge_of_flight_line",
+        "R",
+        "V",
+        "B",
     ]
+    # Ensure original points retain their values (gps_tme, intensity, etc)
+    for field in default_zero_fields:
+        if hasattr(updated_las, field):
+            values = getattr(updated_las, field)
+            original_values = getattr(original_las, field)
+            assert np.all(values[:original_count] == original_values[:original_count])
+
+    # Ensure added points have zero values for gps_time, intensity, etc
     for field in default_zero_fields:
         if hasattr(updated_las, field):
             values = getattr(updated_las, field)
