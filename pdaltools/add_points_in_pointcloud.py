@@ -160,17 +160,16 @@ def add_points_to_las(
 
         # Add the new points with 3D points
         nb_points = len(x_coords)
-        with laspy.open(
-            output_las, mode="a", header=header, do_compress=True
-        ) as output_las:  # mode `a` for adding points
+        with laspy.open(output_las, mode="a") as output_las:  # mode `a` for adding points
             new_points = laspy.ScaleAwarePointRecord.zeros(
-                nb_points, header=header
+                nb_points, header=output_las.header
             )  # create nb_points points with "0" everywhere
             # then fill in the gaps (X, Y, Z an classification)
-            new_points.x = x_coords
-            new_points.y = y_coords
-            new_points.z = z_coords
-            new_points.classification = classes
+            new_points.x = x_coords.astype(new_points.x.dtype)
+            new_points.y = y_coords.astype(new_points.y.dtype)
+            new_points.z = z_coords.astype(new_points.z.dtype)
+            new_points.classification = classes.astype(new_points.classification.dtype)
+
             output_las.append_points(new_points)
 
 
