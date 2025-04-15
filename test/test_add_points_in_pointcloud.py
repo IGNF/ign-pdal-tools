@@ -2,9 +2,9 @@ import inspect
 import os
 from pathlib import Path
 
-import laspy 
-import numpy as np
 import geopandas as gpd
+import laspy
+import numpy as np
 import pytest
 from shapely.geometry import LineString, MultiPoint, Point
 
@@ -99,6 +99,34 @@ def test_add_points_to_las(input_file, epsg, expected_nb_points):
 
     point_count = compute_count_one_file(OUTPUT_FILE)["68"]
     assert point_count == expected_nb_points  # Add all points from geojson
+
+    # Read original and updated point clouds
+    original_las = laspy.read(input_file)
+    updated_las = laspy.read(OUTPUT_FILE)
+
+    original_count = len(original_las.points)
+    added_count = len(points)
+
+    # Check total point count
+    assert len(updated_las.points) == original_count + added_count
+
+    # Ensure original points retain their gps_time and intensity
+    assert np.all(updated_las.gps_time[:original_count] == original_las.gps_time)
+    assert np.all(updated_las.intensity[:original_count] == original_las.intensity)
+
+    # Ensure added points have zero values for gps_time, intensity, etc
+    default_zero_fields = [
+        "gps_time",
+        "intensity",
+        "return_number",
+        "number_of_returns",
+        "scan_direction_flag",
+        "edge_of_flight_line",
+    ]
+    for field in default_zero_fields:
+        if hasattr(updated_las, field):
+            values = getattr(updated_las, field)
+            assert np.all(values[original_count:] == 0)
 
 
 @pytest.mark.parametrize(
@@ -296,49 +324,3 @@ def test_parse_args():
     parsed_args_keys = args.__dict__.keys()
     main_parameters = inspect.signature(add_points_in_pointcloud.add_points_from_geometry_to_las).parameters.keys()
     assert set(parsed_args_keys) == set(main_parameters)
-
-
-def test_add_points_preserves_existing_and_sets_defaults():
-    # Ensure output doesn't exist before running the test
-    if Path(OUTPUT_FILE).exists():
-        os.remove(OUTPUT_FILE)
-
-    # Load input 3D points to add (GeoJSON)
-    input_points = gpd.read_file(INPUT_POINTS_3D)
-
-    # Apply the function to add points
-    add_points_in_pointcloud.add_points_to_las(
-        input_points,
-        INPUT_PCD,
-        OUTPUT_FILE,
-        crs="EPSG:2154",
-        virtual_points_classes=68,
-    )
-
-    # Read original and updated point clouds
-    original_las = laspy.read(INPUT_PCD)
-    updated_las = laspy.read(OUTPUT_FILE)
-
-    original_count = len(original_las.points)
-    added_count = len(input_points)
-
-    # Check total point count
-    assert len(updated_las.points) == original_count + added_count
-
-    # Ensure original points retain their gps_time and intensity
-    assert np.all(updated_las.gps_time[:original_count] == original_las.gps_time)
-    assert np.all(updated_las.intensity[:original_count] == original_las.intensity)
-
-    # Ensure added points have zero values for gps_time, intensity, etc
-    default_zero_fields = [
-        "gps_time",
-        "intensity",
-        "return_number", 
-        "number_of_returns", 
-        "scan_direction_flag", 
-        "edge_of_flight_line"
-    ]
-    for field in default_zero_fields:
-        if hasattr(updated_las, field):
-            values = getattr(updated_las, field)
-            assert np.all(values[original_count:] == 0)
