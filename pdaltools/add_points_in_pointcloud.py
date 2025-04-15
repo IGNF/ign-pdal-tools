@@ -1,5 +1,6 @@
 import argparse
 import shutil
+from shutil import copy2
 
 import geopandas as gpd
 import laspy
@@ -143,7 +144,6 @@ def add_points_to_las(
     classes = virtual_points_classes * np.ones(len(input_points_with_z.index))
 
     with laspy.open(input_las, mode="r") as las:
-        las_data = las.read()
         header = las.header
 
         if not header:
@@ -155,37 +155,23 @@ def add_points_to_las(
                 raise ValueError(f"Invalid CRS: {crs}")
             header.add_crs(crs_obj)
 
-        # Create the new points (LIDAR) with 3D points
-        new_points = laspy.ScaleAwarePointRecord.zeros(len(x_coords), header=header)
-        new_points.x = x_coords
-        new_points.y = y_coords
-        new_points.z = z_coords
-        new_points.classification = classes
+        # Copy data pointcloud
+        copy2(input_las, output_las)
 
-        # Set default values ("0") for all other dimensions
-        filled_dims = {"X", "Y", "Z", "classification"}
-        for dimension in header.point_format.dimensions:
-            if dimension.name not in filled_dims:
-                default_value = 0
-                new_points[dimension.name] = np.full(len(x_coords), default_value)
-
-        # Merge existing and new points
-        total_points = len(las_data.points) + len(new_points)
-        merged_points = laspy.ScaleAwarePointRecord.zeros(total_points, header=header)
-
-        for dimension in header.point_format.dimensions:
-            name = dimension.name
-            merged_points[name] = np.concatenate([
-                las_data[name],
-                new_points[name]
-            ])
-
-        # Write merged points to output file
-        updated_las = laspy.LasData(header)
-        updated_las.points = merged_points
-
-        with laspy.open(output_las, mode="w", header=header, do_compress=True) as writer:
-            writer.write_points(updated_las.points)
+        # Add the new points with 3D points
+        nb_points = len(x_coords)
+        with laspy.open(
+            output_las, mode="a", header=header, do_compress=True
+        ) as output_las:  # mode `a` for adding points
+            new_points = laspy.ScaleAwarePointRecord.zeros(
+                nb_points, header=header
+            )  # create nb_points points with "0" everywhere
+            # then fill in the gaps (X, Y, Z an classification)
+            new_points.x = x_coords
+            new_points.y = y_coords
+            new_points.z = z_coords
+            new_points.classification = classes
+            output_las.append_points(new_points)
 
 
 def line_to_multipoint(line, spacing: float, z_value: float = None):
