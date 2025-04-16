@@ -118,7 +118,7 @@ def test_add_points_to_las(input_file, epsg, expected_nb_points):
         "scan_direction_flag",
         "edge_of_flight_line",
         "R",
-        "V",
+        "G",
         "B",
     ]
     # Ensure original points retain their values (gps_tme, intensity, etc)
