@@ -134,12 +134,13 @@ def add_points_to_las(
         return
 
     # Extract XYZ coordinates and additional attribute (classification)
+    nb_points = len(input_points_with_z.geometry.x)
     x_coords = input_points_with_z.geometry.x
     y_coords = input_points_with_z.geometry.y
     z_coords = input_points_with_z.geometry.z
-    classes = virtual_points_classes * np.ones(len(input_points_with_z.index))
+    classes = virtual_points_classes * np.ones(nb_points)
 
-    # Open the input LAS file to check and possibly update the header
+    # Open the input LAS file to check and possibly update the header of the output
     with laspy.open(input_las) as las:
         header = las.header
         if not header:
