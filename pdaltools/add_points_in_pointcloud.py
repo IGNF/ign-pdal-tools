@@ -127,13 +127,10 @@ def add_points_to_las(
         crs (str): CRS of the data.
         virtual_points_classes (int): The classification value to assign to those virtual points (default: 66).
     """
-
     if input_points_with_z.empty:
         print(
             "No points to add. All points of the geojson file are outside the tile. Copying the input file to output"
         )
-        copy2(input_las, output_las)
-
         return
 
     # Extract XYZ coordinates and additional attribute (classification)
@@ -142,9 +139,9 @@ def add_points_to_las(
     z_coords = input_points_with_z.geometry.z
     classes = virtual_points_classes * np.ones(len(input_points_with_z.index))
 
-    with laspy.open(input_las, mode="r") as las:
+    # Open the input LAS file to check and possibly update the header
+    with laspy.open(input_las) as las:
         header = las.header
-
         if not header:
             header = laspy.LasHeader(point_format=8, version="1.4")
         if crs:
@@ -159,10 +156,9 @@ def add_points_to_las(
 
     # Add the new points with 3D points
     nb_points = len(x_coords)
-    with laspy.open(output_las, mode="a") as output_las:  # mode `a` for adding points
-        new_points = laspy.ScaleAwarePointRecord.zeros(
-            nb_points, header=output_las.header
-        )  # create nb_points points with "0" everywhere
+    with laspy.open(output_las, mode="a", header=header) as output_las:  # mode `a` for adding points
+        # create nb_points points with "0" everywhere
+        new_points = laspy.ScaleAwarePointRecord.zeros(nb_points, header=header)  # use header for input_las
         # then fill in the gaps (X, Y, Z an classification)
         new_points.x = x_coords.astype(new_points.x.dtype)
         new_points.y = y_coords.astype(new_points.y.dtype)

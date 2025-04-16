@@ -23,5 +23,4 @@ dependencies:
   - pip:
     - build # Installed via pip after issues when creating the environment ("build does not exist")
     # Install laspy with laszip laz compression (as laszip is an implementation of the laz 1.4 standard)
-    - laspy[laszip]  # Installed via pip because laszip is not handled by the conda package.
-    - laspy[lazrs] # Installed via pip because appending to LAZ is only supported by the lazrs backend
+    - laspy[lazrs]  # Installed via pip because laszip is not handled by the conda package.
