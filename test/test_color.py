@@ -3,7 +3,8 @@ import os
 import shutil
 from pathlib import Path
 
-import numpy
+import laspy
+import numpy as np
 import pytest
 import requests
 import requests_mock
@@ -68,7 +69,7 @@ def test_color_narrow_cloud():
 def test_download_image_ok():
     tif_output = os.path.join(TMPDIR, "download_image.tif")
     color.download_image(
-        epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, size_max_image_gpf
+        epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, size_max_gpf=size_max_image_gpf
     )
 
     # check there is no noData
@@ -80,8 +81,35 @@ def test_download_image_ok():
 @pytest.mark.geopf
 def test_download_image_ok_one_download():
     tif_output = os.path.join(TMPDIR, "download_image.tif")
-    nb_request = color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 1000)
+    nb_request = color.download_image(
+        epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, size_max_gpf=1000
+    )
     assert nb_request == 1
+
+    # check there is no noData
+    raster = gdal.Open(tif_output)
+    for i in range(raster.RasterCount):
+        assert raster.GetRasterBand(i + 1).GetNoDataValue() is None
+
+
+@pytest.mark.geopf
+@pytest.mark.parametrize("resolution", [0.5, 1, 2, 4])
+def test_download_image_ok_more_downloads(resolution):
+    tif_output = os.path.join(TMPDIR, f"download_image_resolution_{resolution}.tif")
+    nb_request = color.download_image(
+        epsg,
+        layer,
+        minx,
+        miny,
+        maxx,
+        maxy,
+        resolution,
+        tif_output,
+        15,
+        True,
+        size_max_gpf=1000,
+    )
+    assert nb_request == max(1, 1 * resolution * resolution)
 
     # check there is no noData
     raster = gdal.Open(tif_output)
@@ -92,7 +120,7 @@ def test_download_image_ok_one_download():
 @pytest.mark.geopf
 def test_download_image_download_size_gpf_bigger():
     tif_output = os.path.join(TMPDIR, "download_image_bigger.tif")
-    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 1005)
+    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, size_max_gpf=1005)
 
     # check there is no noData
     raster = gdal.Open(tif_output)
@@ -103,7 +131,9 @@ def test_download_image_download_size_gpf_bigger():
 @pytest.mark.geopf
 def test_download_image_download_size_gpf_size_almost_ok():
     tif_output = os.path.join(TMPDIR, "download_image_bigger.tif")
-    nb_request = color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, 995)
+    nb_request = color.download_image(
+        epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output, 15, True, size_max_gpf=995
+    )
     assert nb_request == 4
 
     # check there is no noData
@@ -112,14 +142,20 @@ def test_download_image_download_size_gpf_size_almost_ok():
         assert raster.GetRasterBand(i + 1).GetNoDataValue() is None
 
 
-@pytest.mark.parametrize("size_block", [100, 250, 500])
-def test_download_image_one_and_block(size_block):
+@pytest.mark.geopf
+@pytest.mark.parametrize("size_block", [100, 50, 25])
+def test_download_image_compare_one_and_block(size_block):
     tif_output_one = os.path.join(TMPDIR, "download_image_one.tif")
-    color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output_one, 15, True, 1000)
+    nb_request = color.download_image(
+        epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output_one, 15, True, 100
+    )
+    assert nb_request == 1
 
     tif_output_blocks = os.path.join(TMPDIR, "download_image_block.tif")
-    nb_request = color.download_image(epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output_blocks, 100, True, size_block)
-    assert nb_request == math.pow(1000/size_block, 2)
+    nb_request = color.download_image(
+        epsg, layer, minx, miny, maxx, maxy, pixel_per_meter, tif_output_blocks, 100, True, size_block
+    )
+    assert nb_request == math.pow(1000 * pixel_per_meter / size_block, 2)
 
     # due to GeoPlateforme interpolation, images could have small differences
     # check images are almost the sames
@@ -127,16 +163,16 @@ def test_download_image_one_and_block(size_block):
     raster_one = gdal.Open(tif_output_one)
     raster_blocks = gdal.Open(tif_output_blocks)
 
-    r_one = numpy.array(raster_one.ReadAsArray())
-    r_blocks = numpy.array(raster_blocks.ReadAsArray())
+    r_one = np.array(raster_one.ReadAsArray())
+    r_blocks = np.array(raster_blocks.ReadAsArray())
     assert r_one.size == r_blocks.size
     r_diff = r_one - r_blocks
 
     # images should be same as 5/1000 (tolerance)
-    assert numpy.count_nonzero(r_diff) < 0.005 * ((maxx - minx) * (maxy - miny) * math.pow(pixel_per_meter, 2))
+    assert np.count_nonzero(r_diff) < 0.005 * ((maxx - minx) * (maxy - miny) * math.pow(pixel_per_meter, 2))
 
     # differences should be 1 or 255 (eq a variation of one on one RVB canal)
-    r_diff_nonzero = numpy.nonzero(r_diff)
+    r_diff_nonzero = np.nonzero(r_diff)
     for i in range(0, r_diff_nonzero[0].size):
         diff = r_diff[r_diff_nonzero[0][i], r_diff_nonzero[1][i], r_diff_nonzero[2][i]]
         assert diff == 1 or diff == 255
@@ -148,6 +184,13 @@ def test_color_epsg_2975_forced():
     output_path = os.path.join(TMPDIR, "sample_lareunion_epsg2975.colorized.laz")
     # Test that clouds that are smaller in width or height to 20cm are still clorized without an error.
     color.color(input_path, output_path, 2975)
+    with laspy.open(output_path, "r") as las:
+        las_data = las.read()
+    # Check all points are colored
+    assert not np.any(las_data.red == 0)
+    assert not np.any(las_data.green == 0)
+    assert not np.any(las_data.blue == 0)
+    assert not np.any(las_data.nir == 0)
 
 
 def test_is_image_white_true():
