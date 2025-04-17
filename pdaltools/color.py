@@ -77,12 +77,6 @@ def download_image_from_geoplateforme(
       check_images (bool): enable checking if the output image is not a white image
     """
 
-    # Force a 1-pixel margin in the east and south borders
-    # to make sure that no point of the pointcloud is on the limit of the last pixel
-    # to prevent interpolation issues
-    maxx = maxx + 1 / pixel_per_meter
-    miny = miny - 1 / pixel_per_meter
-
     # for layer in layers:
     URL_GPP = "https://data.geopf.fr/wms-r/wms?"
     URL_FORMAT = "&EXCEPTIONS=text/xml&FORMAT=image/geotiff&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&STYLES="
@@ -124,18 +118,18 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
       outfile: file name of the downloaed file
       timeout: time after the request is canceled
       check_images: check if images is not a white image
-      size_max_gpf: block size of downloaded images.
+      size_max_gpf: block size of downloaded images. (in pixels)
 
     return the number of effective requests
     """
 
     download_image_from_geoplateforme_retrying = retry(times=9, delay=5, factor=2)(download_image_from_geoplateforme)
 
-    size_x_p = maxx - minx
-    size_y_p = maxy - miny
+    size_x_p = (maxx - minx) * pixel_per_meter
+    size_y_p = (maxy - miny) * pixel_per_meter
 
     # the image size is under SIZE_MAX_IMAGE_GPF
-    if size_x_p <= size_max_gpf and size_y_p <= size_max_gpf:
+    if (size_x_p <= size_max_gpf) and (size_y_p <= size_max_gpf):
         download_image_from_geoplateforme_retrying(
             proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images
         )
@@ -150,10 +144,10 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
         tmp_gpg_ortho = []
         for line in range(0, nb_cell_y):
             for col in range(0, nb_cell_x):
-                minx_cell = minx + col * size_max_gpf
-                maxx_cell = minx_cell + size_max_gpf
-                miny_cell = miny + line * size_max_gpf
-                maxy_cell = miny_cell + size_max_gpf
+                minx_cell = minx + col * size_max_gpf / pixel_per_meter
+                maxx_cell = min(minx_cell + size_max_gpf / pixel_per_meter, maxx)
+                miny_cell = miny + line * size_max_gpf / pixel_per_meter
+                maxy_cell = min(miny_cell + size_max_gpf / pixel_per_meter, maxy)
 
                 cells_ortho_paths = str(Path(tmp_dir)) + f"cell_{col}_{line}.tif"
                 download_image_from_geoplateforme_retrying(
@@ -175,7 +169,8 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
             gdal.BuildVRT(tmp_vrt.name, tmp_gpg_ortho)
             gdal.Translate(outfile, tmp_vrt.name)
 
-    return nb_cell_x*nb_cell_y
+    return nb_cell_x * nb_cell_y
+
 
 def color(
     input_file: str,
@@ -193,6 +188,12 @@ def color(
 ):
     metadata = las_info.las_info_metadata(input_file)
     minx, maxx, miny, maxy = las_info.get_bounds_from_header_info(metadata)
+
+    # Force a 1-pixel margin in the east and south borders
+    # to make sure that no point of the pointcloud is on the limit of the last pixel
+    # to prevent interpolation issues
+    maxx = maxx + 1 / pixel_per_meter
+    miny = miny - 1 / pixel_per_meter
 
     if proj == "":
         proj = las_info.get_epsg_from_header_info(metadata)
@@ -295,12 +296,11 @@ for 50 cm resolution rasters, use ORTHOIMAGERY.ORTHOPHOTOS.BDORTHO""",
 Documentation about possible stream : https://geoservices.ign.fr/services-web-experts-ortho""",
     )
     parser.add_argument(
-        "--sizeMaxGPF",
+        "--size-max-GPF",
         type=int,
-        default=250,
-        help="Size maximum of downloaded images."
-        " If input file needs more, severals"
-        " images are downloaded and merged.",
+        default=5000,
+        help="Maximum edge size (in pixels) of downloaded images."
+        " If input file needs more, several images are downloaded and merged.",
     )
 
     return parser.parse_args()
@@ -320,5 +320,5 @@ if __name__ == "__main__":
         check_images=args.check_images,
         stream_RGB=args.stream_RGB,
         stream_IRC=args.stream_IRC,
-        size_max_gpf=args.sizeMaxGPF,
+        size_max_gpf=args.size_max_GPF,
     )
