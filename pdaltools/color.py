@@ -3,6 +3,7 @@ import tempfile
 import time
 from math import ceil
 from pathlib import Path
+from typing import Tuple
 
 import numpy as np
 import pdal
@@ -112,7 +113,7 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
 
     Args:
       proj: projection of the downloaded image.
-      layer: wich kind of image is downloaed (ORTHOIMAGERY.ORTHOPHOTOS, ORTHOIMAGERY.ORTHOPHOTOS.IRC, ...).
+      layer: which kind of image is downloaed (ORTHOIMAGERY.ORTHOPHOTOS, ORTHOIMAGERY.ORTHOPHOTOS.IRC, ...).
       minx, miny, maxx, maxy: box of the downloaded image.
       pixel_per_meter: resolution of the downloaded image.
       outfile: file name of the downloaed file
@@ -139,6 +140,9 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
     # it's preferable to compute it by paving
     nb_cell_x = ceil(size_x_p / size_max_gpf)
     nb_cell_y = ceil(size_y_p / size_max_gpf)
+
+    def compute_almost_equal_steps(size_p, size_max_gpf, pixel_per_meter):
+        pass
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_gpg_ortho = []
@@ -172,6 +176,28 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
     return nb_cell_x * nb_cell_y
 
 
+def match_min_max_with_pixel_size(min_d: float, max_d: float, pixel_per_meter: float) -> Tuple[float, float]:
+    """Round min/max values along one dimension to the closest multiple of 1 / pixel_per_meter
+    It should prevent having to interpolate during a request to the geoplateforme
+    in case we use a native resolution.
+
+    Args:
+        min_d (float): minimum value along the dimension, in meters
+        max_d (float): maximum value along the dimension, in meters
+        pixel_per_meter (float): resolution (in number of pixels per meter)
+
+    Returns:
+        Tuple[float, float]: adapted min / max value
+    """
+    # Use ceil - 1 instead of ceil  to make sure that
+    # no point of the pointcloud is on the limit of the first pixel
+    min_d = (np.ceil(min_d * pixel_per_meter) - 1) / pixel_per_meter
+    # Use floor + 1 instead of ceil to make sure that no point of the pointcloud is on the limit of the last pixel
+    max_d = (np.floor(max_d * pixel_per_meter) + 1) / pixel_per_meter
+
+    return min_d, max_d
+
+
 def color(
     input_file: str,
     output_file: str,
@@ -184,16 +210,13 @@ def color(
     check_images=False,
     stream_RGB="ORTHOIMAGERY.ORTHOPHOTOS",
     stream_IRC="ORTHOIMAGERY.ORTHOPHOTOS.IRC",
-    size_max_gpf=250,
+    size_max_gpf=5000,
 ):
     metadata = las_info.las_info_metadata(input_file)
     minx, maxx, miny, maxy = las_info.get_bounds_from_header_info(metadata)
 
-    # Force a 1-pixel margin in the east and south borders
-    # to make sure that no point of the pointcloud is on the limit of the last pixel
-    # to prevent interpolation issues
-    maxx = maxx + 1 / pixel_per_meter
-    miny = miny - 1 / pixel_per_meter
+    minx, maxx = match_min_max_with_pixel_size(minx, maxx, pixel_per_meter)
+    miny, maxy = match_min_max_with_pixel_size(miny, maxy, pixel_per_meter)
 
     if proj == "":
         proj = las_info.get_epsg_from_header_info(metadata)
