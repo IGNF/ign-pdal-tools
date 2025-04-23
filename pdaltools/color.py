@@ -1,6 +1,7 @@
 import argparse
 import tempfile
 import time
+from math import ceil, floor
 from pathlib import Path
 from typing import Tuple
 
@@ -113,9 +114,9 @@ def compute_cells_size(mind: float, maxd: float, pixel_per_meter: float, size_ma
     Returns:
         Tuple[int, int, int]: number of pixels in total, number of cells along the dimension, cell size in pixels
     """
-    nb_pixels = np.ceil((maxd - mind) * pixel_per_meter).astype(int)
-    nb_cells = np.ceil(nb_pixels / size_max_gpf).astype(int)
-    cell_size_pixels = np.ceil(nb_pixels / nb_cells).astype(int)  # Force cell size to be an integer
+    nb_pixels = ceil((maxd - mind) * pixel_per_meter)
+    nb_cells = ceil(nb_pixels / size_max_gpf)
+    cell_size_pixels = ceil(nb_pixels / nb_cells)  # Force cell size to be an integer
 
     return nb_pixels, nb_cells, cell_size_pixels
 
@@ -158,17 +159,15 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
         for line in range(0, nb_cells_y):
             for col in range(0, nb_cells_x):
                 # Cope for last line/col that can be slightly smaller than other cells
-                cell_size_x_local = min(cell_size_x, size_x_p - col * cell_size_x)
-                cell_size_y_local = min(cell_size_y, size_y_p - line * cell_size_y)
+                remaining_pixels_x = size_x_p - col * cell_size_x
+                remaining_pixels_y = size_y_p - line * cell_size_y
+                cell_size_x_local = min(cell_size_x, remaining_pixels_x)
+                cell_size_y_local = min(cell_size_y, remaining_pixels_y)
 
                 minx_cell = minx + col * cell_size_x / pixel_per_meter
-                maxx_cell = min(minx_cell + cell_size_x_local / pixel_per_meter, maxx)
+                maxx_cell = minx_cell + cell_size_x_local / pixel_per_meter
                 miny_cell = miny + line * cell_size_y / pixel_per_meter
-                maxy_cell = min(miny_cell + cell_size_y_local / pixel_per_meter, maxy)
-
-                if (minx_cell == maxx) or (miny_cell == maxy):
-                    # End of extent reached
-                    continue
+                maxy_cell = miny_cell + cell_size_y_local / pixel_per_meter
 
                 cells_ortho_paths = str(Path(tmp_dir)) + f"cell_{col}_{line}.tif"
                 download_image_from_geoplateforme_retrying(
@@ -209,9 +208,9 @@ def match_min_max_with_pixel_size(min_d: float, max_d: float, pixel_per_meter: f
     """
     # Use ceil - 1 instead of ceil  to make sure that
     # no point of the pointcloud is on the limit of the first pixel
-    min_d = (np.ceil(min_d * pixel_per_meter) - 1) / pixel_per_meter
+    min_d = (ceil(min_d * pixel_per_meter) - 1) / pixel_per_meter
     # Use floor + 1 instead of ceil to make sure that no point of the pointcloud is on the limit of the last pixel
-    max_d = (np.floor(max_d * pixel_per_meter) + 1) / pixel_per_meter
+    max_d = (floor(max_d * pixel_per_meter) + 1) / pixel_per_meter
 
     return min_d, max_d
 
