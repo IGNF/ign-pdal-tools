@@ -54,6 +54,23 @@ def test_color_and_keeping_orthoimages():
     assert Path(tmp_ortho_irc.name).exists()
 
 
+@pytest.mark.parametrize(
+    "mind, maxd, pixel_per_meter, size_max_gpf, expected_nb_pixels, expected_nb_cells, expected_cell_size",
+    [
+        (0, 1000, 1, 500, 1000, 2, 500),  # Easy case, sizes match perfectly
+        (0, 1001, 1, 1000, 1001, 2, 501),  # Image slightly bigger than size_max_gpf
+        (0.1, 999.2, 1, 500, 1000, 2, 500),  # floating value for min/max
+    ],
+)
+def test_compute_cells_size(
+    mind, maxd, pixel_per_meter, size_max_gpf, expected_nb_pixels, expected_nb_cells, expected_cell_size
+):
+    nb_pixels, nb_cells, cell_size = color.compute_cells_size(mind, maxd, pixel_per_meter, size_max_gpf)
+    assert nb_pixels == expected_nb_pixels
+    assert nb_cells == expected_nb_cells
+    assert cell_size == expected_cell_size
+
+
 @pytest.mark.geopf
 def test_download_image_ok():
     tif_output = os.path.join(TMPDIR, "download_image.tif")
@@ -293,14 +310,14 @@ def test_color_epsg_2975_detected():
 def test_download_image_raise1():
     retry_download = color.retry(times=2, delay=5, factor=2)(color.download_image_from_geoplateforme)
     with pytest.raises(requests.exceptions.HTTPError):
-        retry_download(EPSG, "MAUVAISE_COUCHE", MINX, MINY, MAXX, MAXY, PIXEL_PER_METER, OUTPUT_FILE, 15, True)
+        retry_download(EPSG, "MAUVAISE_COUCHE", MINX, MINY, MAXX, MAXY, 100, 100, OUTPUT_FILE, 15, True)
 
 
 @pytest.mark.geopf
 def test_download_image_raise2():
     retry_download = color.retry(times=2, delay=5, factor=2)(color.download_image_from_geoplateforme)
     with pytest.raises(requests.exceptions.HTTPError):
-        retry_download("9001", LAYER, MINX, MINY, MAXX, MAXY, PIXEL_PER_METER, OUTPUT_FILE, 15, True)
+        retry_download("9001", LAYER, MINX, MINY, MAXX, MAXY, 100, 100, OUTPUT_FILE, 15, True)
 
 
 def test_retry_on_server_error():
@@ -308,7 +325,7 @@ def test_retry_on_server_error():
         mock.get(requests_mock.ANY, status_code=502, reason="Bad Gateway")
         with pytest.raises(requests.exceptions.HTTPError):
             retry_download = color.retry(times=2, delay=1, factor=2)(color.download_image_from_geoplateforme)
-            retry_download(EPSG, LAYER, MINX, MINY, MAXX, MAXY, PIXEL_PER_METER, OUTPUT_FILE, 15, True)
+            retry_download(EPSG, LAYER, MINX, MINY, MAXX, MAXY, 100, 100, OUTPUT_FILE, 15, True)
         history = mock.request_history
         assert len(history) == 3
 
@@ -318,7 +335,7 @@ def test_retry_on_connection_error():
         mock.get(requests_mock.ANY, exc=requests.exceptions.ConnectionError)
         with pytest.raises(requests.exceptions.ConnectionError):
             retry_download = color.retry(times=2, delay=1, factor=2)(color.download_image_from_geoplateforme)
-            retry_download(EPSG, LAYER, MINX, MINY, MAXX, MAXY, PIXEL_PER_METER, OUTPUT_FILE, 15, True)
+            retry_download(EPSG, LAYER, MINX, MINY, MAXX, MAXY, 100, 100, OUTPUT_FILE, 15, True)
 
         history = mock.request_history
         assert len(history) == 3

@@ -1,7 +1,6 @@
 import argparse
 import tempfile
 import time
-from math import ceil
 from pathlib import Path
 from typing import Tuple
 
@@ -63,7 +62,7 @@ def is_image_white(filename: str):
 
 
 def download_image_from_geoplateforme(
-    proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images
+    proj, layer, minx, miny, maxx, maxy, width_pixels, height_pixels, outfile, timeout, check_images
 ):
     """
     Download image using a wms request to geoplateforme.
@@ -72,7 +71,8 @@ def download_image_from_geoplateforme(
       proj (int): epsg code for the projection of the downloaded image.
       layer: which kind of image is downloaded (ORTHOIMAGERY.ORTHOPHOTOS, ORTHOIMAGERY.ORTHOPHOTOS.IRC, ...).
       minx, miny, maxx, maxy: box of the downloaded image.
-      pixel_per_meter: resolution of the downloaded image.
+      width_pixels:  width in pixels of the downloaded image.
+      height_pixels:  height in pixels of the downloaded image.
       outfile: file name of the downloaded file
       timeout: delay after which the request is canceled (in seconds)
       check_images (bool): enable checking if the output image is not a white image
@@ -83,12 +83,7 @@ def download_image_from_geoplateforme(
     URL_FORMAT = "&EXCEPTIONS=text/xml&FORMAT=image/geotiff&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&STYLES="
     URL_EPSG = "&CRS=EPSG:" + str(proj)
     URL_BBOX = "&BBOX=" + str(minx) + "," + str(miny) + "," + str(maxx) + "," + str(maxy)
-    URL_SIZE = (
-        "&WIDTH="
-        + str(ceil((maxx - minx) * pixel_per_meter))
-        + "&HEIGHT="
-        + str(ceil((maxy - miny) * pixel_per_meter))
-    )
+    URL_SIZE = "&WIDTH=" + str(width_pixels) + "&HEIGHT=" + str(height_pixels)
 
     URL = URL_GPP + "LAYERS=" + layer + URL_FORMAT + URL_EPSG + URL_BBOX + URL_SIZE
 
@@ -103,6 +98,26 @@ def download_image_from_geoplateforme(
 
     if check_images and is_image_white(outfile):
         raise ValueError(f"Downloaded image is white, with stream: {layer}")
+
+
+def compute_cells_size(mind: float, maxd: float, pixel_per_meter: float, size_max_gpf: int) -> Tuple[int, int, int]:
+    """Compute cell size to have cells of almost equal size, but phased the same way as
+    if there had been no paving by forcing cell_size (in pixels) to be an integer
+
+    Args:
+        mind (float): minimum value along the dimension, in meters
+        maxd (float): maximum value along the dimension, in meters
+        pixel_per_meter (float): resolution (in number of pixels per meter)
+        size_max_gpf (int): maximum image size in pixels
+
+    Returns:
+        Tuple[int, int, int]: number of pixels in total, number of cells along the dimension, cell size in pixels
+    """
+    nb_pixels = np.ceil((maxd - mind) * pixel_per_meter).astype(int)
+    nb_cells = np.ceil(nb_pixels / size_max_gpf).astype(int)
+    cell_size_pixels = np.ceil(nb_pixels / nb_cells).astype(int)  # Force cell size to be an integer
+
+    return nb_pixels, nb_cells, cell_size_pixels
 
 
 @copy_and_hack_decorator
@@ -126,32 +141,34 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
 
     download_image_from_geoplateforme_retrying = retry(times=9, delay=5, factor=2)(download_image_from_geoplateforme)
 
-    size_x_p = (maxx - minx) * pixel_per_meter
-    size_y_p = (maxy - miny) * pixel_per_meter
+    size_x_p, nb_cells_x, cell_size_x = compute_cells_size(minx, maxx, pixel_per_meter, size_max_gpf)
+    size_y_p, nb_cells_y, cell_size_y = compute_cells_size(minx, maxx, pixel_per_meter, size_max_gpf)
 
     # the image size is under SIZE_MAX_IMAGE_GPF
     if (size_x_p <= size_max_gpf) and (size_y_p <= size_max_gpf):
         download_image_from_geoplateforme_retrying(
-            proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile, timeout, check_images
+            proj, layer, minx, miny, maxx, maxy, cell_size_x, cell_size_y, outfile, timeout, check_images
         )
         return 1
 
     # the image is bigger than the SIZE_MAX_IMAGE_GPF
     # it's preferable to compute it by paving
-    nb_cell_x = ceil(size_x_p / size_max_gpf)
-    nb_cell_y = ceil(size_y_p / size_max_gpf)
-
-    def compute_almost_equal_steps(size_p, size_max_gpf, pixel_per_meter):
-        pass
-
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_gpg_ortho = []
-        for line in range(0, nb_cell_y):
-            for col in range(0, nb_cell_x):
-                minx_cell = minx + col * size_max_gpf / pixel_per_meter
-                maxx_cell = min(minx_cell + size_max_gpf / pixel_per_meter, maxx)
-                miny_cell = miny + line * size_max_gpf / pixel_per_meter
-                maxy_cell = min(miny_cell + size_max_gpf / pixel_per_meter, maxy)
+        for line in range(0, nb_cells_y):
+            for col in range(0, nb_cells_x):
+                # Cope for last line/col that can be slightly smaller than other cells
+                cell_size_x_local = min(cell_size_x, size_x_p - col * cell_size_x)
+                cell_size_y_local = min(cell_size_y, size_y_p - line * cell_size_y)
+
+                minx_cell = minx + col * cell_size_x / pixel_per_meter
+                maxx_cell = min(minx_cell + cell_size_x_local / pixel_per_meter, maxx)
+                miny_cell = miny + line * cell_size_y / pixel_per_meter
+                maxy_cell = min(miny_cell + cell_size_y_local / pixel_per_meter, maxy)
+
+                if (minx_cell == maxx) or (miny_cell == maxy):
+                    # End of extent reached
+                    continue
 
                 cells_ortho_paths = str(Path(tmp_dir)) + f"cell_{col}_{line}.tif"
                 download_image_from_geoplateforme_retrying(
@@ -161,7 +178,8 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
                     miny_cell,
                     maxx_cell,
                     maxy_cell,
-                    pixel_per_meter,
+                    cell_size_x_local,
+                    cell_size_y_local,
                     cells_ortho_paths,
                     timeout,
                     check_images,
@@ -173,7 +191,7 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
             gdal.BuildVRT(tmp_vrt.name, tmp_gpg_ortho)
             gdal.Translate(outfile, tmp_vrt.name)
 
-    return nb_cell_x * nb_cell_y
+    return nb_cells_x * nb_cells_y
 
 
 def match_min_max_with_pixel_size(min_d: float, max_d: float, pixel_per_meter: float) -> Tuple[float, float]:
