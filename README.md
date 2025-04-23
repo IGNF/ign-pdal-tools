@@ -79,10 +79,15 @@ By default, `xcoord` and `ycoord` are given in kilometers and the shape of the t
 `readers.las: Global encoding WKT flag not set for point format 6 - 10.` which is due to TerraSolid
 malformed LAS output for LAS1.4 files with point format 6 to 10.
 
-## Add points in Las
+## Add points in pointcloud
 
-[add_points_in_las.py](pdaltools/add_points_in_las.py): add points from some vector files (ex: shp, geojson, ...) inside Las. New points will have X,Y and Z coordinates. Other attributes values given by  the initial las file are null (ex: classification at 0). These others attributes could be forced by using the '--dimensions/-d' option in the command line (ex : 'add_points_in_las.py -i myLas.las -g myPoints.json -d classification=64' - points will have their classification set to 64). The dimension should be present in the initial las ; this is not allowed to add new dimension.
-
+[add_points_in_pointcloud.py](pdaltools/add_points_in_pointcloud.py): add points from some vector files (ex: shp, geojson, ...) inside Las/Laz:
+- 2 kinds of geometries are handled:
+  - if the geometries in the vector file are points, they are added directly to the las file
+  - if the geometries are lines, points are added along this line using a `spacing` parameter
+- In case the points are 2D only, Z can be provided as a feature property (parametrized via `altitude_column`)
+- The Classification attribute for these points is parametrized via `virtual_points_classes`
+- All the other attributes are set to 0.
 
 # Dev / Build
 
