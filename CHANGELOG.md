@@ -1,3 +1,4 @@
+# 1.8.1
 - add_points_in_pointcloud: fix case when there is no points to add in the las file extent (copy input file to the output)
 
 # 1.8.0
