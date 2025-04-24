@@ -1,5 +1,6 @@
 # 1.8.1
 - add_points_in_pointcloud: fix case when there is no points to add in the las file extent (copy input file to the output)
+- color: temporarily disable tests on no_data values in downloaded images
 
 # 1.8.0
 - remove add_points_in_las.py (replaced by add_points_in_pointcloud.py)
