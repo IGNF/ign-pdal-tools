@@ -26,6 +26,7 @@ INPUT_LIGNES_2D_GEOJSON = os.path.join(DATA_LIGNES_PATH, "Lignes_2d_0292_6833.ge
 INPUT_LIGNES_3D_GEOJSON = os.path.join(DATA_LIGNES_PATH, "Lignes_3d_0292_6833.geojson")
 INPUT_LIGNES_SHAPE = os.path.join(DATA_LIGNES_PATH, "Lignes_3d_0292_6833.shp")
 OUTPUT_FILE = os.path.join(TMP_PATH, "test_semis_2023_0292_6833_LA93_IGN69.laz")
+INPUT_EMPTY_POINTS_2D = os.path.join(DATA_POINTS_3D_PATH, "Points_virtuels_2d_empty.geojson")
 
 # Cropped las tile used to test adding points that belong to the theorical tile but not to the
 # effective las file extent
@@ -81,19 +82,21 @@ def test_clip_3d_lines_to_tile(input_file, epsg):
 
 
 @pytest.mark.parametrize(
-    "input_file, epsg, expected_nb_points",
+    "input_file, epsg, input_points_2d, expected_nb_points",
     [
-        (INPUT_PCD, "EPSG:2154", 2423),  # should work when providing an epsg value
-        (INPUT_PCD, None, 2423),  # Should also work with no epsg value (get from las file)
-        (INPUT_PCD_CROPPED, None, 2423),
+        (INPUT_PCD, "EPSG:2154", INPUT_POINTS_2D, 2423),  # should work when providing an epsg value
+        (INPUT_PCD, None, INPUT_POINTS_2D, 2423),  # Should also work with no epsg value (get from las file)
+        (INPUT_PCD_CROPPED, None, INPUT_POINTS_2D_FOR_CROPPED_PCD, 451),
+        # Should also work if there is no points (direct copy of the input file)
+        (INPUT_PCD_CROPPED, None, INPUT_EMPTY_POINTS_2D, 0),
     ],
 )
-def test_add_points_to_las(input_file, epsg, expected_nb_points):
+def test_add_points_to_las(input_file, epsg, input_points_2d, expected_nb_points):
     # Ensure the output file doesn't exist before the test
     if Path(OUTPUT_FILE).exists():
         os.remove(OUTPUT_FILE)
 
-    points = gpd.read_file(INPUT_POINTS_2D)
+    points = gpd.read_file(input_points_2d)
     add_points_in_pointcloud.add_points_to_las(points, input_file, OUTPUT_FILE, epsg, 68)
     assert Path(OUTPUT_FILE).exists()  # check output exists
 

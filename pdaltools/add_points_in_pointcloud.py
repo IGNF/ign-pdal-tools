@@ -127,6 +127,9 @@ def add_points_to_las(
         crs (str): CRS of the data.
         virtual_points_classes (int): The classification value to assign to those virtual points (default: 66).
     """
+    # Copy data pointcloud
+    copy2(input_las, output_las)
+
     if input_points_with_z.empty:
         print(
             "No points to add. All points of the geojson file are outside the tile. Copying the input file to output"
@@ -141,7 +144,7 @@ def add_points_to_las(
     classes = virtual_points_classes * np.ones(nb_points)
 
     # Open the input LAS file to check and possibly update the header of the output
-    with laspy.open(input_las) as las:
+    with laspy.open(input_las, "r") as las:
         header = las.header
         if not header:
             header = laspy.LasHeader(point_format=8, version="1.4")
@@ -152,11 +155,7 @@ def add_points_to_las(
                 raise ValueError(f"Invalid CRS: {crs}")
             header.add_crs(crs_obj)
 
-    # Copy data pointcloud
-    copy2(input_las, output_las)
-
     # Add the new points with 3D points
-    nb_points = len(x_coords)
     with laspy.open(output_las, mode="a", header=header) as output_las:  # mode `a` for adding points
         # create nb_points points with "0" everywhere
         new_points = laspy.ScaleAwarePointRecord.zeros(nb_points, header=header)  # use header for input_las
