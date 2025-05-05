@@ -19,7 +19,7 @@ install:
 ##############################
 
 testing:
-	python -m pytest ./test -s --log-cli-level DEBUG -m "not geopf"
+	python -m pytest ./test -s --log-cli-level DEBUG -m "not geopf and not pdal_custom"
 
 testing_full:
 	python -m pytest ./test -s --log-cli-level DEBUG
@@ -61,6 +61,12 @@ FULL_IMAGE_NAME=${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:${VERSION}
 
 docker-build: clean
 	docker build --no-cache -t ${IMAGE_NAME}:${VERSION} -f Dockerfile .
+
+docker-build-pdal: clean
+	docker build --build-arg GITHUB_REPOSITORY=alavenant/PDAL --build-arg GITHUB_SHA=master_07_05_25 -t ${IMAGE_NAME}:${VERSION} -f Dockerfile.pdal .
+
+docker-test-pdal: clean
+	docker run --rm  -t ${IMAGE_NAME}:${VERSION} python -m pytest -m "not geopf" --log-cli-level=debug
 
 docker-test:
 	docker run --rm -it ${IMAGE_NAME}:${VERSION} python -m pytest -s
