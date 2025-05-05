@@ -1,0 +1,114 @@
+# Build stage for PDAL dependencies
+FROM debian:bullseye-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libboost-all-dev \
+    libcurl4-openssl-dev \
+    libgdal-dev \
+    libgeos++-dev \
+    libhdf5-dev \
+    libjsoncpp-dev \
+    liblas-dev \
+    liblzma-dev \
+    libpdal-dev \
+    libpq-dev \
+    libproj-dev \
+    libsqlite3-dev \
+    libtiff-dev \
+    libxml2-dev \
+    python3-dev \
+    wget \
+    zlib1g-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Clone PDAL repository with the specific branch
+WORKDIR /tmp
+RUN git clone --depth 1 --branch read_las_with_sereral_LASF_Spec https://github.com/alavenant/PDAL.git pdal
+
+# Build PDAL
+WORKDIR /tmp/pdal/build
+RUN cmake \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    -DBUILD_PLUGIN_CPD=ON \
+    -DBUILD_PLUGIN_GREYHOUND=ON \
+    -DBUILD_PLUGIN_ICEBRIDGE=ON \
+    -DBUILD_PLUGIN_MRSID=ON \
+    -DBUILD_PLUGIN_NITF=ON \
+    -DBUILD_PLUGIN_OCI=ON \
+    -DBUILD_PLUGIN_PCL=ON \
+    -DBUILD_PLUGIN_PGPOINTCLOUD=ON \
+    -DBUILD_PLUGIN_SQLITE=ON \
+    -DBUILD_PLUGIN_TILEDB=ON \
+    -DBUILD_PLUGIN_GEOWAVE=ON \
+    -DWITH_LAZPERF=ON \
+    -DWITH_LASZIP=ON \
+    -DWITH_TESTS=ON \
+    ..
+RUN make -j$(nproc)
+RUN make install
+RUN ldconfig
+
+# Create conda environment with required packages
+FROM mambaorg/micromamba:latest as conda_env
+COPY environment.yml /environment.yml
+USER root
+RUN micromamba env create -n pdaltools -f /environment.yml
+
+# Final stage
+FROM debian:bullseye-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libboost-atomic1.74.0 \
+    libboost-chrono1.74.0 \
+    libboost-date-time1.74.0 \
+    libboost-filesystem1.74.0 \
+    libboost-iostreams1.74.0 \
+    libboost-program-options1.74.0 \
+    libboost-regex1.74.0 \
+    libboost-system1.74.0 \
+    libboost-thread1.74.0 \
+    libcurl4 \
+    libgdal26 \
+    libgeos-c1v5 \
+    libhdf5-103-1 \
+    libjsoncpp24 \
+    liblas14 \
+    liblzma5 \
+    libpdal-base13 \
+    libpq5 \
+    libproj19 \
+    libsqlite3-0 \
+    libtiff5 \
+    libxml2 \
+    zlib1g && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy PDAL from builder
+COPY --from=builder /usr/local/ /usr/local/
+
+# Copy conda environment
+COPY --from=conda_env /opt/conda/envs/pdaltools /opt/conda/envs/pdaltools
+
+# Set up environment variables
+ENV PATH="/opt/conda/envs/pdaltools/bin:${PATH}"
+ENV PROJ_LIB="/opt/conda/envs/pdaltools/share/proj"
+ENV CONDA_DEFAULT_ENV=pdaltools
+ENV CONDA_PREFIX=/opt/conda/envs/pdaltools
+
+# Set up working directory
+WORKDIR /pdaltools
+RUN mkdir tmp
+
+# Copy application code
+COPY pdaltools pdaltools
+COPY test test
+
+# Verify installations
+RUN pdal --version && \
+    python --version && \
+    python -c "import pdal; print(f'Python PDAL version: {pdal.__version__}')"
