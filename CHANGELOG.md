@@ -1,3 +1,5 @@
+- custom PDAL: in the docker image, compile custom PDAL (waiting for PDAL 2.9)
+
 # 1.8.1
 - add_points_in_pointcloud: fix case when there is no points to add in the las file extent (copy input file to the output)
 - color: temporarily disable tests on no_data values in downloaded images
