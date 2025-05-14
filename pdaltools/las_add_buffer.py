@@ -158,7 +158,6 @@ def remove_points_from_buffer(input_file: str, output_file: str):
         pipeline |= pdal.Filter.range(limits=f"{ORIGINAL_TILE_TAG}[1:1]")
         pipeline |= pdal.Writer.las(filename=tmp_las.name, forward="all", extra_dims="all")
         pipeline.execute()
-
         remove_dimensions_from_las(tmp_las.name, dimensions=[ORIGINAL_TILE_TAG], output_las=output_file)
 
 
