@@ -5,6 +5,26 @@ import pdal
 from pdaltools.las_info import get_writer_parameters_from_reader_metadata
 
 
+def remove_dimensions_from_points(points, metadata, dimensions: [str], output_las: str):
+    """
+    export new las without some dimensions
+    """
+
+    mandatory_dimensions = ["X", "Y", "Z", "x", "y", "z"]
+    output_dimensions_test = [dim for dim in dimensions if dim not in mandatory_dimensions]
+    assert len(output_dimensions_test) == len(
+        dimensions
+    ), "All dimensions to remove must not be mandatory dimensions (X,Y,Z,x,y,z)"
+
+    input_dimensions = list(points.dtype.fields.keys())
+    output_dimensions = [dim for dim in input_dimensions if dim not in dimensions]
+    points_pruned = points[output_dimensions]
+    params = get_writer_parameters_from_reader_metadata(metadata)
+    pipeline_end = pdal.Pipeline(arrays=[points_pruned])
+    pipeline_end |= pdal.Writer.las(output_las, forward="all", **params)
+    pipeline_end.execute()
+
+
 def remove_dimensions_from_las(input_las: str, dimensions: [str], output_las: str):
     """
     export new las without some dimensions
@@ -12,13 +32,7 @@ def remove_dimensions_from_las(input_las: str, dimensions: [str], output_las: st
     pipeline = pdal.Pipeline() | pdal.Reader.las(input_las)
     pipeline.execute()
     points = pipeline.arrays[0]
-    input_dimensions = list(points.dtype.fields.keys())
-    output_dimensions = [dim for dim in input_dimensions if dim not in dimensions]
-    points_pruned = points[output_dimensions]
-    params = get_writer_parameters_from_reader_metadata(pipeline.metadata)
-    pipeline_end = pdal.Pipeline(arrays=[points_pruned])
-    pipeline_end |= pdal.Writer.las(output_las, forward="all", **params)
-    pipeline_end.execute()
+    remove_dimensions_from_points(points, pipeline.metadata, dimensions, output_las)
 
 
 def parse_args():

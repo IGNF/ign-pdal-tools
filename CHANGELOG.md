@@ -1,4 +1,5 @@
 - custom PDAL: fix CI for cicd_full (build docker image with custom PDAL, and skip custom PDAL test for local pytest)
+- las_rename_dimension: new tool to rename one or many dimensions
 
 # 1.9.1
 - las_add_points_to_pointcloud: Fix add points to LAS (use PDAL instead of Laspy)

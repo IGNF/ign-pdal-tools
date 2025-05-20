@@ -1,5 +1,4 @@
-"""Tools to handle malformed las/laz files
-    """
+"""Tools to handle malformed las/laz files"""
 
 # https://gis.stackexchange.com/questions/413191/python-pdal-error-reading-format-1-4-las-file-readers-las-error-global-enco
 
