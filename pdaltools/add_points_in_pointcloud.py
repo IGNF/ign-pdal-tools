@@ -9,7 +9,7 @@ from pyproj.exceptions import CRSError
 from shapely.geometry import MultiPoint, Point, box
 
 from pdaltools.las_info import get_epsg_from_las, get_tile_bbox
-
+import pdal
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser("Add points from GeoJSON in LIDAR tile")
@@ -127,7 +127,7 @@ def add_points_to_las(
         crs (str): CRS of the data.
         virtual_points_classes (int): The classification value to assign to those virtual points (default: 66).
     """
-    # Copy data pointcloud
+     # Copy data pointcloud
     copy2(input_las, output_las)
 
     if input_points_with_z.empty:
@@ -166,6 +166,7 @@ def add_points_to_las(
         new_points.classification = classes.astype(new_points.classification.dtype)
 
         output_las.append_points(new_points)
+
 
 
 def line_to_multipoint(line, spacing: float, z_value: float = None):
@@ -319,10 +320,110 @@ def add_points_from_geometry_to_las(
     # Clip points from GeoJSON by LIDAR tile
     points_clipped = clip_3d_points_to_tile(points_gdf, input_las, spatial_ref, tile_width)
 
+    points_clipped.to_file("/Users/alavenant/Desktop/tmp/Points_virtuels_out.geojson", driver='GeoJSON')
+
+    pipeline_output = pdal.Reader.las(input_las).pipeline()
+    pipeline_output.execute()
+    arr_ini = pipeline_output.arrays[0]
+    classif_values_ini, counts_ini = np.unique(arr_ini["Classification"], return_counts=True)
+    count_66_ini = counts_ini[classif_values_ini == virtual_points_classes] if virtual_points_classes in classif_values_ini else 0
+    print("Iini ", len(arr_ini), " points total ")
+    print("Iini ", count_66_ini, " points with class ", virtual_points_classes)
+
+    print(len(arr_ini)-1, arr_ini[len(arr_ini)-1])
+
     # Add points by LIDAR tile and save the result
     add_points_to_las(points_clipped, input_las, output_las, spatial_ref, virtual_points_classes)
 
 
+    # Check the result
+    pipeline_output = pdal.Reader.las(output_las).pipeline()
+    pipeline_output.execute()    
+    arr_end = pipeline_output.arrays[0]
+    classif_values_end, counts_end = np.unique(arr_end["Classification"], return_counts=True)
+    count_66_end = counts_end[classif_values_end == virtual_points_classes] if virtual_points_classes in classif_values_end else 0
+    assert len(arr_end) == len(arr_ini) + len(points_clipped), "Number of points in the output file is not the expected one"
+    print("end ", len(arr_end), len(arr_end) - len(points_clipped),  " points total ")
+    print("end ", count_66_end, " points with class ", virtual_points_classes)
+    
+    # Convert points_clipped to numpy array format
+    points_clipped_np = np.array([
+        [row.geometry.x, row.geometry.y, row.geometry.z]
+        for idx, row in points_clipped.iterrows()
+    ])
+    
+    # Convert arr_end coordinates to numpy array
+    arr_ini_coords = np.array([
+        [x, y, z]
+        for idx, (x, y, z) in enumerate(zip(arr_ini['X'], arr_ini['Y'], arr_ini['Z']))
+    ])
+
+
+    # Convert arr_end coordinates to numpy array
+    arr_end_coords = np.array([
+        [x, y, z]
+        for idx, (x, y, z) in enumerate(zip(arr_end['X'], arr_end['Y'], arr_end['Z']))
+    ])
+    
+    print(len(arr_ini)-1, arr_end[len(arr_ini)-1])
+    print(len(arr_ini), arr_end[len(arr_ini)])
+    print(len(arr_ini)+1, arr_end[len(arr_ini)+1])
+
+    print("arr_end_coords ", arr_end_coords.shape)
+    print("points_clipped_np ", points_clipped_np.shape)
+
+    print("fisrt point add", points_clipped_np[0])
+
+
+    tol = 0.01
+
+    # Check if the first new point exists in arr_ini
+    print("\nChecking first new point:")
+    first_new_point = arr_end[len(arr_ini)]
+    print(f"First new point coordinates: X={first_new_point['X']}, Y={first_new_point['Y']}, Z={first_new_point['Z']}")
+    print(f"First new point classification: {first_new_point['Classification']}")
+    
+    # Check if this point exists in points_clipped_np
+    ini_match_idx = np.where(
+        (np.abs(points_clipped_np[:, 0] - first_new_point['X']) < tol) &
+        (np.abs(points_clipped_np[:, 1] - first_new_point['Y']) < tol) &
+        (np.abs(points_clipped_np[:, 2] - first_new_point['Z']) < tol)
+    )[0]
+    
+    if len(ini_match_idx) > 0:
+        print(f"WARNING: First new point found in points_clipped_np at index {ini_match_idx[0]}")
+        print(f"  Classification in points_clipped_np: {points_clipped_np[ini_match_idx[0]]}")
+    else:
+        print("First new point not found in points_clipped_np (expected)")
+    
+
+    # Check if this point exists in points_clipped_np
+    ini_match_idx = np.where(
+        (np.abs(arr_ini_coords[:, 0] - first_new_point['X']) < tol) &
+        (np.abs(arr_ini_coords[:, 1] - first_new_point['Y']) < tol) &
+        (np.abs(arr_ini_coords[:, 2] - first_new_point['Z']) < tol)
+    )[0]
+    
+    if len(ini_match_idx) > 0:
+        print(f"WARNING: First new point found in arr_ini at index {ini_match_idx[0]}")
+        print(f"  Classification in arr_ini: {arr_ini['Classification'][ini_match_idx[0]]}")
+    else:
+        print("First new point not found in arr_ini (expected)")
+
+
+    print("\nChecking points classification:")
+    for i, point in enumerate(points_clipped_np):
+        # Find matching point in arr_end
+        match_idx = np.where(
+            (np.abs(arr_end_coords[:, 0] - point[0]) < tol) &
+            (np.abs(arr_end_coords[:, 1] - point[1]) < tol) &
+            (np.abs(arr_end_coords[:, 2] - point[2]) < tol)
+        )[0]
+        #if len(match_idx) == 0:
+        print("point ", i, " ", point, "match ", match_idx)    
+
+
+    
 if __name__ == "__main__":
     args = parse_args()
     add_points_from_geometry_to_las(**vars(args))
