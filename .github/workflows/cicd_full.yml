@@ -32,8 +32,13 @@ jobs:
       id: build
       uses: docker/build-push-action@v5
       with:
+        context: .
+        file: ./Dockerfile.pdal
         load: true
         tags: ${{ env.TEST_TAG }}
+        build-args: |
+          GITHUB_REPOSITORY=alavenant/PDAL
+          GITHUB_SHA=master_07_05_25
 
     # run the test on the docker image
     - name: Run tests in docker image
@@ -66,4 +71,4 @@ jobs:
 
       - name: Run tests with pytest
         shell: micromamba-shell {0}
-        run: python -m pytest ./test -s --log-cli-level DEBUG
+        run: python -m pytest ./test -s -m "not pdal_custom" --log-cli-level DEBUG
