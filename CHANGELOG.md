@@ -1,3 +1,4 @@
+# 1.10.0
 - custom PDAL: fix CI for cicd_full (build docker image with custom PDAL, and skip custom PDAL test for local pytest)
 - las_rename_dimension: new tool to rename one or many dimensions
 
