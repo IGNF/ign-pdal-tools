@@ -1,5 +1,5 @@
 """Count occurences of each value of a given attribute in a set of pointclouds.
-Eg. to count points of each class in classified point clouds """
+Eg. to count points of each class in classified point clouds"""
 
 import argparse
 import json
