@@ -1,3 +1,7 @@
+
+# 1.9.1
+- las_add_points_to_pointcloud: Fix add points to LAS (use PDAL instead of Laspy)
+
 # 1.9.0
 - custom PDAL: in the docker image, compile custom PDAL (waiting for PDAL 2.9)
 

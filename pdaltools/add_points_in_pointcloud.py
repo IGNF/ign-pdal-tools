@@ -1,5 +1,6 @@
 import argparse
 from shutil import copy2
+import tempfile
 
 import geopandas as gpd
 import laspy
@@ -9,6 +10,8 @@ from pyproj.exceptions import CRSError
 from shapely.geometry import MultiPoint, Point, box
 
 from pdaltools.las_info import get_epsg_from_las, get_tile_bbox
+
+import pdal
 
 
 def parse_args(argv=None):
@@ -127,13 +130,12 @@ def add_points_to_las(
         crs (str): CRS of the data.
         virtual_points_classes (int): The classification value to assign to those virtual points (default: 66).
     """
-    # Copy data pointcloud
-    copy2(input_las, output_las)
 
     if input_points_with_z.empty:
         print(
             "No points to add. All points of the geojson file are outside the tile. Copying the input file to output"
         )
+        copy2(input_las, output_las)
         return
 
     # Extract XYZ coordinates and additional attribute (classification)
@@ -148,24 +150,30 @@ def add_points_to_las(
         header = las.header
         if not header:
             header = laspy.LasHeader(point_format=8, version="1.4")
+
+    new_points = laspy.ScaleAwarePointRecord.zeros(nb_points, header=header)  # use header for input_las
+    # then fill in the gaps (X, Y, Z an classification)
+    new_points.x = x_coords.astype(new_points.x.dtype)
+    new_points.y = y_coords.astype(new_points.y.dtype)
+    new_points.z = z_coords.astype(new_points.z.dtype)
+    new_points.classification = classes.astype(new_points.classification.dtype)
+
+    with tempfile.NamedTemporaryFile(suffix="_new_points.las") as tmp:
+        with laspy.open(tmp.name, mode="w", header=header) as las_file:
+            las_file.write_points(new_points)
+
         if crs:
-            try:
-                crs_obj = CRS.from_user_input(crs)  # Convert to a pyproj.CRS object
-            except CRSError:
-                raise ValueError(f"Invalid CRS: {crs}")
-            header.add_crs(crs_obj)
+            a_srs = crs
+        else:
+            a_srs = get_epsg_from_las(input_las)
 
-    # Add the new points with 3D points
-    with laspy.open(output_las, mode="a", header=header) as output_las:  # mode `a` for adding points
-        # create nb_points points with "0" everywhere
-        new_points = laspy.ScaleAwarePointRecord.zeros(nb_points, header=header)  # use header for input_las
-        # then fill in the gaps (X, Y, Z an classification)
-        new_points.x = x_coords.astype(new_points.x.dtype)
-        new_points.y = y_coords.astype(new_points.y.dtype)
-        new_points.z = z_coords.astype(new_points.z.dtype)
-        new_points.classification = classes.astype(new_points.classification.dtype)
-
-        output_las.append_points(new_points)
+        # Use pdal to merge the new points with the existing points
+        pipeline = pdal.Pipeline()
+        pipeline |= pdal.Reader.las(filename=input_las)
+        pipeline |= pdal.Reader.las(filename=tmp.name)
+        pipeline |= pdal.Filter.merge()
+        pipeline |= pdal.Writer.las(filename=output_las, forward="all", a_srs=a_srs)
+        pipeline.execute()
 
 
 def line_to_multipoint(line, spacing: float, z_value: float = None):

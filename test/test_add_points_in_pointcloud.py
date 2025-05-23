@@ -272,6 +272,22 @@ def test_add_points_from_geometry_to_las(input_file, input_points, epsg, expecte
         input_points, input_file, OUTPUT_FILE, 68, epsg, 1000, spacing, altitude_column
     )
     assert Path(OUTPUT_FILE).exists()  # check output exists
+    
+    # Read input and output files to compare headers
+    input_las = laspy.read(input_file)
+    output_las = laspy.read(OUTPUT_FILE)
+    
+    # Compare headers
+    assert input_las.header.version == output_las.header.version
+    assert input_las.header.system_identifier == output_las.header.system_identifier
+    assert input_las.header.extra_header_bytes == output_las.header.extra_header_bytes
+    assert input_las.header.extra_vlr_bytes == output_las.header.extra_vlr_bytes
+    assert input_las.header.number_of_evlrs == output_las.header.number_of_evlrs
+    assert input_las.header.point_format == output_las.header.point_format
+    assert np.array_equal(input_las.header.scales, output_las.header.scales)
+    assert np.array_equal(input_las.header.offsets, output_las.header.offsets)
+    assert input_las.header.vlrs[0].string == output_las.header.vlrs[0].string
+    
     point_count = compute_count_one_file(OUTPUT_FILE)["68"]
     assert point_count == expected_nb_points  # Add all points from geojson
 
