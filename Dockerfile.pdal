@@ -1,0 +1,100 @@
+# code from https://github.com/PDAL/PDAL/blob/master/scripts/docker/ubuntu/Dockerfile
+FROM condaforge/mambaforge:latest AS mamba_pdal
+
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+
+RUN conda create -n pdaltools -y
+ARG GITHUB_SHA
+ARG GITHUB_REPOSITORY="PDAL/PDAL"
+ARG GITHUB_SERVER_URL="https://github.com"
+
+SHELL ["conda", "run", "-n", "pdaltools", "/bin/bash", "-c"]
+
+RUN mamba install -c conda-forge git compilers conda-pack cmake make ninja sysroot_linux-64=2.17 && \
+    mamba install --yes -c conda-forge pdal --only-deps
+
+RUN git clone "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" pdal && \
+    cd pdal ; \
+    git checkout ${GITHUB_SHA}
+
+RUN mkdir -p pdal/build && \
+    cd pdal/build  && \
+    CXXFLAGS="-Werror=strict-aliasing" LDFLAGS="-Wl,-rpath-link,$CONDA_PREFIX/lib" cmake -G Ninja  \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_LIBRARY_PATH:FILEPATH="$CONDA_PREFIX/lib" \
+        -DCMAKE_INCLUDE_PATH:FILEPATH="$CONDA_PREFIX/include" \
+        -DCMAKE_INSTALL_PREFIX="$CONDA_PREFIX" \
+        -DBUILD_PLUGIN_CPD=OFF \
+        -DBUILD_PLUGIN_PGPOINTCLOUD=ON \
+        -DBUILD_PLUGIN_NITF=ON \
+        -DBUILD_PLUGIN_ICEBRIDGE=ON \
+        -DBUILD_PLUGIN_HDF=ON \
+        -DBUILD_PLUGIN_TILEDB=ON \
+        -DBUILD_PLUGIN_E57=ON \
+        -DBUILD_PGPOINTCLOUD_TESTS=OFF \
+        -DWITH_ZSTD=ON \
+        ..
+
+RUN cd pdal/build  && \
+    ninja
+
+RUN cd pdal/build  && \
+    ctest -V
+
+RUN cd pdal/build  && \
+    ninja install
+
+RUN git clone https://github.com/PDAL/python.git
+
+RUN mamba install --yes -c conda-forge pybind11
+
+RUN mkdir -p python/build && \
+    cd python/build  && \
+    CXXFLAGS="-Werror=strict-aliasing" LDFLAGS="-Wl,-rpath-link,$CONDA_PREFIX/lib" cmake -G Ninja  \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_LIBRARY_PATH:FILEPATH="$CONDA_PREFIX/lib" \
+        -DCMAKE_INCLUDE_PATH:FILEPATH="$CONDA_PREFIX/include" \
+        -DCMAKE_INSTALL_PREFIX="$CONDA_PREFIX/lib/python3.13/site-packages/" \
+        ..
+
+RUN cd python/build  && ninja
+
+RUN cd python/build  && ctest -V
+
+RUN cd python/build  && ninja install
+
+
+RUN git clone https://github.com/PDAL/python-plugins.git pdal-python && \
+    cd pdal-python && git checkout 1.6.2  && \
+    pip install -vv . --no-deps
+
+RUN conda-pack -n pdaltools --dest-prefix=/opt/conda/envs/pdaltools -o  /tmp/env.tar && \
+     mkdir /venv && cd /venv && tar xf /tmp/env.tar  && \
+     rm /tmp/env.tar
+
+
+# Add our environment
+RUN mamba install numpy requests gdal lastools geopandas pytest requests-mock tqdm pip
+# Install laspy with laszip laz compression (as laszip is an implementation of the laz 1.4 standard)
+RUN pip install laspy[lazrs]
+
+
+FROM debian:bullseye-slim
+
+# install PDAL
+COPY --from=mamba_pdal /opt/conda/envs/pdaltools/bin/pdal /opt/conda/envs/pdaltools/bin/pdal
+COPY --from=mamba_pdal /opt/conda/envs/pdaltools/bin/python /opt/conda/envs/pdaltools/bin/python
+COPY --from=mamba_pdal /opt/conda/envs/pdaltools/bin/las2las /opt/conda/envs/pdaltools/bin/las2las
+COPY --from=mamba_pdal /opt/conda/envs/pdaltools/bin/lasinfo /opt/conda/envs/pdaltools/bin/lasinfo
+COPY --from=mamba_pdal /opt/conda/envs/pdaltools/lib/ /opt/conda/envs/pdaltools/lib/
+COPY --from=mamba_pdal /opt/conda/envs/pdaltools/ssl /opt/conda/envs/pdaltools/ssl
+COPY --from=mamba_pdal /opt/conda/envs/pdaltools/share/proj/proj.db /opt/conda/envs/pdaltools/share/proj/proj.db
+
+ENV PATH=$PATH:/opt/conda/envs/pdaltools/bin/
+ENV PROJ_LIB=/opt/conda/envs/pdaltools/share/proj/
+ENV GDAL_DATA=/opt/conda/envs/pdaltools/share/gdal
+
+WORKDIR /pdaltools
+RUN mkdir tmp
+COPY pdaltools pdaltools
+COPY test test
