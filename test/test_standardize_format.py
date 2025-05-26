@@ -36,7 +36,7 @@ MUTLIPLE_PARAMS = [
         (DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS, ["dtm_marker", "new_dtm_marker", "dsm_marker", "new_dsm_marker"]),  # Multiple dimensions rename
     ],
 )
-def test_standardize_format_with_rename(params, rename_dims):
+def test_rename_dimension_in_rewrite_with_pdal(params, rename_dims):
     input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
     output_file = os.path.join(TMP_PATH, "formatted_with_rename.laz")
     
@@ -102,7 +102,7 @@ def setup_module(module):
         {"dataformat_id": 8, "a_srs": "EPSG:2154", "extra_dims": ["dtm_marker=double", "dsm_marker=double"]},
     ],
 )
-def test_standardize_format(params):
+def test_rewrite_with_pdal_format(params):
     input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
     output_file = os.path.join(TMP_PATH, "formatted.laz")
     rewrite_with_pdal(input_file, output_file, params, [])
@@ -187,6 +187,47 @@ def test_exec_las2las_error():
     with pytest.raises(RuntimeError):
         exec_las2las("not_existing_input_file", "output_file")
 
+def test_standardize_with_all_options():
+    """
+    Test standardize with all option
+    """
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
+    output_file = os.path.join(TMP_PATH, "test_standardize_with_all_extra_dims.laz")
+    
+    rename_dims = ["dtm_marker", "new_dtm_marker", "dsm_marker", "new_dsm_marker"]
+    remove_classes = ["64"]
+
+    # Standardize with all extra dimensions
+    params = DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS
+    standardize(input_file, output_file, params, remove_classes, rename_dims)
+    
+    # Check that there is the expected number of points for each class
+    expected_points_counts = compute_count_one_file(input_file)
+    for cl in remove_classes:
+        expected_points_counts.pop(str(cl))
+    output_points_counts = compute_count_one_file(output_file)
+    assert output_points_counts == expected_points_counts
+
+    # Get original dimensions
+    with laspy.open(input_file) as las_file:
+        original_las = las_file.read()
+        original_dims = original_las.point_format.dimension_names
+
+    # Verify all extra dimensions are preserved and renamed if needed
+    with laspy.open(output_file) as las_file:
+        las = las_file.read()
+        output_dims = las.point_format.dimension_names
+        
+        # Make dimensions case-insensitive (ex : red => Red with pdal transform)
+        output_dims = [dim.casefold() for dim in output_dims]
+        original_dims = [dim.casefold() for dim in original_dims]
+        
+        # Verify all original dimensions are present
+        for dim in original_dims:
+            # If dimension wasn't renamed and is not NIR (wich is 'infrared' in Some las files)
+            if dim not in rename_dims[::2] and dim != 'nir':  
+                assert dim in output_dims, f"Original dimension {dim} was removed unexpectedly"
+                    
 
 def test_standardize_does_NOT_produce_any_warning_with_Lasinfo():
     # bad file on the store (44 Mo)
@@ -200,14 +241,14 @@ def test_standardize_does_NOT_produce_any_warning_with_Lasinfo():
     # if you want to see input_file warnings
     # assert_lasinfo_no_warning(input_file)
 
-    standardize(input_file, output_file, DEFAULT_PARAMS, [])
+    standardize(input_file, output_file, DEFAULT_PARAMS, [], [])
     assert_lasinfo_no_warning(output_file)
 
 
 def test_standardize_malformed_laz():
     input_file = os.path.join(TEST_PATH, "data/test_pdalfail_0643_6319_LA93_IGN69.laz")
     output_file = os.path.join(TMP_PATH, "standardize_pdalfail_0643_6319_LA93_IGN69.laz")
-    standardize(input_file, output_file, DEFAULT_PARAMS, [])
+    standardize(input_file, output_file, DEFAULT_PARAMS, [], [])
     assert os.path.isfile(output_file)
 
 
