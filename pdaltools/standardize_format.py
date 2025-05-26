@@ -18,6 +18,7 @@ from typing import Dict, List
 import pdal
 
 from pdaltools.unlock_file import copy_and_hack_decorator
+from pdaltools.las_rename_dimension import rename_dimension
 
 # Standard parameters to pass to the pdal writer
 STANDARD_PARAMETERS = dict(
@@ -60,6 +61,12 @@ def parse_args():
         help="List of extra dims to keep in the output (default=[], use 'all' to keep all extra dims), "
         "extra_dims must be specified with their type (see pdal.writers.las documentation, eg 'dim1=double')",
     )
+    parser.add_argument(
+        "--rename_dims",
+        nargs="*",
+        action="append",
+        help="Rename dimensions in pairs: --rename_dims old_name new_name ...",
+    )
     return parser.parse_args()
 
 
@@ -73,11 +80,27 @@ def get_writer_parameters(new_parameters: Dict) -> Dict:
 
 
 def rewrite_with_pdal(
-    input_file: str, output_file: str, params_from_parser: Dict, classes_to_remove: List = []
+    input_file: str, output_file: str, params_from_parser: Dict, classes_to_remove: List = [], rename_dims: List = []
 ) -> None:
     params = get_writer_parameters(params_from_parser)
+    
+    # Create temporary file for dimension renaming if needed
+    if rename_dims:
+        with tempfile.NamedTemporaryFile(suffix=".laz", delete=False) as tmp_file:
+            tmp_file_name = tmp_file.name
+            
+            # Rename dimensions
+            old_dims = rename_dims[::2]
+            new_dims = rename_dims[1::2]
+            rename_dimension(input_file, tmp_file_name, old_dims, new_dims)
+            
+            # Use renamed file as input
+            input_file = tmp_file_name
+    else:
+        tmp_file_name = input_file
+
     pipeline = pdal.Pipeline()
-    pipeline |= pdal.Reader.las(input_file)
+    pipeline |= pdal.Reader.las(tmp_file_name)
     if classes_to_remove:
         expression = "&&".join([f"Classification != {c}" for c in classes_to_remove])
         pipeline |= pdal.Filter.expression(expression=expression)
@@ -116,4 +139,4 @@ if __name__ == "__main__":
         a_srs=args.projection,
         extra_dims=args.extra_dims,
     )
-    standardize(args.input_file, args.output_file, params_from_parser, args.class_points_removed)
+    standardize(args.input_file, args.output_file, params_from_parser, args.class_points_removed, args.rename_dims)
