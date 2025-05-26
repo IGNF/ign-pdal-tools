@@ -65,7 +65,7 @@ def parse_args():
         "--rename_dims",
         nargs="*",
         action="append",
-        help="Rename dimensions in pairs: --rename_dims old_name new_name ...",
+        help="Rename dimensions in pairs: --rename_dims old_name1 new_name1 old_name2 new_name2 ...",
     )
     return parser.parse_args()
 
