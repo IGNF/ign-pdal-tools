@@ -27,63 +27,6 @@ MUTLIPLE_PARAMS = [
     {"dataformat_id": 8, "a_srs": "EPSG:2154", "extra_dims": "all"},
 ]
 
-@pytest.mark.parametrize(
-    "params, rename_dims",
-    [
-        (DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS, []),  # No renaming
-        (DEFAULT_PARAMS, ["dtm_marker", "new_dtm_marker"]),  # Single dimension rename
-        (DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS, ["dtm_marker", "new_dtm_marker"]),  # Single dimension rename
-        (DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS, ["dtm_marker", "new_dtm_marker", "dsm_marker", "new_dsm_marker"]),  # Multiple dimensions rename
-    ],
-)
-def test_rename_dimension_in_rewrite_with_pdal(params, rename_dims):
-    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
-    output_file = os.path.join(TMP_PATH, "formatted_with_rename.laz")
-    
-    # Check if we export all extra dims
-    export_with_all_extra_dims = params["extra_dims"] == "all"
-
-    # Get original dimensions
-    with laspy.open(input_file) as las_file:
-        las = las_file.read()
-        original_dims = las.point_format.dimension_names
-    
-    # Standardize with dimension renaming
-    rewrite_with_pdal(input_file, output_file, params, [], rename_dims)
-    
-    # Verify dimensions were renamed
-    with laspy.open(output_file) as las_file:
-        las = las_file.read()
-
-        for i in range(0, len(rename_dims), 2):
-            old_dim = rename_dims[i]
-            new_dim = rename_dims[i + 1]
-            if export_with_all_extra_dims:
-                assert new_dim in las.point_format.dimension_names
-                assert old_dim not in las.point_format.dimension_names
-            else:
-                assert new_dim not in las.point_format.dimension_names
-                assert old_dim not in las.point_format.dimension_names
-
-        new_dims = las.point_format.dimension_names
-
-        # Make dimensions case-insensitive (ex : red => Red with pdal transform)
-        new_dims = [dim.casefold() for dim in new_dims]
-        original_dims = [dim.casefold() for dim in original_dims]
-
-        # Check that other dimensions are preserved
-        if export_with_all_extra_dims:
-            for dim in original_dims:
-                # If dimension wasn't renamed and is not NIR (wich is 'infrared' in Some las files)
-                if dim not in rename_dims[::2] and dim != 'nir':  
-                    assert dim in new_dims, f"Original dimension {dim} was removed unexpectedly"
-
-
-    # Verify points count is preserved
-    original_count = compute_count_one_file(input_file)
-    new_count = compute_count_one_file(output_file)
-    assert original_count == new_count, "Points count changed unexpectedly"
-
 def setup_module(module):
     try:
         shutil.rmtree(TMP_PATH)
@@ -136,6 +79,63 @@ def test_rewrite_with_pdal_format(params):
 
     # TODO: Check srs
     # TODO: check precision
+
+@pytest.mark.parametrize(
+    "params, rename_dims",
+    [
+        (DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS, []),  # No renaming
+        (DEFAULT_PARAMS, ["dtm_marker", "new_dtm_marker"]),  # Single dimension rename
+        (DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS, ["dtm_marker", "new_dtm_marker"]),  # Single dimension rename
+        (DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS, ["dtm_marker", "new_dtm_marker", "dsm_marker", "new_dsm_marker"]),  # Multiple dimensions rename
+    ],
+)
+def test_rewrite_with_pdal_rename_dimensions(params, rename_dims):
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
+    output_file = os.path.join(TMP_PATH, "formatted_with_rename.laz")
+    
+    # Check if we export all extra dims
+    export_with_all_extra_dims = params["extra_dims"] == "all"
+
+    # Get original dimensions
+    with laspy.open(input_file) as las_file:
+        las = las_file.read()
+        original_dims = las.point_format.dimension_names
+    
+    # Standardize with dimension renaming
+    rewrite_with_pdal(input_file, output_file, params, [], rename_dims)
+    
+    # Verify dimensions were renamed
+    with laspy.open(output_file) as las_file:
+        las = las_file.read()
+
+        for i in range(0, len(rename_dims), 2):
+            old_dim = rename_dims[i]
+            new_dim = rename_dims[i + 1]
+            if export_with_all_extra_dims:
+                assert new_dim in las.point_format.dimension_names
+                assert old_dim not in las.point_format.dimension_names
+            else:
+                assert new_dim not in las.point_format.dimension_names
+                assert old_dim not in las.point_format.dimension_names
+
+        new_dims = las.point_format.dimension_names
+
+        # Make dimensions case-insensitive (ex : red => Red with pdal transform)
+        new_dims = [dim.casefold() for dim in new_dims]
+        original_dims = [dim.casefold() for dim in original_dims]
+
+        # Check that other dimensions are preserved
+        if export_with_all_extra_dims:
+            for dim in original_dims:
+                # If dimension wasn't renamed and is not NIR (wich is 'infrared' in Some las files)
+                if dim not in rename_dims[::2] and dim != 'nir':  
+                    assert dim in new_dims, f"Original dimension {dim} was removed unexpectedly"
+
+
+    # Verify points count is preserved
+    original_count = compute_count_one_file(input_file)
+    new_count = compute_count_one_file(output_file)
+    assert original_count == new_count, "Points count changed unexpectedly"
 
 
 @pytest.mark.parametrize(
