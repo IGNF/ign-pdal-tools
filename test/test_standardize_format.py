@@ -125,12 +125,13 @@ def test_rewrite_with_pdal_rename_dimensions(params, rename_dims):
         # Make dimensions case-insensitive (ex : red => Red with pdal transform)
         new_dims_lowercase = [dim.casefold() for dim in new_dims]
         original_dims_lowercase = [dim.casefold() for dim in original_dims]
+        rename_dims_lowercase = [dim.casefold() for dim in rename_dims]
 
         # Check that other dimensions are preserved
         if export_with_all_extra_dims:
             for dim in original_dims_lowercase:
                 # If dimension wasn't renamed and is not NIR (wich is 'infrared' in Some las files)
-                if dim not in rename_dims[::2] and dim != 'nir':  
+                if dim not in rename_dims_lowercase[::2] and dim != 'nir':  
                     assert dim in new_dims_lowercase, f"Original dimension {dim} was removed unexpectedly"
 
 
