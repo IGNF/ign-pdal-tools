@@ -1,11 +1,11 @@
 """Re-write las file with expected format:
-    - laz version
-    - [TODO] nomenclature ???
-    - record format
-    - global encoding
-    - projection
-    - precision
-    - no extra-dims
+- laz version
+- [TODO] nomenclature ???
+- record format
+- global encoding
+- projection
+- precision
+- no extra-dims
 """
 
 import argparse
@@ -63,8 +63,9 @@ def parse_args():
     )
     parser.add_argument(
         "--rename_dims",
+        default=[],
         nargs="*",
-        action="append",
+        type=str,
         help="Rename dimensions in pairs: --rename_dims old_name1 new_name1 old_name2 new_name2 ...",
     )
     return parser.parse_args()
@@ -83,17 +84,17 @@ def rewrite_with_pdal(
     input_file: str, output_file: str, params_from_parser: Dict, classes_to_remove: List = [], rename_dims: List = []
 ) -> None:
     params = get_writer_parameters(params_from_parser)
-    
+
     # Create temporary file for dimension renaming if needed
     if rename_dims:
         with tempfile.NamedTemporaryFile(suffix=".laz", delete=False) as tmp_file:
             tmp_file_name = tmp_file.name
-            
+
             # Rename dimensions
             old_dims = rename_dims[::2]
             new_dims = rename_dims[1::2]
             rename_dimension(input_file, tmp_file_name, old_dims, new_dims)
-            
+
             # Use renamed file as input
             input_file = tmp_file_name
     else:
@@ -125,14 +126,16 @@ def exec_las2las(input_file: str, output_file: str):
 
 
 @copy_and_hack_decorator
-def standardize(input_file: str, output_file: str, params_from_parser: Dict, class_points_removed: [], rename_dims: []) -> None:
+def standardize(
+    input_file: str, output_file: str, params_from_parser: Dict, class_points_removed: [], rename_dims: []
+) -> None:
     filename = os.path.basename(output_file)
     with tempfile.NamedTemporaryFile(suffix=filename) as tmp:
         rewrite_with_pdal(input_file, tmp.name, params_from_parser, class_points_removed, rename_dims)
         exec_las2las(tmp.name, output_file)
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
     params_from_parser = dict(
         dataformat_id=args.record_format,
@@ -140,3 +143,7 @@ if __name__ == "__main__":
         extra_dims=args.extra_dims,
     )
     standardize(args.input_file, args.output_file, params_from_parser, args.class_points_removed, args.rename_dims)
+
+
+if __name__ == "__main__":
+    main()

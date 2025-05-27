@@ -7,11 +7,13 @@ from test.utils import EXPECTED_DIMS_BY_DATAFORMAT, get_pdal_infos_summary
 import laspy
 import pdal
 import pytest
+import tempfile
+import sys
 
 from pdaltools.count_occurences.count_occurences_for_attribute import (
     compute_count_one_file,
 )
-from pdaltools.standardize_format import exec_las2las, rewrite_with_pdal, standardize
+from pdaltools.standardize_format import exec_las2las, rewrite_with_pdal, standardize, main
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMP_PATH = os.path.join(TEST_PATH, "tmp")
@@ -250,6 +252,84 @@ def test_standardize_malformed_laz():
     output_file = os.path.join(TMP_PATH, "standardize_pdalfail_0643_6319_LA93_IGN69.laz")
     standardize(input_file, output_file, DEFAULT_PARAMS, [], [])
     assert os.path.isfile(output_file)
+
+
+def test_main_with_rename_dimensions():
+    """
+    Test the main function with dimension renaming
+    """
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
+    output_file = os.path.join(TMP_PATH, "test_main_with_rename.laz")
+    
+    # Save original sys.argv
+    original_argv = sys.argv
+    
+    try:
+        # Set up mock command-line arguments
+        sys.argv = [
+            "standardize_format",
+            "--input_file", input_file,
+            "--output_file", output_file,
+            "--record_format", "6",
+            "--projection", "EPSG:2154",
+            "--extra_dims", "all",
+            "--rename_dims", "dtm_marker", "new_dtm_marker", "dsm_marker", "new_dsm_marker"
+        ]
+        
+        # Run main function
+        main()
+        
+        # Verify output file exists
+        assert os.path.isfile(output_file)
+        
+        # Verify dimensions were renamed
+        with laspy.open(output_file) as las_file:
+            las = las_file.read()
+            assert "new_dsm_marker" in las.point_format.dimension_names
+            assert "new_dtm_marker" in las.point_format.dimension_names
+            assert "dtm_marker" not in las.point_format.dimension_names
+            assert "dsm_marker" not in las.point_format.dimension_names
+            
+    finally:
+        # Restore original sys.argv
+        sys.argv = original_argv
+
+
+def test_main_with_class_points_removed():
+    """
+    Test the main function with class points removed
+    """
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
+    output_file = os.path.join(TMP_PATH, "test_main_with_class_remove.laz")
+    
+    # Save original sys.argv
+    original_argv = sys.argv
+    
+    try:
+        # Set up mock command-line arguments
+        sys.argv = [
+            "standardize_format",
+            "--input_file", input_file,
+            "--output_file", output_file,
+            "--record_format", "6",
+            "--projection", "EPSG:2154",
+            "--class_points_removed", "64"
+        ]
+        
+        # Run main function
+        main()
+        
+        # Verify output file exists
+        assert os.path.isfile(output_file)
+        
+        # Verify points count is reduced
+        original_count = compute_count_one_file(input_file)
+        new_count = compute_count_one_file(output_file)
+        assert new_count < original_count, "Points count should be reduced after removing class 64"
+        
+    finally:
+        # Restore original sys.argv
+        sys.argv = original_argv
 
 
 if __name__ == "__main__":
