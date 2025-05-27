@@ -1,3 +1,4 @@
+# 1.10.1
 - standardize_format: add dimension renaming option
 
 # 1.10.0
