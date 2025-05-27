@@ -129,8 +129,9 @@ def test_rewrite_with_pdal_rename_dimensions(params, rename_dims):
         # Check that other dimensions are preserved
         if export_with_all_extra_dims:
             for dim in original_dims_lowercase:
+                old_dims_renammed = rename_dims[::2]
                 # If dimension wasn't renamed and is not NIR (wich is 'infrared' in Some las files)
-                if dim not in rename_dims[::2] and dim != 'nir':  
+                if dim not in old_dims_renammed and dim != 'nir':  
                     assert dim in new_dims_lowercase, f"Original dimension {dim} was removed unexpectedly"
 
 
