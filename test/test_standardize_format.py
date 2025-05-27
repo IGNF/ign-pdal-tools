@@ -219,18 +219,18 @@ def test_standardize_with_all_options():
     # Verify all extra dimensions are preserved and renamed if needed
     with laspy.open(output_file) as las_file:
         las = las_file.read()
-        output_dims = las.point_format.dimension_names
+        new_dims = las.point_format.dimension_names
         
         # Make dimensions case-insensitive (ex : red => Red with pdal transform)
-        output_dims = [dim.casefold() for dim in output_dims]
-        original_dims = [dim.casefold() for dim in original_dims]
+        new_dims_lowercase = [dim.casefold() for dim in new_dims]
+        original_dims_lowercase = [dim.casefold() for dim in original_dims]
         
         # Verify all original dimensions are present
-        for dim in original_dims:
+        for dim in original_dims_lowercase:
             old_dims_renammed = rename_dims[::2]
             # If dimension wasn't renamed and is not NIR (wich is 'infrared' in Some las files)
             if dim not in old_dims_renammed and dim != 'nir':
-                assert dim in output_dims, f"Original dimension {dim} was removed unexpectedly"
+                assert dim in new_dims_lowercase, f"Original dimension {dim} was removed unexpectedly"
                     
 
 def test_standardize_does_NOT_produce_any_warning_with_Lasinfo():
