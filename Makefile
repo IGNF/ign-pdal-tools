@@ -63,9 +63,12 @@ docker-build: clean
 	docker build --no-cache -t ${IMAGE_NAME}:${VERSION} -f Dockerfile .
 
 docker-build-pdal: clean
-	docker build --build-arg GITHUB_REPOSITORY=alavenant/PDAL --build-arg GITHUB_SHA=master_07_05_25 -t ${IMAGE_NAME}:${VERSION} -f Dockerfile.pdal .
+	docker build --build-arg GITHUB_REPOSITORY=alavenant/PDAL --build-arg GITHUB_SHA=master_28_05_25 -t ${IMAGE_NAME}:${VERSION} -f Dockerfile.pdal .
 
-docker-test-pdal: clean
+docker-test-pdal-version: clean
+	docker run --rm  -t ${IMAGE_NAME}:${VERSION} pdal --version
+
+docker-test-fast: clean
 	docker run --rm  -t ${IMAGE_NAME}:${VERSION} python -m pytest -m "not geopf" --log-cli-level=debug
 
 docker-test:
