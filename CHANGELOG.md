@@ -1,3 +1,9 @@
+# 1.11.1
+- fix Dockerfile for custom PDAL compilation: update custom branch, update python-plugins to version 1.6.5
+
+# 1.11.0
+- standardize_format: add dimension renaming option
+
 # 1.10.0
 - custom PDAL: fix CI for cicd_full (build docker image with custom PDAL, and skip custom PDAL test for local pytest)
 - las_rename_dimension: new tool to rename one or many dimensions
