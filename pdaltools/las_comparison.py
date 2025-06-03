@@ -1,13 +1,13 @@
 import laspy
 from pathlib import Path
 import numpy as np
-import logging
 import argparse
 
 def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) -> bool:
     """
     Compare specified dimensions between two LAS files.
     If no dimensions are specified, compares all available dimensions.
+    Sorts points by x,y,z coordinates before comparison to ensure point order consistency.
     
     Args:
         file1: Path to the first LAS file
@@ -24,9 +24,14 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
         
         # Check if files have the same number of points
         if len(las1) != len(las2):
-            logging.error(f"Files have different number of points: {len(las1)} vs {len(las2)}")
+            print(f"Files have different number of points: {len(las1)} vs {len(las2)}")
             return False
             
+        # Sort points by x,y,z coordinates
+        # Create sorting indices
+        sort_idx1 = np.lexsort((las1.x, las1.y, las1.z))
+        sort_idx2 = np.lexsort((las2.x, las2.y, las2.z))
+        
         # If no dimensions specified, compare all dimensions
         if dimensions is None:
             dimensions = las1.point_format.dimension_names
@@ -34,30 +39,32 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
         # Compare each dimension
         for dim in dimensions:
             try:
-                # Get dimension arrays
-                dim1 = np.array(las1[dim])
-                dim2 = np.array(las2[dim])
+                # Get sorted dimension arrays
+                dim1 = np.array(las1[dim])[sort_idx1]
+                dim2 = np.array(las2[dim])[sort_idx2]
                 
+                print(dim1)
+                print(dim2)
+
                 # Compare dimensions
                 if not np.array_equal(dim1, dim2):
                     # Find differences
                     diff_indices = np.where(dim1 != dim2)[0]
-                    logging.info(f"Found {len(diff_indices)} points with different {dim}:")
+                    print(f"Found {len(diff_indices)} points with different {dim}:")
                     for idx in diff_indices[:10]:  # Show first 10 differences
-                        logging.info(f"Point {idx}: file1={dim1[idx]}, file2={dim2[idx]}")
+                        print(f"Point {idx}: file1={dim1[idx]}, file2={dim2[idx]}")
                     if len(diff_indices) > 10:
-                        logging.info(f"... and {len(diff_indices) - 10} more differences")
+                        print(f"... and {len(diff_indices) - 10} more differences")
                     return False
                     
             except KeyError:
-                logging.error(f"Dimension '{dim}' not found in one or both files")
+                print(f"Dimension '{dim}' not found in one or both files")
                 return False
                 
-        logging.info("All specified dimensions are identical in both files")
         return True
         
     except Exception as e:
-        logging.error(f"Error comparing LAS files: {str(e)}")
+        print(f"Error comparing LAS files: {str(e)}")
         return False
 
 # Update main function to use the new compare function
@@ -78,6 +85,7 @@ def main():
     
     result = compare_las_dimensions(file1, file2, args.dimensions)
     print(f"Dimensions comparison result: {'identical' if result else 'different'}")
+    return result
 
 if __name__ == "__main__":
     main()
