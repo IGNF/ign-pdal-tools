@@ -1,3 +1,6 @@
+
+- fix Dockerfile for custom PDAL compilation: update custom branch, update python-plugins to version 1.6.5
+
 # 1.11.0
 - standardize_format: add dimension renaming option
 

@@ -32,7 +32,7 @@ jobs:
         tags: ${{ env.TEST_TAG }}
         build-args: |
           GITHUB_REPOSITORY=alavenant/PDAL
-          GITHUB_SHA=master_07_05_25
+          GITHUB_SHA=master_28_05_25
 
     # run the test on the docker image
     - name: Run tests in docker image
@@ -74,7 +74,7 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
           GITHUB_REPOSITORY=alavenant/PDAL
-          GITHUB_SHA=master_07_05_25
+          GITHUB_SHA=master_28_05_25
 
   deploy-pypi:
 

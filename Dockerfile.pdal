@@ -13,6 +13,9 @@ SHELL ["conda", "run", "-n", "pdaltools", "/bin/bash", "-c"]
 RUN mamba install -c conda-forge git compilers conda-pack cmake make ninja sysroot_linux-64=2.17 && \
     mamba install --yes -c conda-forge pdal --only-deps
 
+RUN rm -rf /opt/conda/envs/pdaltools/lib/libpdal*
+RUN rm -rf /opt/conda/envs/pdaltools/lib/libpdal_plugin*
+
 RUN git clone "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" pdal && \
     cd pdal ; \
     git checkout ${GITHUB_SHA}
@@ -63,14 +66,9 @@ RUN cd python/build  && ctest -V
 
 RUN cd python/build  && ninja install
 
-
 RUN git clone https://github.com/PDAL/python-plugins.git pdal-python && \
-    cd pdal-python && git checkout 1.6.2  && \
+    cd pdal-python && git checkout 1.6.5  && \
     pip install -vv . --no-deps
-
-RUN conda-pack -n pdaltools --dest-prefix=/opt/conda/envs/pdaltools -o  /tmp/env.tar && \
-     mkdir /venv && cd /venv && tar xf /tmp/env.tar  && \
-     rm /tmp/env.tar
 
 
 # Add our environment
