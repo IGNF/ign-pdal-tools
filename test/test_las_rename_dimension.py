@@ -4,7 +4,7 @@ import tempfile
 import numpy as np
 import laspy
 import sys
-from pdaltools.las_rename_dimension import rename_dimension, main
+from pdaltools.las_rename_dimension import rename_dimension, main, list_available_dimensions
 from pyproj import CRS
 
 def create_test_las_file():
@@ -73,11 +73,14 @@ def test_rename_nonexistent_dimension():
         output_file = tmp_file.name
     
     try:
-        with pytest.raises(RuntimeError):
-            rename_dimension(input_file, output_file, ["nonexistent_dim"], ["new_dim"])
+        rename_dimension(input_file, output_file, ["nonexistent_dim"], ["new_dim"])
+        output_dims = list_available_dimensions(output_file)   
+        assert "new_dim" not in output_dims
     finally:
         os.unlink(input_file)
         os.unlink(output_file)
+
+
 
 def test_rename_to_existing_dimension():
     """Test attempting to rename to an existing dimension."""
@@ -101,8 +104,9 @@ def test_rename_dimension_case_sensitive():
         output_file = tmp_file.name
     
     try:
-        with pytest.raises(RuntimeError):
-            rename_dimension(input_file, output_file, ["TEST_DIM"], ["new_dim"])
+        rename_dimension(input_file, output_file, ["TEST_DIM"], ["new_dim"])
+        output_dims = list_available_dimensions(output_file)   
+        assert "new_dim" not in output_dims
     finally:
         os.unlink(input_file)
         os.unlink(output_file)
