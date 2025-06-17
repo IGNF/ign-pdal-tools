@@ -38,7 +38,6 @@ def get_random_points(points: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 def test_identical_dimensions():
     """Test that identical dimensions return True"""
-    # Create two identical LAS files
     points = 10
     x, y, z = get_random_points(points)
     dimensions = {
@@ -65,7 +64,6 @@ def test_identical_dimensions():
 
 def test_identical_dimensions_not_sorted():
     """Test that identical dimensions return True"""
-    # Create two identical LAS files
     points = 10
     x, y, z = get_random_points(points)
     dimensions = {
@@ -98,7 +96,6 @@ def test_identical_dimensions_not_sorted():
 
 def test_different_dimensions_random():
     """Test that files with random dimensions return False"""
-    # Create two LAS files with random dimensions
     points = 100
     x, y, z = get_random_points(points)
     
@@ -133,7 +130,6 @@ def test_different_dimensions_random():
 
 def test_different_number_of_points():
     """Test that files with different number of points return False"""
-    # Create LAS files with different number of points
     points = 100
     x1, y1, z1 = get_random_points(points)
     x2, y2, z2 = get_random_points(points + 1)
@@ -150,7 +146,6 @@ def test_different_number_of_points():
 
 def test_different_dimensions_number():
     """Test that files with different number of dimensions return False"""
-    # Create two LAS files with random dimensions
     points = 100
     x, y, z = get_random_points(points)
     
@@ -180,7 +175,6 @@ def test_different_dimensions_number():
 
 def test_one_empty_file():
     """Test that one empty file returns False"""
-    # Create one empty and one non-empty file
     points = 100
     x = np.random.rand(points) * 1000
     y = np.random.rand(points) * 1000
@@ -198,9 +192,8 @@ def test_one_empty_file():
 
 def test_both_empty_files():
     """Test that two empty files return True"""
-    # Create two empty files
-    file1 = create_test_las_file([], [], [])
-    file2 = create_test_las_file([], [], [])
+    file1 = create_test_las_file(np.array([]), np.array([]), np.array([]))
+    file2 = create_test_las_file(np.array([]), np.array([]), np.array([]))
     
     try:
         result = compare_las_dimensions(file1, file2)
@@ -212,7 +205,6 @@ def test_both_empty_files():
 
 def test_single_point():
     """Test with single point files"""
-    # Create two files with single point
     points = 1
     x = np.random.rand(points) * 1000
     y = np.random.rand(points) * 1000
