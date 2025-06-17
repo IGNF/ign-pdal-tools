@@ -71,8 +71,14 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
                 
         return True
         
-    except Exception as e:
-        print(f"Error comparing LAS files: {str(e)}")
+    except laspy.errors.LaspyException as e:
+        print(f"LAS file error: {str(e)}")
+        return False
+    except FileNotFoundError as e:
+        print(f"File not found: {str(e)}")
+        return False
+    except ValueError as e:
+        print(f"Value error: {str(e)}")
         return False
 
 # Update main function to use the new compare function
