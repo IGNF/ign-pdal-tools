@@ -148,6 +148,36 @@ def test_different_number_of_points():
         file1.unlink()
         file2.unlink()
 
+def test_different_dimensions_number():
+    """Test that files with different number of dimensions return False"""
+    # Create two LAS files with random dimensions
+    points = 100
+    x, y, z = get_random_points(points)
+    
+    # Create file1 with random dimensions
+    dimensions1 = {
+        'classification': np.random.randint(0, 10, points),
+        'intensity': np.random.randint(0, 255, points),
+        'return_number': np.random.randint(1, 5, points)
+    }
+    file1 = create_test_las_file(x, y, z, dimensions1)
+    
+    # Create file2 only 2 dimensions
+    dimensions2 = {
+        'classification': np.random.randint(0, 10, points),  # Different classification
+        'intensity': dimensions1['intensity'],  # Same intensity
+    }
+    file2 = create_test_las_file(x, y, z, dimensions2)
+    
+    try:
+        # Test full comparison (should be different)
+        result = compare_las_dimensions(file1, file2)
+        assert result is False, "Files with different dimensions should return False"
+    finally:
+        # Clean up
+        file1.unlink()
+        file2.unlink()
+
 def test_one_empty_file():
     """Test that one empty file returns False"""
     # Create one empty and one non-empty file
@@ -227,6 +257,16 @@ def test_main_function():
             result = main()
             assert result is True
         
+        sys.argv = ['script_name', str(file1), str(file2), '--dimensions', 'classification']
+        with redirect_stdout(StringIO()) as f:
+            result = main()
+            assert result is True
+
+        sys.argv = ['script_name', str(file1), str(file2), '--dimensions', 'classification', 'intensity']
+        with redirect_stdout(StringIO()) as f:
+            result = main()
+            assert result is True
+
         # Test with different files
         sys.argv = ['script_name', str(file1), str(file3)]
         with redirect_stdout(StringIO()) as f:

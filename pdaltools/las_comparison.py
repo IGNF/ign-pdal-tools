@@ -33,9 +33,20 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
         sort_idx2 = np.lexsort((las2.x, las2.y, las2.z))
         
         # If no dimensions specified, compare all dimensions
+        dimensions_las1 = sorted(las1.point_format.dimension_names)
+        dimensions_las2 = sorted(las2.point_format.dimension_names)
+        
         if dimensions is None:
-            dimensions = las1.point_format.dimension_names
-            
+            if dimensions_las1 != dimensions_las2:
+                print("Files have different dimensions")
+                return False
+            dimensions = dimensions_las1 
+        else:
+            for dim in dimensions:
+                if dim not in dimensions_las1 or dim not in dimensions_las2:
+                    print(f"dimensions: {dimensions} not in {las1.point_format.dimension_names}")
+                    return False    
+
         # Compare each dimension
         for dim in dimensions:
             try:
@@ -43,9 +54,6 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
                 dim1 = np.array(las1[dim])[sort_idx1]
                 dim2 = np.array(las2[dim])[sort_idx2]
                 
-                print(dim1)
-                print(dim2)
-
                 # Compare dimensions
                 if not np.array_equal(dim1, dim2):
                     # Find differences
