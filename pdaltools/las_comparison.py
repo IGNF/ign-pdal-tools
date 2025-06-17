@@ -44,7 +44,7 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
         else:
             for dim in dimensions:
                 if dim not in dimensions_las1 or dim not in dimensions_las2:
-                    print(f"dimensions: {dimensions} not in {las1.point_format.dimension_names}")
+                    print(f"Dimension '{dim}' is not found in one or both files. Available dimensions: {las1.point_format.dimension_names}")
                     return False    
 
         # Compare each dimension
