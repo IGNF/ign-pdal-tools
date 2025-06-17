@@ -186,7 +186,7 @@ def test_one_empty_file():
     y = np.random.rand(points) * 1000
     z = np.random.rand(points) * 100
     file1 = create_test_las_file(x, y, z)
-    file2 = create_test_las_file([], [], [])
+    file2 = create_test_las_file(np.array([]), np.array([]), np.array([]))
     
     try:
         result = compare_las_dimensions(file1, file2)
