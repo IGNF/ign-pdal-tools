@@ -29,8 +29,8 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
             
         # Sort points by x,y,z coordinates
         # Create sorting indices
-        sort_idx1 = np.lexsort((las1.x, las1.y, las1.z))
-        sort_idx2 = np.lexsort((las2.x, las2.y, las2.z))
+        sort_idx1 = np.lexsort((las1.z, las1.y, las1.x))
+        sort_idx2 = np.lexsort((las2.z, las2.y, las2.x))
         
         # If no dimensions specified, compare all dimensions
         dimensions_las1 = sorted(las1.point_format.dimension_names)
