@@ -7,7 +7,7 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
     """
     Compare specified dimensions between two LAS files.
     If no dimensions are specified, compares all available dimensions.
-    Sorts points by x,y,z coordinates before comparison to ensure point order consistency.
+    Sorts points by x,y,z,gps_time coordinates before comparison to ensure point order consistency.
     
     Args:
         file1: Path to the first LAS file
@@ -27,7 +27,7 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
             print(f"Files have different number of points: {len(las1)} vs {len(las2)}")
             return False
             
-        # Sort points by x,y,z coordinates
+        # Sort points by x,y,z,gps_time coordinates
         # Create sorting indices
         sort_idx1 = np.lexsort((las1.z, las1.y, las1.x, las1.gps_time))
         sort_idx2 = np.lexsort((las2.z, las2.y, las2.x, las2.gps_time))
