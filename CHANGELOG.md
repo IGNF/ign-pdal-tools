@@ -1,3 +1,6 @@
+- fix standardize_format 
+- update las_rename_dimension : the code no longer returns an error if the dimension is not present, but no change is made 
+
 # 1.11.1
 - fix Dockerfile for custom PDAL compilation: update custom branch, update python-plugins to version 1.6.5
 

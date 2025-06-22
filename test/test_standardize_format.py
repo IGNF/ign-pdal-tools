@@ -297,6 +297,39 @@ def test_main_with_rename_dimensions():
         sys.argv = original_argv
 
 
+def test_main_with_rename_dimensions_empty():
+    """
+    Test the main function with dimension renaming
+    """
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
+    output_file = os.path.join(TMP_PATH, "test_main_with_rename.laz")
+    
+    # Save original sys.argv
+    original_argv = sys.argv
+    
+    try:
+        # Set up mock command-line arguments
+        sys.argv = [
+            "standardize_format",
+            "--input_file", input_file,
+            "--output_file", output_file,
+            "--record_format", "6",
+            "--projection", "EPSG:2154",
+            "--extra_dims", "all",
+            "--rename_dims",
+        ]
+        
+        # Run main function
+        main()
+        
+        # Verify output file exists
+        assert os.path.isfile(output_file)
+                    
+    finally:
+        # Restore original sys.argv
+        sys.argv = original_argv
+
+
 def test_main_with_class_points_removed():
     """
     Test the main function with class points removed

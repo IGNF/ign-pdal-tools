@@ -89,14 +89,11 @@ def rewrite_with_pdal(
     if rename_dims:
         with tempfile.NamedTemporaryFile(suffix=".laz", delete=False) as tmp_file:
             tmp_file_name = tmp_file.name
-
+            
             # Rename dimensions
             old_dims = rename_dims[::2]
             new_dims = rename_dims[1::2]
             rename_dimension(input_file, tmp_file_name, old_dims, new_dims)
-
-            # Use renamed file as input
-            input_file = tmp_file_name
     else:
         tmp_file_name = input_file
 
