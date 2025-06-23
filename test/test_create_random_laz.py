@@ -101,7 +101,3 @@ def test_create_random_laz_data_ranges():
         # Check uint data is in expected range (0 to 100)
         assert np.all(las.uint_dim >= 0)
         assert np.all(las.uint_dim <= 100)
-
-
-if __name__ == "__main__":
-    pytest.main([__file__]) 
