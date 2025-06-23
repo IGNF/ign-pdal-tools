@@ -71,21 +71,41 @@ def create_random_laz(output_file: str, num_points: int = 100, extra_dims: Union
         
     # Write to file
     las.write(output_file)
-    print(f"Successfully created test LAZ file at {output_file}")
-    print(f"Number of points: {num_points}")
-    print(f"Dimensions available: {list(las.point_format.dimension_names)}")
-    
-    # Print available dimensions
-    print("\nAvailable dimensions in input file:")
-    pipeline = pdal.Pipeline() | pdal.Reader.las(output_file)
-    pipeline.execute()
-    points = pipeline.arrays[0]
-    dimensions = list(points.dtype.fields.keys())
-    for dim in dimensions:
-        print(f"- {dim}")
+    dimensions = list(las.point_format.dimension_names)
+    return {
+        "output_file": output_file,
+        "num_points": num_points,
+        "dimensions": dimensions,
+    }
 
 
 def main():
+    # Parse arguments (assuming argparse is used)
+    parser = argparse.ArgumentParser(description="Create a random LAZ file.")
+    parser.add_argument("output_file", type=str, help="Path to save the LAZ file")
+    parser.add_argument("--num_points", type=int, default=100, help="Number of points to generate")
+    parser.add_argument("--extra_dims", type=str, nargs="*", default=[], help="Extra dimensions in the format name:type")
+    args = parser.parse_args()
+    
+    # Parse extra dimensions
+    extra_dims = [tuple(dim.split(":")) for dim in args.extra_dims]
+    
+    # Call create_random_laz
+    result = create_random_laz(args.output_file, args.num_points, extra_dims)
+    
+    # Print results
+    print(f"Successfully created test LAZ file at {result['output_file']}")
+    print(f"Number of points: {result['num_points']}")
+    print(f"Dimensions available: {result['dimensions']}")
+    
+    # Print available dimensions using PDAL
+    pipeline = pdal.Pipeline() | pdal.Reader.las(result['output_file'])
+    pipeline.execute()
+    points = pipeline.arrays[0]
+    dimensions = list(points.dtype.fields.keys())
+    print("\nAvailable dimensions in input file:")
+    for dim in dimensions:
+        print(f"- {dim}")
     parser = argparse.ArgumentParser(description="Create a test LAZ file with EPSG 2154 and extra dimensions")
     parser.add_argument("output_file", help="Path to save the output LAZ file")
     parser.add_argument(
