@@ -7,7 +7,7 @@ import pdal
 from pyproj import CRS
 from typing import List, Tuple, Union
 
-def create_random_laz(output_file: str, num_points: int = 100, extra_dims: List[Tuple[str, str]] = []):
+def create_random_laz(output_file: str, num_points: int = 100, extra_dims: Union[None, List[Tuple[str, str]]] = None):
     """
     Create a test LAZ file with EPSG 2154 and additional dimensions.
     
