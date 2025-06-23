@@ -3,8 +3,9 @@ import tempfile
 import pytest
 import numpy as np
 import laspy
+import sys
 
-from pdaltools.create_random_laz import create_random_laz
+from pdaltools.create_random_laz import create_random_laz, main
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMP_PATH = os.path.join(TEST_PATH, "tmp")
@@ -43,6 +44,42 @@ def test_create_random_laz_invalid_type():
     
     with pytest.raises(ValueError):
         create_random_laz(output_file, num_points=50, extra_dims=extra_dims)
+
+
+def test_create_random_point_format():
+    """Test that the point format is set correctly"""
+    output_file = os.path.join(TMP_PATH, "test_point_format.laz")
+    create_random_laz(output_file, point_format=6, num_points=50)
+    
+    with laspy.open(output_file) as las_file:
+        las = las_file.read()
+        assert las.header.point_format.id == 6
+    
+
+def test_create_random_laz_no_extra_dims():
+    """Test that the output file is created correctly when no extra dimensions are provided"""
+    output_file = os.path.join(TMP_PATH, "test_no_extra_dims.laz")
+    create_random_laz(output_file, num_points=50)
+    
+    with laspy.open(output_file) as las_file:
+        las = las_file.read()
+        assert len(las.points) == 50
+        assert "X" in las.point_format.dimension_names
+        assert "Y" in las.point_format.dimension_names
+        assert "Z" in las.point_format.dimension_names
+        assert "intensity" in las.point_format.dimension_names
+        assert "classification" in las.point_format.dimension_names
+
+
+def test_create_random_laz_crs_and_center():
+    """Test that the CRS is set correctly"""
+    output_file = os.path.join(TMP_PATH, "test_crs.laz")
+    create_random_laz(output_file, num_points=50, crs=2153, center=(650000, 6810000))
+    
+    with laspy.open(output_file) as las_file:
+        las = las_file.read()   
+        epsg = las.header.parse_crs().to_epsg()
+        assert epsg == 2153
 
 
 def test_create_random_laz_all_types():
@@ -101,3 +138,37 @@ def test_create_random_laz_data_ranges():
         # Check uint data is in expected range (0 to 100)
         assert np.all(las.uint_dim >= 0)
         assert np.all(las.uint_dim <= 100)
+
+def test_main():
+    """Test the main function"""
+    output_file = os.path.join(TMP_PATH, "test_main.laz")
+
+    original_argv = sys.argv
+    
+    try:
+        # Set up mock command-line arguments
+        sys.argv = [
+            "create_random_laz",
+            "--output_file", output_file,
+            "--point_format", "3",
+            "--num_points", "50",
+            "--crs", "2154",
+            "--center", "650000,6810000",
+            "--extra_dims", "height:float32",
+        ]
+        
+        # Run main function
+        main()
+        
+        # Verify output file exists
+        assert os.path.isfile(output_file)
+        
+        # Verify points count is reduced
+        with laspy.open(output_file) as las_file:
+            las = las_file.read()
+            assert len(las.points) == 50
+            assert "height" in las.point_format.dimension_names
+        
+    finally:
+        # Restore original sys.argv
+        sys.argv = original_argv
