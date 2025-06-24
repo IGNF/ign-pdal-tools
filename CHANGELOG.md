@@ -1,3 +1,5 @@
+- create_random_las : create small random las (for test and orther stuff)
+
 # 1.11.1
 - fix Dockerfile for custom PDAL compilation: update custom branch, update python-plugins to version 1.6.5
 
