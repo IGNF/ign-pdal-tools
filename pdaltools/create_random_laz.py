@@ -9,7 +9,7 @@ from typing import List, Tuple, Union
 
 def create_random_laz(output_file: str, point_format: int = 3, num_points: int = 100, crs: int = 2154,
                       center: Tuple[float, float] = (650000, 6810000),
-                       extra_dims: Union[None, List[Tuple[str, str]]] = None,
+                       extra_dims: List[Tuple[str, str]] = [],
                        ):
     """
     Create a test LAZ file with EPSG code and additional dimensions.
@@ -19,7 +19,7 @@ def create_random_laz(output_file: str, point_format: int = 3, num_points: int =
         point_format: Point format of the LAZ file (default: 3)
         num_points: Number of points to generate
         crs: EPSG code of the CRS (default: 2154)
-        center: Tuple of floats (x, y) of the center of the area to generate points in (default: (650000, 6810000) ; close to Paris)
+        center: Tuple of floats (x, y) of the center of the area to generate points in (default: (650000, 6810000) ; arround Paris)
         extra_dims: List of tuples (dimension_name, dimension_type) where type can be:
                    'float32', 'float64', 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'
     """
@@ -41,19 +41,18 @@ def create_random_laz(output_file: str, point_format: int = 3, num_points: int =
         'uint64': np.uint64,
     }
         
-    if extra_dims is not None:
-        for dim_name, dim_type in extra_dims:
-            if dim_type not in type_mapping:
-                raise ValueError(f"Unsupported dimension type: {dim_type}. Supported types: {list(type_mapping.keys())}")
-            
-            numpy_type = type_mapping[dim_type]
-            header.add_extra_dim(laspy.ExtraBytesParams(name=dim_name, type=numpy_type))
+    for dim_name, dim_type in extra_dims:
+        if dim_type not in type_mapping:
+            raise ValueError(f"Unsupported dimension type: {dim_type}. Supported types: {list(type_mapping.keys())}")
+        
+        numpy_type = type_mapping[dim_type]
+        header.add_extra_dim(laspy.ExtraBytesParams(name=dim_name, type=numpy_type))
                 
         # Create point cloud
     las = laspy.LasData(header)
     las.header.add_crs(CRS.from_string(f"epsg:{crs}"))
     
-    # Generate random points in a small area (around Paris)
+    # Generate random points in a small area
     las.x = np.random.uniform(center[0] - 1000, center[0] + 1000, num_points)
     las.y = np.random.uniform(center[1] - 1000, center[1] + 1000, num_points)
     las.z = np.random.uniform(0, 200, num_points)
@@ -62,20 +61,25 @@ def create_random_laz(output_file: str, point_format: int = 3, num_points: int =
     las.intensity = np.random.randint(0, 255, num_points)
     
     # Generate random classification values
-    las.classification = np.random.randint(0, 10, num_points)
+    # 66 is the max value for classification of IGN LidarHD 
+    # cf. https://geoservices.ign.fr/sites/default/files/2022-05/DT_LiDAR_HD_1-0.pdf
+    if point_format > 3: 
+        num_classifications = 66
+    else:
+        num_classifications = 10
+    las.classification = np.random.randint(0, num_classifications, num_points)
         
     # Generate random values for each extra dimension
-    if extra_dims is not None:
-        for dim_name, dim_type in extra_dims:
-            numpy_type = type_mapping[dim_type]
+    for dim_name, dim_type in extra_dims:
+        numpy_type = type_mapping[dim_type]
                 
-            # Generate appropriate random values based on the type
-            if numpy_type in [np.float32, np.float64]:
-                las[dim_name] = np.random.uniform(0, 10, num_points).astype(numpy_type)
-            elif numpy_type in [np.int8, np.int16, np.int32, np.int64]:
-                las[dim_name] = np.random.randint(-100, 100, num_points).astype(numpy_type)
-            elif numpy_type in [np.uint8, np.uint16, np.uint32, np.uint64]:
-                las[dim_name] = np.random.randint(0, 100, num_points).astype(numpy_type)
+        # Generate appropriate random values based on the type
+        if numpy_type in [np.float32, np.float64]:
+            las[dim_name] = np.random.uniform(0, 10, num_points).astype(numpy_type)
+        elif numpy_type in [np.int8, np.int16, np.int32, np.int64]:
+            las[dim_name] = np.random.randint(-100, 100, num_points).astype(numpy_type)
+        elif numpy_type in [np.uint8, np.uint16, np.uint32, np.uint64]:
+            las[dim_name] = np.random.randint(0, 100, num_points).astype(numpy_type)
         
     # Write to file
     las.write(output_file)

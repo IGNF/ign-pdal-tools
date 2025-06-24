@@ -21,7 +21,7 @@ def setup_module(module):
 def test_create_random_laz_basic():
     """Test basic functionality without extra dimensions"""
     output_file = os.path.join(TMP_PATH, "test_basic.laz")
-    create_random_laz(output_file, num_points=50, extra_dims=[])
+    create_random_laz(output_file=output_file, num_points=50)
     
     # Check file exists
     assert os.path.isfile(output_file)
@@ -41,15 +41,15 @@ def test_create_random_laz_invalid_type():
     """Test error handling for invalid dimension type"""
     output_file = os.path.join(TMP_PATH, "test_invalid_type.laz")
     extra_dims = [("height", "invalid_type")]
-    
+
     with pytest.raises(ValueError):
-        create_random_laz(output_file, num_points=50, extra_dims=extra_dims)
+        create_random_laz(output_file=output_file, num_points=50, point_format=3, extra_dims=extra_dims)
 
 
 def test_create_random_point_format():
     """Test that the point format is set correctly"""
     output_file = os.path.join(TMP_PATH, "test_point_format.laz")
-    create_random_laz(output_file, point_format=6, num_points=50)
+    create_random_laz(output_file=output_file, point_format=6, num_points=50)
     
     with laspy.open(output_file) as las_file:
         las = las_file.read()
