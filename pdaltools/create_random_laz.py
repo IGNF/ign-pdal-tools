@@ -19,7 +19,7 @@ def create_random_laz(output_file: str, point_format: int = 3, num_points: int =
         point_format: Point format of the LAZ file (default: 3)
         num_points: Number of points to generate
         crs: EPSG code of the CRS (default: 2154)
-        center: Tuple of floats (x, y) of the center of the area to generate points in (default: (650000, 6810000) ; arround Paris)
+        center: Tuple of floats (x, y) of the center of the area to generate points in (default: (650000, 6810000) ; around Paris)
         extra_dims: List of tuples (dimension_name, dimension_type) where type can be:
                    'float32', 'float64', 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'
     """
