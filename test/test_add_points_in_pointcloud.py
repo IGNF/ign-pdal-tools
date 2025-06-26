@@ -220,6 +220,16 @@ def test_line_to_multipoint(line, spacing, z_value, expected_points):
                 Point(10, 10, 6.0),
             ],
         ),
+        # Test case for empty lines
+        (
+            gpd.GeoDataFrame(
+                {"geometry": [], "RecupZ": []},
+                crs="EPSG:2154",
+            ),
+            2.5,
+            "RecupZ",
+            [],
+        ),
     ],
 )
 def test_generate_3d_points_from_lines(lines_gdf, spacing, altitude_column, expected_points):
@@ -251,7 +261,7 @@ def test_generate_3d_points_from_lines(lines_gdf, spacing, altitude_column, expe
             678,
             0.25,
             "RecupZ",
-        ),  # should add only lignes (.shp) within tile extend
+        ),  # should add only lines (.shp) within tile extend
         (INPUT_PCD, INPUT_LIGNES_SHAPE, None, 678, 0.25, "RecupZ"),  # Should work with or with an input epsg
         (
             INPUT_PCD,
@@ -261,6 +271,14 @@ def test_generate_3d_points_from_lines(lines_gdf, spacing, altitude_column, expe
             0.25,
             None,
         ),  # Should work with or without an input epsg and without altitude_column
+        (
+            INPUT_PCD_CROPPED,
+            INPUT_LIGNES_3D_GEOJSON,
+            None,
+            0,
+            0.25,
+            None,
+        ),  # Should work with lines and add no points if there is no geometry in the tile extent
     ],
 )
 def test_add_points_from_geometry_to_las(input_file, input_points, epsg, expected_nb_points, spacing, altitude_column):
@@ -272,11 +290,11 @@ def test_add_points_from_geometry_to_las(input_file, input_points, epsg, expecte
         input_points, input_file, OUTPUT_FILE, 68, epsg, 1000, spacing, altitude_column
     )
     assert Path(OUTPUT_FILE).exists()  # check output exists
-    
+
     # Read input and output files to compare headers
     input_las = laspy.read(input_file)
     output_las = laspy.read(OUTPUT_FILE)
-    
+
     # Compare headers
     assert input_las.header.version == output_las.header.version
     assert input_las.header.system_identifier == output_las.header.system_identifier
@@ -287,7 +305,7 @@ def test_add_points_from_geometry_to_las(input_file, input_points, epsg, expecte
     assert np.array_equal(input_las.header.scales, output_las.header.scales)
     assert np.array_equal(input_las.header.offsets, output_las.header.offsets)
     assert input_las.header.vlrs[0].string == output_las.header.vlrs[0].string
-    
+
     point_count = compute_count_one_file(OUTPUT_FILE)["68"]
     assert point_count == expected_nb_points  # Add all points from geojson
 
