@@ -1,4 +1,6 @@
+# 1.12.0
 - create_random_las : create small random las (for test and orther stuff)
+- add_points_to_pointcloud: fix case with tiles that don't contain lines from which to add points.
 
 # 1.11.1
 - fix Dockerfile for custom PDAL compilation: update custom branch, update python-plugins to version 1.6.5
