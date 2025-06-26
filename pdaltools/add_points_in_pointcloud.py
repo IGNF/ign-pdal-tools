@@ -1,17 +1,14 @@
 import argparse
-from shutil import copy2
 import tempfile
+from shutil import copy2
 
 import geopandas as gpd
 import laspy
 import numpy as np
-from pyproj import CRS
-from pyproj.exceptions import CRSError
+import pdal
 from shapely.geometry import MultiPoint, Point, box
 
 from pdaltools.las_info import get_epsg_from_las, get_tile_bbox
-
-import pdal
 
 
 def parse_args(argv=None):
@@ -223,6 +220,9 @@ def generate_3d_points_from_lines(
                     and Z coordinates are not available in the geometry.
     """
     # Check if altitude_column is provided and exists in the GeoDataFrame
+    if lines_gdf.empty:
+        return lines_gdf
+
     if altitude_column and (altitude_column not in lines_gdf.columns):
         raise ValueError("altitude_column must exist in the GeoDataFrame if provided.")
 
