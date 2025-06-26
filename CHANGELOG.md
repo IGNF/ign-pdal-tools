@@ -1,3 +1,8 @@
+# 1.12.0
+- [new feature] create_random_las : create small random las (for test and orther stuff)
+- [fix] add_points_to_pointcloud: fix case with tiles that don't contain lines from which to add points.
+- [new feature] las_comparison: new tool to compare the attributes of 2 las files with points having the same {x, y, z, gps_time}
+
 # 1.11.1
 - fix Dockerfile for custom PDAL compilation: update custom branch, update python-plugins to version 1.6.5
 
