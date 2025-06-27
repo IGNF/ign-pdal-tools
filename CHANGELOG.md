@@ -1,3 +1,5 @@
+- las_comparison : update return value with number of different points and percentage of different points
+
 # 1.12.0
 - [new feature] create_random_las : create small random las (for test and orther stuff)
 - [fix] add_points_to_pointcloud: fix case with tiles that don't contain lines from which to add points.

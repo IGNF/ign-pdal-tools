@@ -51,11 +51,13 @@ def test_identical_dimensions():
     
     try:
         # Test with specific dimensions
-        result = compare_las_dimensions(file1, file2, ['classification', 'intensity'])
+        result, nb_diff, percentage = compare_las_dimensions(file1, file2, ['classification', 'intensity'])
         assert result is True, "Files with identical dimensions should return True"
+        assert nb_diff == 0, "Files with identical dimensions should have 0 different points"
+        assert percentage == 0, "Files with identical dimensions should have 0% different points"
 
         # Test with identical files
-        result = compare_las_dimensions(file1, file2)
+        result, nb_diff, percentage = compare_las_dimensions(file1, file2)
         assert result is True, "Files with identical dimensions should return True"        
     finally:
         # Clean up
@@ -82,11 +84,11 @@ def test_identical_dimensions_not_sorted():
     
     try:
         # Test with specific dimensions
-        result = compare_las_dimensions(file1, file2, ['classification', 'intensity'])
+        result, _, _ = compare_las_dimensions(file1, file2, ['classification', 'intensity'])
         assert result is True, "Files with identical dimensions should return True"
 
         # Test with identical files
-        result = compare_las_dimensions(file1, file2)
+        result, _, _ = compare_las_dimensions(file1, file2)
         assert result is True, "Files with identical dimensions should return True"        
     finally:
         # Clean up
@@ -117,11 +119,11 @@ def test_different_dimensions_random():
     
     try:
         # Test full comparison (should be different)
-        result = compare_las_dimensions(file1, file2)
+        result, _, _ = compare_las_dimensions(file1, file2)
         assert result is False, "Files with different classification should return False"
         
         # Test specific dimensions (should be identical)
-        result = compare_las_dimensions(file1, file2, ['intensity', 'return_number'])
+        result, _, _ = compare_las_dimensions(file1, file2, ['intensity', 'return_number'])
         assert result is True, "Files with identical intensity and return_number should return True"
     finally:
         # Clean up
@@ -137,7 +139,7 @@ def test_different_number_of_points():
     file2 = create_test_las_file(x2, y2, z2)
     
     try:
-        result = compare_las_dimensions(file1, file2)
+        result, _, _ = compare_las_dimensions(file1, file2)
         assert result is False, "Files with different number of points should return False"
     finally:
         # Clean up
@@ -166,7 +168,7 @@ def test_different_dimensions_number():
     
     try:
         # Test full comparison (should be different)
-        result = compare_las_dimensions(file1, file2)
+        result, _, _ = compare_las_dimensions(file1, file2)
         assert result is False, "Files with different dimensions should return False"
     finally:
         # Clean up
@@ -183,7 +185,7 @@ def test_one_empty_file():
     file2 = create_test_las_file(np.array([]), np.array([]), np.array([]))
     
     try:
-        result = compare_las_dimensions(file1, file2)
+        result, _, _ = compare_las_dimensions(file1, file2)
         assert result is False, "One empty file should return False"
     finally:
         # Clean up
@@ -196,7 +198,7 @@ def test_both_empty_files():
     file2 = create_test_las_file(np.array([]), np.array([]), np.array([]))
     
     try:
-        result = compare_las_dimensions(file1, file2)
+        result, _, _ = compare_las_dimensions(file1, file2)
         assert result is True, "Two empty files should return True"
     finally:
         # Clean up
@@ -218,7 +220,7 @@ def test_single_point():
     file2 = create_test_las_file(x, y, z, dimensions)
     
     try:
-        result = compare_las_dimensions(file1, file2)
+        result, _, _ = compare_las_dimensions(file1, file2)
         assert result is True, "Single point files with same dimensions should return True"
     finally:
         # Clean up
@@ -246,23 +248,23 @@ def test_main_function():
         # Test with identical files
         sys.argv = ['script_name', str(file1), str(file2)]
         with redirect_stdout(StringIO()) as f:
-            result = main()
+            result, _, _ = main()
             assert result is True
         
         sys.argv = ['script_name', str(file1), str(file2), '--dimensions', 'classification']
         with redirect_stdout(StringIO()) as f:
-            result = main()
+            result, _, _ = main()
             assert result is True
 
         sys.argv = ['script_name', str(file1), str(file2), '--dimensions', 'classification', 'intensity']
         with redirect_stdout(StringIO()) as f:
-            result = main()
+            result, _, _ = main()
             assert result is True
 
         # Test with different files
         sys.argv = ['script_name', str(file1), str(file3)]
         with redirect_stdout(StringIO()) as f:
-            result = main()
+            result, _, _ = main()
             assert result is False
         
     finally:
