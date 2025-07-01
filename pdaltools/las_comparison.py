@@ -2,8 +2,9 @@ import laspy
 from pathlib import Path
 import numpy as np
 import argparse
+from typing import Tuple
 
-def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) -> bool:
+def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) -> Tuple[bool, int, float]:
     """
     Compare specified dimensions between two LAS files.
     If no dimensions are specified, compares all available dimensions.
@@ -16,6 +17,8 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
         
     Returns:
         bool: True if all specified dimensions are identical, False otherwise
+        int: Number of points with different dimensions
+        float: Percentage of points with different dimensions
     """
     try:
         # Read both LAS files
@@ -25,8 +28,9 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
         # Check if files have the same number of points
         if len(las1) != len(las2):
             print(f"Files have different number of points: {len(las1)} vs {len(las2)}")
-            return False
-            
+            return False, 0, 0
+        print(f"Files have the same number of points: {len(las1)} vs {len(las2)}")
+        
         # Sort points by x,y,z,gps_time coordinates
         # Create sorting indices
         sort_idx1 = np.lexsort((las1.z, las1.y, las1.x, las1.gps_time))
@@ -39,13 +43,13 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
         if dimensions is None:
             if dimensions_las1 != dimensions_las2:
                 print("Files have different dimensions")
-                return False
+                return False, 0, 0
             dimensions = dimensions_las1 
         else:
             for dim in dimensions:
                 if dim not in dimensions_las1 or dim not in dimensions_las2:
                     print(f"Dimension '{dim}' is not found in one or both files. Available dimensions: {las1.point_format.dimension_names}")
-                    return False    
+                    return False, 0, 0    
 
         # Compare each dimension
         for dim in dimensions:
@@ -63,23 +67,23 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) ->
                         print(f"Point {idx}: file1={dim1[idx]}, file2={dim2[idx]}")
                     if len(diff_indices) > 10:
                         print(f"... and {len(diff_indices) - 10} more differences")
-                    return False
+                    return False, len(diff_indices), 100*len(diff_indices)/len(las1)
                     
             except KeyError:
                 print(f"Dimension '{dim}' not found in one or both files")
-                return False
+                return False, 0, 0
                 
-        return True
+        return True, 0, 0
         
     except laspy.errors.LaspyException as e:
         print(f"LAS file error: {str(e)}")
-        return False
+        return False, 0, 0
     except FileNotFoundError as e:
         print(f"File not found: {str(e)}")
-        return False
+        return False, 0, 0
     except ValueError as e:
         print(f"Value error: {str(e)}")
-        return False
+        return False, 0, 0
 
 # Update main function to use the new compare function
 def main():    
@@ -98,7 +102,7 @@ def main():
         exit(1)
     
     result = compare_las_dimensions(file1, file2, args.dimensions)
-    print(f"Dimensions comparison result: {'identical' if result else 'different'}")
+    print(f"Dimensions comparison result: {'identical' if result[0] else 'different'}")
     return result
 
 if __name__ == "__main__":
