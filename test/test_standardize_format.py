@@ -273,14 +273,14 @@ def test_standardize_with_extra_dims_origin_and_dxm_marker():
     # Check that the output file exists
     assert os.path.isfile(output_file)
     
-    #check oupput las have origin and dxm_marker
+    #check output las have origin and dxm_marker
     with laspy.open(output_file) as las_file:
         las = las_file.read()
         assert "origin" in las.point_format.dimension_names
         assert "dsm_marker" in las.point_format.dimension_names
         assert "dtm_marker" in las.point_format.dimension_names
 
-    #check ouputfile is same as inputfile for origin and dxm_marker
+    #check output file is same as input file for origin and dxm_marker
     compare_las_dimensions(input_file, output_file, ["origin", "dsm_marker", "dtm_marker"])
 
 
