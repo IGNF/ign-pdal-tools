@@ -1,11 +1,9 @@
 import numpy as np
 import laspy
 from pathlib import Path
-import sys
 import argparse
-import pdal
 from pyproj import CRS
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 def create_random_laz(output_file: str, point_format: int = 3, num_points: int = 100, crs: int = 2154,
                       center: Tuple[float, float] = (650000, 6810000),
@@ -102,15 +100,6 @@ def test_output_file(result : dict, output_file: str):
     print(f"Successfully created test LAZ file at {result['output_file']}")
     print(f"Number of points: {result['num_points']}")
     print(f"Dimensions available: {result['dimensions']}")
-
-    # Print available dimensions using PDAL
-    pipeline = pdal.Pipeline() | pdal.Reader.las(result['output_file'])
-    pipeline.execute()
-    points = pipeline.arrays[0]
-    dimensions = list(points.dtype.fields.keys())
-    print("\nAvailable dimensions in input file:")
-    for dim in dimensions:
-        print(f"- {dim}")
 
 
 def parse_args():
