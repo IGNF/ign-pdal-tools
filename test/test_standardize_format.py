@@ -14,6 +14,7 @@ from pdaltools.count_occurences.count_occurences_for_attribute import (
     compute_count_one_file,
 )
 from pdaltools.standardize_format import exec_las2las, rewrite_with_pdal, standardize, main
+from pdaltools.las_comparison import compare_las_dimensions
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMP_PATH = os.path.join(TEST_PATH, "tmp")
@@ -254,6 +255,33 @@ def test_standardize_malformed_laz():
     output_file = os.path.join(TMP_PATH, "standardize_pdalfail_0643_6319_LA93_IGN69.laz")
     standardize(input_file, output_file, DEFAULT_PARAMS, [], [])
     assert os.path.isfile(output_file)
+
+
+def test_standardize_with_extra_dims_origin_and_dxm_marker():
+    """
+    Test the main function with extra dimensions
+    """
+    input_file = os.path.join(INPUT_DIR, "las_with_origin_dxmMarker.las")
+    output_file = os.path.join(TMP_PATH, "test_main_with_extra_dims.laz")
+    
+    with laspy.open(input_file) as las_file:
+        las = las_file.read()
+        original_dims = las.point_format.dimension_names
+
+    standardize(input_file, output_file, DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS, [], [])
+
+    # Check that the output file exists
+    assert os.path.isfile(output_file)
+    
+    #check output las have origin and dxm_marker
+    with laspy.open(output_file) as las_file:
+        las = las_file.read()
+        assert "origin" in las.point_format.dimension_names
+        assert "dsm_marker" in las.point_format.dimension_names
+        assert "dtm_marker" in las.point_format.dimension_names
+
+    #check output file is same as input file for origin and dxm_marker
+    compare_las_dimensions(input_file, output_file, ["origin", "dsm_marker", "dtm_marker"])
 
 
 def test_main_with_rename_dimensions():
