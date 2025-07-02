@@ -1,4 +1,5 @@
 - las_comparison : update return value with number of different points and percentage of different points
+- standardize_format : add test for dimension renaming 
 
 # 1.12.0
 - [new feature] create_random_las : create small random las (for test and orther stuff)
