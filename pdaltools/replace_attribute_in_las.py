@@ -4,13 +4,12 @@ import argparse
 import json
 import logging
 import os
-import tempfile
 from collections import Counter
 from typing import Dict, List
 
 import pdal
 
-from pdaltools.standardize_format import exec_las2las, get_writer_parameters
+from pdaltools.standardize_format import get_writer_parameters
 from pdaltools.unlock_file import copy_and_hack_decorator
 
 
@@ -106,26 +105,13 @@ def parse_replacement_map_from_path_or_json_string(replacement_map):
     return parsed_map
 
 
-def replace_values_clean(
-    input_file: str,
-    output_file: str,
-    replacement_map: Dict,
-    attribute: str = "Classification",
-    writer_parameters: Dict = {},
-):
-    filename = os.path.basename(output_file)
-    with tempfile.NamedTemporaryFile(suffix=filename) as tmp:
-        replace_values(input_file, tmp.name, replacement_map, attribute, writer_parameters)
-        exec_las2las(tmp.name, output_file)
-
-
 def main():
     args = parse_args()
     writer_params_from_parser = dict(dataformat_id=args.record_format, a_srs=args.projection)
     writer_parameters = get_writer_parameters(writer_params_from_parser)
     replacement_map = parse_replacement_map_from_path_or_json_string(args.replacement_map)
-
-    replace_values_clean(args.input_file, args.output_file, replacement_map, args.attribute, writer_parameters)
+    
+    replace_values(args.input_file, args.output_file, replacement_map, args.attribute, writer_parameters)
 
 
 if __name__ == "__main__":
