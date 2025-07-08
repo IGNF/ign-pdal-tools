@@ -9,15 +9,11 @@
 """
 
 import argparse
-import os
-import platform
-import subprocess as sp
 import tempfile
 from typing import Dict, List
 
 import pdal
 
-from pdaltools.unlock_file import copy_and_hack_decorator
 from pdaltools.las_rename_dimension import rename_dimension
 
 # Standard parameters to pass to the pdal writer

@@ -110,7 +110,7 @@ def main():
     writer_params_from_parser = dict(dataformat_id=args.record_format, a_srs=args.projection)
     writer_parameters = get_writer_parameters(writer_params_from_parser)
     replacement_map = parse_replacement_map_from_path_or_json_string(args.replacement_map)
-    
+
     replace_values(args.input_file, args.output_file, replacement_map, args.attribute, writer_parameters)
 
 
