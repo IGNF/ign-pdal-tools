@@ -1,3 +1,4 @@
+# 1.12.1
 - las_comparison : update return value with number of different points and percentage of different points
 - standardize_format: 
   - add test for dimension renaming 
