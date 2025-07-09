@@ -14,6 +14,7 @@ from typing import Dict, List
 
 import pdal
 
+from pdaltools.unlock_file import copy_and_hack_decorator
 from pdaltools.las_rename_dimension import rename_dimension
 
 # Standard parameters to pass to the pdal writer
@@ -75,7 +76,7 @@ def get_writer_parameters(new_parameters: Dict) -> Dict:
     params = STANDARD_PARAMETERS | new_parameters
     return params
 
-
+@copy_and_hack_decorator
 def standardize(
     input_file: str, output_file: str, params_from_parser: Dict, classes_to_remove: List = [], rename_dims: List = []
 ) -> None:
