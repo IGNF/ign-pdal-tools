@@ -1,5 +1,6 @@
 - las_comparison : update return value with number of different points and percentage of different points
 - standardize_format : add test for dimension renaming 
+- standardize_format do not use las2las anymore : lasinfo's Warning when reading final las are not relevent after pdal writen. 
 
 # 1.12.0
 - [new feature] create_random_las : create small random las (for test and orther stuff)
