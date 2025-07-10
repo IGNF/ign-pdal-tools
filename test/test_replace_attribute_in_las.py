@@ -14,7 +14,6 @@ from pdaltools.count_occurences.count_occurences_for_attribute import (
 from pdaltools.replace_attribute_in_las import (
     parse_replacement_map_from_path_or_json_string,
     replace_values,
-    replace_values_clean,
 )
 from pdaltools.standardize_format import get_writer_parameters
 
@@ -73,8 +72,8 @@ def test_replace_values_ok():
     check_dimensions(input_file, output_file)
 
 
-def test_replace_values_clean():
-    replace_values_clean(input_file, output_file, replacement_map_success, attribute, get_writer_parameters({}))
+def test_replace_values():
+    replace_values(input_file, output_file, replacement_map_success, attribute, get_writer_parameters({}))
     assert_lasinfo_no_warning(output_file)
 
 
