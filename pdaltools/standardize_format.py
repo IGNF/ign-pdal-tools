@@ -9,9 +9,6 @@
 """
 
 import argparse
-import os
-import platform
-import subprocess as sp
 import tempfile
 from typing import Dict, List
 
@@ -79,8 +76,8 @@ def get_writer_parameters(new_parameters: Dict) -> Dict:
     params = STANDARD_PARAMETERS | new_parameters
     return params
 
-
-def rewrite_with_pdal(
+@copy_and_hack_decorator
+def standardize(
     input_file: str, output_file: str, params_from_parser: Dict, classes_to_remove: List = [], rename_dims: List = []
 ) -> None:
     params = get_writer_parameters(params_from_parser)
@@ -107,32 +104,6 @@ def rewrite_with_pdal(
         pipeline |= pdal.Filter.expression(expression=expression)
     pipeline |= pdal.Writer(filename=output_file, forward="all", **params)
     pipeline.execute()
-
-
-def exec_las2las(input_file: str, output_file: str):
-    if platform.processor() == "arm" and platform.architecture()[0] == "64bit":
-        las2las = "las2las64"
-    else:
-        las2las = "las2las"
-    r = sp.run([las2las, "-i", input_file, "-o", output_file], stderr=sp.PIPE, stdout=sp.PIPE)
-    if r.returncode == 1:
-        msg = r.stderr.decode()
-        print(msg)
-        raise RuntimeError(msg)
-
-    output = r.stdout.decode()
-    for line in output.splitlines():
-        print(line)
-
-
-@copy_and_hack_decorator
-def standardize(
-    input_file: str, output_file: str, params_from_parser: Dict, class_points_removed: [], rename_dims: []
-) -> None:
-    filename = os.path.basename(output_file)
-    with tempfile.NamedTemporaryFile(suffix=filename) as tmp:
-        rewrite_with_pdal(input_file, tmp.name, params_from_parser, class_points_removed, rename_dims)
-        exec_las2las(tmp.name, output_file)
 
 
 def main():

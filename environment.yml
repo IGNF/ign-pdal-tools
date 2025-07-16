@@ -8,7 +8,7 @@ dependencies:
   - conda-forge:python-pdal>=3.4
   - requests
   - gdal
-  - lastools
+  - lastools # for check that lasinfo warnings desapear when standardizing 
   - geopandas
 # --------- dev dep --------- #
   - pre-commit # hooks for applying linters on commit

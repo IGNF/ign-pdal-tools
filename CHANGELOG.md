@@ -1,3 +1,12 @@
+# 1.12.2
+- comment a test which doesn't work because a fix in GPF
+
+# 1.12.1
+- las_comparison : update return value with number of different points and percentage of different points
+- standardize_format: 
+  - add test for dimension renaming 
+  - do not use las2las anymore: was used to remove lasinfo Warning which has been fixed on pdal side
+
 # 1.12.0
 - [new feature] create_random_las : create small random las (for test and orther stuff)
 - [fix] add_points_to_pointcloud: fix case with tiles that don't contain lines from which to add points.

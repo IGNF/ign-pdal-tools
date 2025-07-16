@@ -1,5 +1,4 @@
-""" Misc tools used in different tests
-"""
+"""Misc tools used in different tests"""
 
 import json
 import subprocess as sp
