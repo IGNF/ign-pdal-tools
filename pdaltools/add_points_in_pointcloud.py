@@ -29,7 +29,7 @@ def parse_args(argv=None):
         "--spatial_ref",
         type=str,
         required=False,
-        help="spatial reference for the writer",
+        help="spatial reference for the writer (eg: 'EPSG:2154')",
     )
     parser.add_argument(
         "--tile_width",
@@ -281,7 +281,7 @@ def add_points_from_geometry_to_las(
     gdf = gpd.read_file(input_geometry)
 
     if gdf.crs is None:
-        gdf.set_crs(epsg=spatial_ref, inplace=True)
+        gdf.set_crs(crs=spatial_ref, inplace=True)
 
     # Check if both Z in geometries and altitude_column are provided
     if gdf.geometry.has_z.any() and altitude_column:
