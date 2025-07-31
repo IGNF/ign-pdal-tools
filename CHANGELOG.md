@@ -1,3 +1,4 @@
+# 1.12.3
 - [fix] add_points_in_pointcloud: format consistency when input shapefile does not have a crs
 
 # 1.12.2
