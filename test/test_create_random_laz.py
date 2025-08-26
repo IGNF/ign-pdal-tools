@@ -138,7 +138,15 @@ def test_create_random_laz_data_ranges():
         assert np.all(las.uint_dim >= 0)
         assert np.all(las.uint_dim <= 100)
 
-def test_create_random_laz_classifications():
+@pytest.mark.parametrize(
+    "classifications",
+    [
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+        [1, 2, 3, 66, 68],
+    ]
+)
+def test_create_random_laz_classifications(classifications):
     """Test that generated data is within expected ranges for different types"""
     output_file = os.path.join(TMP_PATH, "test_data_ranges.laz")
     extra_dims = [
@@ -146,7 +154,6 @@ def test_create_random_laz_classifications():
         ("int_dim", "int32"),
         ("uint_dim", "uint8"),
     ]
-    classifications = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     create_random_laz(output_file, num_points=1000, extra_dims=extra_dims, classifications=classifications)
 
     with laspy.open(output_file) as las_file:
@@ -184,7 +191,7 @@ def test_main():
             "--crs",
             "2154",
             "--center",
-            "650000,6810000",
+            "650000", "6810000",
             "--extra_dims",
             "height:float32",
             "--classifications",
