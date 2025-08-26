@@ -31,7 +31,7 @@ def create_random_laz(
     """
 
     # Create a new point cloud
-    header = laspy.LasHeader(point_format=point_format, version="1.4", num_points=num_points)
+    header = laspy.LasHeader(point_format=point_format, version="1.4")
 
     # Map string types to numpy types
     type_mapping = {
