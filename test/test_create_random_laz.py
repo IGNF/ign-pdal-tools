@@ -185,7 +185,7 @@ def test_main():
             "--output_file",
             output_file,
             "--point_format",
-            "3",
+            "6",
             "--num_points",
             "50",
             "--crs",

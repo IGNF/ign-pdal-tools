@@ -67,7 +67,7 @@ def create_random_laz(
     las.intensity = np.random.randint(0, 255, num_points)
 
     # Set classification values
-    if classifications is not None and len(classifications) > 0:
+    if classifications:
         # Randomly select from the provided classification values
         las.classification = np.random.choice(classifications, size=num_points, replace=True).astype(np.uint8)
     else:
@@ -126,7 +126,7 @@ def parse_args():
     )
     parser.add_argument("--crs", type=int, default=2154, help="Projection code")
     parser.add_argument(
-        "--center", type=float, nargs='2', default=[650000.0, 6810000.0],
+        "--center", type=float, nargs=2, default=[650000.0, 6810000.0],
         help="Center coordinates (x y) of the area to generate points in (space-separated)"
     )
     parser.add_argument(
