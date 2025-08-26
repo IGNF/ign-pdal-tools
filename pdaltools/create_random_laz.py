@@ -74,7 +74,7 @@ def create_random_laz(
         # Generate random classification values if not provided
         # 66 is the max value for classification of IGN LidarHD
         # cf. https://geoservices.ign.fr/sites/default/files/2022-05/DT_LiDAR_HD_1-0.pdf
-        if point_format > 3:
+        if point_format >= 6:
             num_classifications = 66
         else:
             num_classifications = 10
