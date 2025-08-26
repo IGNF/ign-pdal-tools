@@ -126,7 +126,7 @@ def parse_args():
     )
     parser.add_argument("--crs", type=int, default=2154, help="Projection code")
     parser.add_argument(
-        "--center", type=float, nargs='+', default=[650000.0, 6810000.0],
+        "--center", type=float, nargs='2', default=[650000.0, 6810000.0],
         help="Center coordinates (x y) of the area to generate points in (space-separated)"
     )
     parser.add_argument(
@@ -143,9 +143,7 @@ def main():
     # Parse extra dimensions
     extra_dims = [tuple(dim.split(":")) for dim in args.extra_dims]
 
-    # Parse center - ensure exactly 2 coordinates are provided
-    if len(args.center) != 2:
-        raise ValueError("--center must have exactly 2 values (x y)")
+    # Parse center
     center = tuple(args.center[:2])  # Only take first 2 values if more are provided
     
     # Parse classifications if provided
