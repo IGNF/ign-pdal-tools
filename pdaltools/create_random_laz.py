@@ -13,6 +13,7 @@ def create_random_laz(
     crs: int = 2154,
     center: Tuple[float, float] = (650000, 6810000),
     extra_dims: List[Tuple[str, str]] = [],
+    classifications: List[int] = None,
 ):
     """
     Create a test LAZ file with EPSG code and additional dimensions.
@@ -26,10 +27,11 @@ def create_random_laz(
                 (default: (650000, 6810000) ; around Paris)
         extra_dims: List of tuples (dimension_name, dimension_type) where type can be:
                    'float32', 'float64', 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'
+        classifications: Optional list of classification values. 
     """
 
     # Create a new point cloud
-    header = laspy.LasHeader(point_format=point_format, version="1.4")
+    header = laspy.LasHeader(point_format=point_format, version="1.4", num_points=num_points)
 
     # Map string types to numpy types
     type_mapping = {
@@ -52,7 +54,7 @@ def create_random_laz(
         numpy_type = type_mapping[dim_type]
         header.add_extra_dim(laspy.ExtraBytesParams(name=dim_name, type=numpy_type))
 
-        # Create point cloud
+    # Create point cloud
     las = laspy.LasData(header)
     las.header.add_crs(CRS.from_string(f"epsg:{crs}"))
 
@@ -64,14 +66,19 @@ def create_random_laz(
     # Generate random intensity values
     las.intensity = np.random.randint(0, 255, num_points)
 
-    # Generate random classification values
-    # 66 is the max value for classification of IGN LidarHD
-    # cf. https://geoservices.ign.fr/sites/default/files/2022-05/DT_LiDAR_HD_1-0.pdf
-    if point_format > 3:
-        num_classifications = 66
+    # Set classification values
+    if classifications is not None:
+        # Randomly select from the provided classification values
+        las.classification = np.random.choice(classifications, size=num_points, replace=True).astype(np.uint8)
     else:
-        num_classifications = 10
-    las.classification = np.random.randint(0, num_classifications, num_points)
+        # Generate random classification values if not provided
+        # 66 is the max value for classification of IGN LidarHD
+        # cf. https://geoservices.ign.fr/sites/default/files/2022-05/DT_LiDAR_HD_1-0.pdf
+        if point_format > 3:
+            num_classifications = 66
+        else:
+            num_classifications = 10
+        las.classification = np.random.randint(0, num_classifications, num_points, dtype=np.uint8)
 
     # Generate random values for each extra dimension
     for dim_name, dim_type in extra_dims:
@@ -112,7 +119,7 @@ def parse_args():
     # Parse arguments (assuming argparse is used)
     parser = argparse.ArgumentParser(description="Create a random LAZ file.")
     parser.add_argument("--output_file", type=str, help="Path to save the LAZ file")
-    parser.add_argument("--point_format", type=int, default=3, help="Point format of the LAZ file")
+    parser.add_argument("--point_format", type=int, default=6, help="Point format of the LAZ file")
     parser.add_argument("--num_points", type=int, default=100, help="Number of points to generate")
     parser.add_argument(
         "--extra_dims", type=str, nargs="*", default=[], help="Extra dimensions in the format name:type"
@@ -121,11 +128,14 @@ def parse_args():
     parser.add_argument(
         "--center", type=str, default="650000,6810000", help="Center of the area to generate points in"
     )
+    parser.add_argument(
+        "--classifications", type=str, 
+        help="Comma-separated list of classification values"
+    )
     return parser.parse_args()
 
 
 def main():
-
     # Parse arguments
     args = parse_args()
 
@@ -134,9 +144,22 @@ def main():
 
     # Parse center
     center = tuple(map(float, args.center.split(",")))
+    
+    # Parse classifications if provided
+    classifications = None
+    if args.classifications:
+        classifications = list(map(int, args.classifications.split(",")))
 
     # Call create_random_laz
-    result = create_random_laz(args.output_file, args.point_format, args.num_points, args.crs, center, extra_dims)
+    result = create_random_laz(
+        args.output_file, 
+        args.point_format, 
+        args.num_points, 
+        args.crs, 
+        center, 
+        extra_dims,
+        classifications
+    )
 
     # Test output file
     test_output_file(result, args.output_file)

@@ -138,6 +138,32 @@ def test_create_random_laz_data_ranges():
         assert np.all(las.uint_dim >= 0)
         assert np.all(las.uint_dim <= 100)
 
+def test_create_random_laz_classifications():
+    """Test that generated data is within expected ranges for different types"""
+    output_file = os.path.join(TMP_PATH, "test_data_ranges.laz")
+    extra_dims = [
+        ("float_dim", "float32"),
+        ("int_dim", "int32"),
+        ("uint_dim", "uint8"),
+    ]
+    classifications = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    create_random_laz(output_file, num_points=1000, extra_dims=extra_dims, classifications=classifications)
+
+    with laspy.open(output_file) as las_file:
+        las = las_file.read()
+        
+        # Convert to set for faster lookups
+        valid_classifications = set(classifications)
+        
+        # Check that all classification values are in the provided list
+        unique_classes = set(np.unique(las.classification))
+        assert unique_classes.issubset(valid_classifications), \
+            f"Found unexpected classification values: {unique_classes - valid_classifications}"
+            
+        # Also check that we have the expected number of points
+        assert len(las.classification) == 1000, \
+            f"Expected 1000 points, got {len(las.classification)}"
+
 
 def test_main():
     """Test the main function"""
@@ -161,6 +187,8 @@ def test_main():
             "650000,6810000",
             "--extra_dims",
             "height:float32",
+            "--classifications",
+            "1,2,3,4,5,6,7,8,9,10"
         ]
 
         # Run main function
