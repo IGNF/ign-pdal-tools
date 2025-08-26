@@ -188,7 +188,7 @@ def test_main():
             "--extra_dims",
             "height:float32",
             "--classifications",
-            "1,2,3,4,5,6,7,8,9,10"
+            "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
         ]
 
         # Run main function
@@ -202,6 +202,12 @@ def test_main():
             las = las_file.read()
             assert len(las.points) == 50
             assert "height" in las.point_format.dimension_names
+            
+            # Verify classifications are within the provided range
+            unique_classes = set(np.unique(las.classification))
+            expected_classes = set(range(1, 11))  # 1-10
+            assert unique_classes.issubset(expected_classes), \
+                f"Found unexpected classification values: {unique_classes - expected_classes}"
 
     finally:
         # Restore original sys.argv

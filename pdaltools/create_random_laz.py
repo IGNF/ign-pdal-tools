@@ -8,7 +8,7 @@ from typing import List, Tuple
 
 def create_random_laz(
     output_file: str,
-    point_format: int = 3,
+    point_format: int = 6,
     num_points: int = 100,
     crs: int = 2154,
     center: Tuple[float, float] = (650000, 6810000),
@@ -129,8 +129,8 @@ def parse_args():
         "--center", type=str, default="650000,6810000", help="Center of the area to generate points in"
     )
     parser.add_argument(
-        "--classifications", type=str, 
-        help="Comma-separated list of classification values"
+        "--classifications", type=int, nargs='+',
+        help="List of classification values (space-separated)"
     )
     return parser.parse_args()
 
@@ -146,9 +146,7 @@ def main():
     center = tuple(map(float, args.center.split(",")))
     
     # Parse classifications if provided
-    classifications = None
-    if args.classifications:
-        classifications = list(map(int, args.classifications.split(",")))
+    classifications = args.classifications
 
     # Call create_random_laz
     result = create_random_laz(
