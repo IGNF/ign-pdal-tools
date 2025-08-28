@@ -5,10 +5,12 @@ This script allows renaming dimensions in a LAS file while preserving all other 
 """
 
 import argparse
+import logging
 import pdal
 import sys
 from pathlib import Path
 from pdaltools.las_remove_dimensions import remove_dimensions_from_points
+from pdaltools.las_info import las_info_metadata
 
 
 def rename_dimension(input_file: str, output_file: str, old_dims: list[str], new_dims: list[str]):
@@ -31,8 +33,14 @@ def rename_dimension(input_file: str, output_file: str, old_dims: list[str], new
         if dim in mandatory_dimensions:
             raise ValueError(f"New dimension {dim} cannot be a mandatory dimension (X,Y,Z,x,y,z)")
 
+    metadata = las_info_metadata(input_file)
+    input_dimensions = metadata["dimensions"]
+
     pipeline = pdal.Pipeline() | pdal.Reader.las(input_file)
     for old, new in zip(old_dims, new_dims):
+        if old not in input_dimensions:
+            logging.warning(f"Dimension {old} not found in input file : we cannot rename it")
+            continue
         pipeline |= pdal.Filter.ferry(dimensions=f"{old} => {new}")
     pipeline |= pdal.Writer.las(output_file)
     pipeline.execute()
