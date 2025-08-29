@@ -1,4 +1,4 @@
-# dev
+# 1.13.0
 - create_random_laz: add classifications parameter
 - las_rename_dimension: if dimension doesn't exist, do not raise an error but log a warning
 - add_points_to_las: preserve extra dimensions to the output las file
