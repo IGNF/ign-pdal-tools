@@ -12,6 +12,7 @@ from pdaltools import add_points_in_pointcloud
 from pdaltools.count_occurences.count_occurences_for_attribute import (
     compute_count_one_file,
 )
+from pdaltools.las_info import las_info_metadata
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMP_PATH = os.path.join(TEST_PATH, "tmp/add_points_in_pointcloud")
@@ -27,6 +28,7 @@ INPUT_LIGNES_3D_GEOJSON = os.path.join(DATA_LIGNES_PATH, "Lignes_3d_0292_6833.ge
 INPUT_LIGNES_SHAPE = os.path.join(DATA_LIGNES_PATH, "Lignes_3d_0292_6833.shp")
 OUTPUT_FILE = os.path.join(TMP_PATH, "test_semis_2023_0292_6833_LA93_IGN69.laz")
 INPUT_EMPTY_POINTS_2D = os.path.join(DATA_POINTS_3D_PATH, "Points_virtuels_2d_empty.geojson")
+INPUT_PCD_WITH_EXTRA_DIMS = os.path.join(DATA_LIDAR_PATH, "test_semis_2023_0292_6833_LA93_IGN69_extra_dims.laz")
 
 # Cropped las tile used to test adding points that belong to the theorical tile but not to the
 # effective las file extent
@@ -89,6 +91,7 @@ def test_clip_3d_lines_to_tile(input_file, epsg):
         (INPUT_PCD_CROPPED, None, INPUT_POINTS_2D_FOR_CROPPED_PCD, 451),
         # Should also work if there is no points (direct copy of the input file)
         (INPUT_PCD_CROPPED, None, INPUT_EMPTY_POINTS_2D, 0),
+        (INPUT_PCD_WITH_EXTRA_DIMS, None, INPUT_POINTS_2D, 2423),
     ],
 )
 def test_add_points_to_las(input_file, epsg, input_points_2d, expected_nb_points):
@@ -96,9 +99,17 @@ def test_add_points_to_las(input_file, epsg, input_points_2d, expected_nb_points
     if Path(OUTPUT_FILE).exists():
         os.remove(OUTPUT_FILE)
 
+    metadata_in = las_info_metadata(input_file)
+    input_dimensions = metadata_in["dimensions"]
+
     points = gpd.read_file(input_points_2d)
     add_points_in_pointcloud.add_points_to_las(points, input_file, OUTPUT_FILE, epsg, 68)
     assert Path(OUTPUT_FILE).exists()  # check output exists
+
+    metadata_out = las_info_metadata(OUTPUT_FILE)
+    output_dimensions = metadata_out["dimensions"]
+
+    assert input_dimensions == output_dimensions # All dimension should be preserve
 
     point_count = compute_count_one_file(OUTPUT_FILE)["68"]
     assert point_count == expected_nb_points  # Add all points from geojson
