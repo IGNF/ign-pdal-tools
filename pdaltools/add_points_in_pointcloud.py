@@ -169,7 +169,7 @@ def add_points_to_las(
         pipeline |= pdal.Reader.las(filename=input_las)
         pipeline |= pdal.Reader.las(filename=tmp.name)
         pipeline |= pdal.Filter.merge()
-        pipeline |= pdal.Writer.las(filename=output_las, forward="all", a_srs=a_srs)
+        pipeline |= pdal.Writer.las(filename=output_las, forward="all", extra_dims="all", a_srs=a_srs)
         pipeline.execute()
 
 
