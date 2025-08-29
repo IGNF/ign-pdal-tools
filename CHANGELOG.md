@@ -1,3 +1,8 @@
+# 1.13.0
+- create_random_laz: add classifications parameter
+- las_rename_dimension: if dimension doesn't exist, do not raise an error but log a warning
+- add_points_to_las: preserve extra dimensions to the output las file
+
 # 1.12.3
 - [fix] add_points_in_pointcloud: format consistency when input shapefile does not have a crs
 

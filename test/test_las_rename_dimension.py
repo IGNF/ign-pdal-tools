@@ -4,6 +4,7 @@ import tempfile
 import numpy as np
 import laspy
 import sys
+import logging
 from pdaltools.las_rename_dimension import rename_dimension, main
 from pyproj import CRS
 
@@ -68,19 +69,27 @@ def test_rename_dimension():
             pass
 
 
-def test_rename_nonexistent_dimension():
+def test_rename_nonexistent_dimension(caplog):
     """Test attempting to rename a dimension that doesn't exist."""
     input_file = create_test_las_file()
-
+    
     with tempfile.NamedTemporaryFile(suffix=".las", delete=False) as tmp_file:
         output_file = tmp_file.name
-
-    try:
-        with pytest.raises(RuntimeError):
-            rename_dimension(input_file, output_file, ["nonexistent_dim"], ["new_dim"])
-    finally:
-        os.unlink(input_file)
-        os.unlink(output_file)
+    
+        try:
+            # Clear any existing log records
+            caplog.clear()
+        
+            # Set the logging level to capture WARNING
+            with caplog.at_level(logging.WARNING):
+                rename_dimension(input_file, output_file, ["nonexistent_dim"], ["new_dim"])
+                
+                # Check that the warning was logged
+                assert len(caplog.records) == 1
+                assert "Dimension nonexistent_dim not found in input file" in caplog.records[0].message
+        finally:
+            os.unlink(input_file)
+            os.unlink(output_file)
 
 
 def test_rename_to_existing_dimension():
@@ -98,19 +107,28 @@ def test_rename_to_existing_dimension():
         os.unlink(output_file)
 
 
-def test_rename_dimension_case_sensitive():
+def test_rename_dimension_case_sensitive(caplog):
     """Test that dimension renaming is case-sensitive."""
     input_file = create_test_las_file()
 
     with tempfile.NamedTemporaryFile(suffix=".las", delete=False) as tmp_file:
         output_file = tmp_file.name
+    
+        try:
+            # Clear any existing log records
+            caplog.clear()
+        
+            # Set the logging level to capture WARNING
+            with caplog.at_level(logging.WARNING):
+                rename_dimension(input_file, output_file, ["TEST_DIM"], ["new_dim"])
+                
+                # Check that the warning was logged
+                assert len(caplog.records) == 1
+                assert "Dimension TEST_DIM not found in input file" in caplog.records[0].message
+        finally:
+            os.unlink(input_file)
+            os.unlink(output_file)
 
-    try:
-        with pytest.raises(RuntimeError):
-            rename_dimension(input_file, output_file, ["TEST_DIM"], ["new_dim"])
-    finally:
-        os.unlink(input_file)
-        os.unlink(output_file)
 
 
 def test_rename_dimension_main():
