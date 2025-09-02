@@ -1,3 +1,6 @@
+# dev 
+- color: add vegetation_dim parameter
+
 # 1.13.0
 - create_random_laz: add classifications parameter
 - las_rename_dimension: if dimension doesn't exist, do not raise an error but log a warning
