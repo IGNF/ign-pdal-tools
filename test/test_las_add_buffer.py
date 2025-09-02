@@ -93,7 +93,7 @@ def test_create_las_with_buffer():
 
     # Check output dimensions are the same as input dimensions
     output_dimensions = tu.get_pdal_infos_summary(output_file)["summary"]["dimensions"]
-    input_dimensions = tu.get_pdal_infos_summary(output_file)["summary"]["dimensions"]
+    input_dimensions = tu.get_pdal_infos_summary(input_file)["summary"]["dimensions"]
     assert output_dimensions == input_dimensions
 
     # Check that classes are preserved (in particular classes over 31)
