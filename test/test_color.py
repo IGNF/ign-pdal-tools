@@ -380,3 +380,50 @@ def test_retry_param():
 
     with pytest.raises(requests.exceptions.HTTPError):
         raise_server_error()
+
+
+@pytest.mark.geopf
+def test_color_with_all_parameters():
+    """Test the color() function with all parameters specified"""
+    input_path = os.path.join(TEST_PATH, "data/test_data_77055_627760_LA93_IGN69.laz")
+    output_path = os.path.join(TMPDIR, "test_color_all_params.colorized.las")
+    vegetation_path = os.path.join(TEST_PATH, "data/vegetation.geojson")
+
+    # Test with all parameters explicitly defined
+    tmp_ortho, tmp_ortho_irc = color.color(
+        input_file=input_path,
+        output_file=output_path,
+        proj="2154",  # EPSG:2154 (Lambert 93)
+        pixel_per_meter=2.0,  # custom resolution
+        timeout_second=120,  # custom timeout
+        color_rvb_enabled=True,  # RGB enabled
+        color_ir_enabled=True,  # infrared enabled
+        veget_index_file=vegetation_path,
+        vegetation_dim="vegetation_dim",  # not default dimension name
+        check_images=True,  # image verification
+        stream_RGB="ORTHOIMAGERY.ORTHOPHOTOS",  # default RGB stream
+        stream_IRC="ORTHOIMAGERY.ORTHOPHOTOS.IRC",  # default IRC stream
+        size_max_gpf=1000  # custom GPF max size
+    )
+    
+    # Verifications
+    assert Path(output_path).exists(), "Output file should exist"
+    
+    # Verify that temporary images were created
+    assert tmp_ortho is not None, "RGB ortho image should be created"
+    assert tmp_ortho_irc is not None, "IRC ortho image should be created"
+    assert Path(tmp_ortho.name).exists(), "RGB ortho temporary file should exist"
+    assert Path(tmp_ortho_irc.name).exists(), "IRC ortho temporary file should exist"
+    
+    # Verify the content of the colorized LAS file
+    with laspy.open(output_path, "r") as las:
+        las_data = las.read()
+    
+    # Verify that all points have been colorized (no 0 values)
+    las_rgb_missing = (las_data.red == 0) & (las_data.green == 0) & (las_data.blue == 0)
+    assert not np.any(las_rgb_missing), f"No point should have missing RGB, found {np.count_nonzero(las_rgb_missing)}"
+    assert not np.any(las_data.nir == 0), "No point should have missing NIR"
+
+    # Verify that the vegetation dimension is present
+    assert "vegetation_dim" in las_data.point_format.dimension_names, "Vegetation dimension should be present"
+    assert las_data.point_format.get_dimension("vegetation_dim").name == "vegetation_dim", "Vegetation dimension should be named 'vegetation_dim'"

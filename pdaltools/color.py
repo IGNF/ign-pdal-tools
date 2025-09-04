@@ -224,6 +224,7 @@ def color(
     color_rvb_enabled=True,
     color_ir_enabled=True,
     veget_index_file="",
+    vegetation_dim="Deviation",
     check_images=False,
     stream_RGB="ORTHOIMAGERY.ORTHOPHOTOS",
     stream_IRC="ORTHOIMAGERY.ORTHOPHOTOS.IRC",
@@ -243,9 +244,9 @@ def color(
     writer_extra_dims = "all"
 
     if veget_index_file and veget_index_file != "":
-        print(f"Remplissage du champ Deviation à partir du fichier {veget_index_file}")
-        pipeline |= pdal.Filter.colorization(raster=veget_index_file, dimensions="Deviation:1:256.0")
-        writer_extra_dims = ["Deviation=ushort"]
+        print(f"Remplissage du champ {vegetation_dim} à partir du fichier {veget_index_file}")
+        pipeline |= pdal.Filter.colorization(raster=veget_index_file, dimensions=f"{vegetation_dim}:1:256.0")
+        writer_extra_dims = [f"{vegetation_dim}=ushort"]
 
     tmp_ortho = None
     if color_rvb_enabled:
@@ -316,7 +317,10 @@ def parse_args():
     parser.add_argument("--rvb", action="store_true", help="Colorize RVB")
     parser.add_argument("--ir", action="store_true", help="Colorize IR")
     parser.add_argument(
-        "--vegetation", type=str, default="", help="Vegetation file, value will be stored in Deviation field"
+        "--vegetation", type=str, default="", help="Vegetation file, value will be stored in 'vegetation_dim' field"
+    )
+    parser.add_argument(
+        "--vegetation_dim", type=str, default="Deviation", help="name of the extra_dim uses for the vegetation value"
     )
     parser.add_argument("--check-images", "-c", action="store_true", help="Check that downloaded image is not white")
     parser.add_argument(
@@ -357,6 +361,7 @@ if __name__ == "__main__":
         color_rvb_enabled=args.rvb,
         color_ir_enabled=args.ir,
         veget_index_file=args.vegetation,
+        vegetation_dim=args.vegetation_dim,
         check_images=args.check_images,
         stream_RGB=args.stream_RGB,
         stream_IRC=args.stream_IRC,
