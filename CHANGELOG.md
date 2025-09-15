@@ -1,6 +1,7 @@
-# dev 
+# dev
 - color: add vegetation_dim parameter
 - las_add_buffer: fix test checking input and output dimensions consistency
+- [new feature] replace_area_in_pointcloud: replace part of a pointcloud by the points of another pointcloud
 
 # 1.13.0
 - create_random_laz: add classifications parameter
