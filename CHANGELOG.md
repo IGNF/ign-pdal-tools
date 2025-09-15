@@ -1,3 +1,9 @@
+# 1.14.0
+- [refactor] extract tools to download an image from IGN geoplateform to separate file [download_image.py](pdaltools/download_image.py)
+- color: add vegetation_dim parameter
+- las_add_buffer: fix test checking input and output dimensions consistency
+- [new feature] replace_area_in_pointcloud: replace part of a pointcloud by the points of another pointcloud
+
 # 1.13.0
 - create_random_laz: add classifications parameter
 - las_rename_dimension: if dimension doesn't exist, do not raise an error but log a warning

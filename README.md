@@ -59,6 +59,7 @@ pcd_infos.get_pointcloud_origin_from_tile_width(points, tile_width=1000)
 * [las_clip.py](pdaltools/las_clip.py): crop a LAS file using 2d bounding box
 * [las_merge.py](pdaltools/las_merge.py): merge a LAS file with its neighbors according to their filenames
 * [las_add_buffer.py](pdaltools/las_add_buffer.py): add points to a LAS file from a buffer (border) from its neighbors (using filenames to locate neighbors)
+* [replace_area_in_pointcloud.py](pdaltools/replace_area_in_pointcloud.py): replace the points from a LAS file by the points of another LAS file inside areas defined in a vector file (geojson, shapefile)
 
 **WARNING**: In `las_merge.py` and `las_add_buffer.py`, filenames are used to get the LAS files extents
 and to find neighbors.
