@@ -230,6 +230,41 @@ def color(
     stream_IRC="ORTHOIMAGERY.ORTHOPHOTOS.IRC",
     size_max_gpf=5000,
 ):
+    """Colorize a las file with any of the following methods:
+    - R, G, B values from an image retrieved from ign geoplateform via the "stream_RGB" data feed name
+    - Infrared from another image retrieved from ign geoplateform via the "stream_IRC" data feed name
+    - any field "vegetation_dim" from another image stored locally at "veget_index_file"
+
+
+    Args:
+        input_file (str): Path to the las file to colorize
+        output_file (str): Path to the output colorized file
+        proj (str, optional): EPSG value of the SRS to apply to the output file (if not provided, use the one from
+        the input file). Eg. "2154" to use "EPSG:2154". Defaults to "".
+        pixel_per_meter (int, optional): Stream image resolution (for RGB and IRC) in pixels per meter. Defaults to 5.
+        timeout_second (int, optional): Timeout for the geoplateform request. Defaults to 300.
+        color_rvb_enabled (bool, optional): If true, apply R, G, B dimensions colorization. Defaults to True.
+        color_ir_enabled (bool, optional): If true, apply Infrared dimension colorization. Defaults to True.
+        veget_index_file (str, optional): Path to the tiff tile to use for "vegetation_dim" colorization.
+        Defaults to "".
+        vegetation_dim (str, optional): Name of the dimension to use to store the values of "veget_index_file".
+        Defaults to "Deviation".
+        check_images (bool, optional): If true, check if images from the geoplateform data feed are white
+        (and raise and error in this case). Defaults to False.
+        stream_RGB (str, optional): WMS raster stream for RGB colorization:
+        Default stream (ORTHOIMAGERY.ORTHOPHOTOS) let the server choose the resolution
+        for 20cm resolution rasters, use HR.ORTHOIMAGERY.ORTHOPHOTOS
+        for 50 cm resolution rasters, use ORTHOIMAGERY.ORTHOPHOTOS.BDORTHO
+        Defaults to ORTHOIMAGERY.ORTHOPHOTOS
+        stream_IRC (str, optional):WMS raster stream for IRC colorization.
+        Documentation about possible stream : https://geoservices.ign.fr/services-web-experts-ortho.
+        Defaults to "ORTHOIMAGERY.ORTHOPHOTOS.IRC".
+        size_max_gpf (int, optional): Maximum edge size (in pixels) of downloaded images. If input file needs more,
+        several images are downloaded and merged. Defaults to 5000.
+
+    Returns:
+        Paths to the temporary files that store the streamed images (tmp_ortho, tmp_ortho_irc)
+    """
     metadata = las_info.las_info_metadata(input_file)
     minx, maxx, miny, maxy = las_info.get_bounds_from_header_info(metadata)
 
@@ -317,7 +352,10 @@ def parse_args():
     parser.add_argument("--rvb", action="store_true", help="Colorize RVB")
     parser.add_argument("--ir", action="store_true", help="Colorize IR")
     parser.add_argument(
-        "--vegetation", type=str, default="", help="Vegetation file, value will be stored in 'vegetation_dim' field"
+        "--vegetation",
+        type=str,
+        default="",
+        help="Vegetation file (raster), value will be stored in 'vegetation_dim' field",
     )
     parser.add_argument(
         "--vegetation_dim", type=str, default="Deviation", help="name of the extra_dim uses for the vegetation value"
