@@ -1,3 +1,6 @@
+# dev
+- [refactor] extract tools to download an image from IGN geoplateform to separate file [download_image.py](pdaltools/download_image.py)
+
 # 1.14.0
 - color: add vegetation_dim parameter
 - las_add_buffer: fix test checking input and output dimensions consistency
