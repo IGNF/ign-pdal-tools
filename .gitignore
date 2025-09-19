@@ -7,3 +7,5 @@ dist
 
 # QGIS generated copc
 *.copc.laz
+*.aux.xml
+*.qmd

@@ -1,5 +1,6 @@
 - [fix] replace_area_in_pointcloud: handle different dimensions in source pointcloud
 - use pdal>=2.9 and deactivate the Dockerfile.pdal from CI
+- [new feature] replace_area_in_pointcloud: handle digital surface model (DSM) as source pointcloud
 
 # 1.14.0
 - [refactor] extract tools to download an image from IGN geoplateform to separate file [download_image.py](pdaltools/download_image.py)

@@ -6,7 +6,7 @@ import json
 import logging
 import os
 from collections import Counter
-from typing import List
+from typing import List, Type
 
 import pdal
 from tqdm import tqdm
@@ -29,7 +29,7 @@ def parse_args():
 
 
 @copy_and_hack_decorator
-def compute_count_one_file(filepath: str, attribute: str = "Classification") -> Counter:
+def compute_count_one_file(filepath: str, attribute: str = "Classification", type: Type[int | float] = int) -> Counter:
     pipeline = pdal.Reader.las(filepath)
     pipeline |= pdal.Filter.stats(dimensions=attribute, count=attribute)
     pipeline.execute()
@@ -39,7 +39,12 @@ def compute_count_one_file(filepath: str, attribute: str = "Classification") -> 
     try:
         # Try to prettify the value by converting it to an integer (eg. for Classification that
         # returns values such as 1.0000 instead of 1 or 1.)
-        counts = Counter({str(int(float(value))): int(count) for value, count in split_counts})
+        if type == int:
+            counts = Counter({str(int(float(value))): int(count) for value, count in split_counts})
+        elif type == float:
+            counts = Counter({str(float(value)): int(count) for value, count in split_counts})
+        else:
+            raise ValueError("parameter 'type' should be 'int' or 'float'")
     except ValueError:
         # in case value is not a number, float(value) returns a ValueError
         # fallback: use the raw value
