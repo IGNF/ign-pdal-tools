@@ -10,7 +10,7 @@ from pdaltools.count_occurences.count_occurences_for_attribute import (
     compute_count_one_file,
 )
 from pdaltools.las_info import list_dims
-from pdaltools.replace_area_in_pointcloud import get_writer_params, replace_area
+from pdaltools.replace_area_in_pointcloud import replace_area
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMP_PATH = os.path.join(TEST_PATH, "tmp/replace_area_in_pointcloud")
@@ -18,7 +18,6 @@ INPUT_DIR = os.path.join(TEST_PATH, "data/replace_area_in_pointcloud")
 TARGET_FILE = os.path.join(INPUT_DIR, "target_cloud_crop.laz")
 SOURCE_FILE = os.path.join(INPUT_DIR, "source_cloud_crop.laz")
 SHAPEFILE = os.path.join(INPUT_DIR, "ground_area.shp")
-WRITER_PARAMS = get_writer_params(TARGET_FILE)
 
 
 def setup_module(module):
@@ -39,10 +38,22 @@ def get_nb_points(path):
     return nb_points
 
 
+def pipeline_reading(filename):
+    pipeline_source = pdal.Pipeline()
+    pipeline_source |= pdal.Reader.las(filename=filename)
+    return pipeline_source
+
+
 def test_replace_area_base():
     output_file = os.path.join(TMP_PATH, "test_replace_area", "replaced.laz")
     os.makedirs(os.path.dirname(output_file))
-    replace_area(TARGET_FILE, SOURCE_FILE, SHAPEFILE, output_file, WRITER_PARAMS)
+
+    replace_area(
+        target_cloud=TARGET_FILE,
+        pipeline_source=pipeline_reading(SOURCE_FILE),
+        replacement_area_file=SHAPEFILE,
+        outfile=output_file,
+    )
     # Check that we have the expected number of points in the output
     assert get_nb_points(output_file) == 6461
 
@@ -84,17 +95,27 @@ def test_replace_with_filter():
     filter = "Classification==2"
     output_file = os.path.join(TMP_PATH, "test_replace_with_filter", "replaced.laz")
     os.makedirs(os.path.dirname(output_file))
-    replace_area(TARGET_FILE, SOURCE_FILE, SHAPEFILE, output_file, WRITER_PARAMS, filter)
+    replace_area(
+        target_cloud=TARGET_FILE,
+        pipeline_source=pipeline_reading(SOURCE_FILE),
+        replacement_area_file=SHAPEFILE,
+        outfile=output_file,
+        filter=filter,
+    )
     assert get_nb_points(output_file) == 2620
 
 
 def test_replace_two_datasources():
     target_file_class1 = os.path.join(INPUT_DIR, "target_cloud_crop_class1.laz")  # Classification=2
     source_file_class2 = os.path.join(INPUT_DIR, "source_cloud_crop_class2.laz")  # Classification=1
-    writer_params = get_writer_params(target_file_class1)
     output_file = os.path.join(TMP_PATH, "test_replace_two_datasources", "replaced.laz")
     os.makedirs(os.path.dirname(output_file))
-    replace_area(target_file_class1, source_file_class2, SHAPEFILE, output_file, writer_params)
+    replace_area(
+        target_cloud=target_file_class1,
+        pipeline_source=pipeline_reading(source_file_class2),
+        replacement_area_file=SHAPEFILE,
+        outfile=output_file,
+    )
 
     # Check if there is data from both input sources
     counts = compute_count_one_file(output_file, "Classification")
@@ -108,7 +129,6 @@ def test_replace_extra_dims():
 
     # generate target with an extra dim target with value 1, and target2
     target_file_extra_dim = os.path.join(tmp_extra_dim, "target_cloud_crop_extra_dim.laz")
-    writer_params = get_writer_params(TARGET_FILE)
     pipeline = pdal.Pipeline() | pdal.Reader.las(TARGET_FILE)
     pipeline |= pdal.Filter.ferry(dimensions="=>target")
     pipeline |= pdal.Filter.assign(assignment="target[:]=1")
@@ -125,7 +145,6 @@ def test_replace_extra_dims():
 
     # generate source with an extra dim source
     source_file_extra_dim = os.path.join(tmp_extra_dim, "source_cloud_crop_extra_dim.laz")
-    writer_params = get_writer_params(SOURCE_FILE)
     pipeline = pdal.Pipeline() | pdal.Reader.las(SOURCE_FILE)
     pipeline |= pdal.Filter.ferry(dimensions="=>source")
     pipeline |= pdal.Writer.las(source_file_extra_dim, forward="all", extra_dims="all")
@@ -135,9 +154,14 @@ def test_replace_extra_dims():
     assert "source" in source_dims, "source should have 'source' dimension"
     assert "target" not in source_dims, "source should not have 'target' dimension"
 
-    writer_params = get_writer_params(target_file_extra_dim)
     output_file = os.path.join(tmp_extra_dim, "replaced.laz")
-    replace_area(target_file_extra_dim, source_file_extra_dim, SHAPEFILE, output_file, writer_params)
+
+    replace_area(
+        target_cloud=target_file_extra_dim,
+        pipeline_source=pipeline_reading(source_file_extra_dim),
+        replacement_area_file=SHAPEFILE,
+        outfile=output_file,
+    )
 
     replaced_dims = list_dims(output_file)
 

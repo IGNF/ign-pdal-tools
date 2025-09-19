@@ -9,11 +9,27 @@ from pdaltools.las_info import get_writer_parameters_from_reader_metadata
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        "Replace points in a pointcloud with points from another pointcloud based on a area"
+        "Replace points in a pointcloud, based on a area, "
+        "with points from another pointcloud or derivated from a digital surface model.\n"
     )
-    parser.add_argument("--target_cloud", "-t", type=str, help="filepath of target cloud to be modified")
-    parser.add_argument("--source_cloud", "-s", type=str, help="filepath of source cloud to use for replacement")
-    parser.add_argument("--replacement_area_file", "-r", type=str, help="filepath of file containing areas to replace")
+    parser.add_argument(
+        "--target_cloud", "-t", type=str, required=True, help="filepath of target cloud to be modified"
+    )
+
+    source_groupe = parser.add_mutually_exclusive_group(required=True)
+    source_groupe.add_argument(
+        "--source_cloud", "-s", type=str, help="filepath of source cloud to use for replacement"
+    )
+    source_groupe.add_argument(
+        "--source_dsm",
+        "-d",
+        type=str,
+        help="filepath of source digital surface model, to create points, to use for replacement",
+    )
+
+    parser.add_argument(
+        "--replacement_area_file", "-r", required=True, type=str, help="filepath of file containing areas to replace"
+    )
     parser.add_argument("--filter", "-f", type=str, help="pdal filter expression to apply to target_cloud")
     parser.add_argument("--outfile", "-o", type=str, help="output file")
     return parser.parse_args()
@@ -27,7 +43,7 @@ def get_writer_params(input_file):
     return params
 
 
-def replace_area(target_cloud, source_cloud, replacement_area_file, outfile, writer_params, filter=""):
+def replace_area(target_cloud, pipeline_source, replacement_area_file, outfile, filter=""):
     crops = []
     # pipeline to read target_cloud and remove points inside the polygon
     pipeline_target = pdal.Pipeline()
@@ -49,8 +65,6 @@ def replace_area(target_cloud, source_cloud, replacement_area_file, outfile, wri
     crops.append(target_cloud_pruned)
 
     # pipeline to read source_cloud and remove points outside the polygon
-    pipeline_source = pdal.Pipeline()
-    pipeline_source |= pdal.Reader.las(filename=source_cloud)
     pipeline_source |= pdal.Filter.ferry(dimensions="=> geometryFid")
     pipeline_source |= pdal.Filter.assign(assignment="geometryFid[:]=-1")
     pipeline_source |= pdal.Filter.overlay(column="fid", dimension="geometryFid", datasource=replacement_area_file)
@@ -75,6 +89,8 @@ def replace_area(target_cloud, source_cloud, replacement_area_file, outfile, wri
 
     # Merge
     pipeline = pdal.Filter.merge().pipeline(*crops)
+
+    writer_params = get_writer_params(target_cloud)
     pipeline |= pdal.Writer.las(filename=outfile, **writer_params)
     pipeline.execute()
 
@@ -82,11 +98,22 @@ def replace_area(target_cloud, source_cloud, replacement_area_file, outfile, wri
 def main():
     args = parse_args()
 
-    writer_parameters = get_writer_params(args.target_cloud)
-    # writer_parameters["extra_dims"] = "" # no extra-dim by default
+    if args.source_cloud:
+        pipeline_source = pdal.Pipeline()
+        pipeline_source |= pdal.Reader.las(filename=args.source_cloud)
+        print("we use source cloud")
+    else:
+        # TODO new method to extract pointcloud from DSM
+        pipeline_source = pdal.Pipeline()
+        pipeline_source |= pdal.Reader.las(filename=args.source_cloud)
+        print("we use source digital surface model")
 
     replace_area(
-        args.target_cloud, args.source_cloud, args.replacement_area_file, args.outfile, writer_parameters, args.filter
+        target_cloud=args.target_cloud,
+        pipeline_source=pipeline_source,
+        replacement_area_file=args.replacement_area_file,
+        outfile=args.outfile,
+        filter=args.filter,
     )
 
 
