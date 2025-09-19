@@ -254,3 +254,19 @@ def get_epsg_from_las(filename: str) -> str:
             return None  # Return None if CRS is not defined
         epsg_code = crs.to_epsg()
         return f"EPSG:{epsg_code}" if epsg_code else None
+
+
+def list_dims(las_filename):
+    """List dimensions
+
+    Args:
+        las_file (_type_): _description_
+
+    Returns:
+        List<String>: Dimensions names
+    """
+    pipeline = pdal.Pipeline()
+    pipeline |= pdal.Reader.las(filename=las_filename)
+    pipeline.execute()
+
+    return list(pipeline.arrays[0].dtype.fields.keys())
