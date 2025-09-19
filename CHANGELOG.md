@@ -1,3 +1,5 @@
+- [fix] replace_area_in_pointcloud: handle different dimensions in source pointcloud
+
 # 1.14.0
 - [refactor] extract tools to download an image from IGN geoplateform to separate file [download_image.py](pdaltools/download_image.py)
 - color: add vegetation_dim parameter

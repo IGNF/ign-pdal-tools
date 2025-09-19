@@ -1,6 +1,8 @@
 import argparse
 
+import numpy as np
 import pdal
+from numpy.lib import recfunctions as rfn
 
 from pdaltools.las_info import get_writer_parameters_from_reader_metadata
 
@@ -27,6 +29,7 @@ def get_writer_params(input_file):
 
 def replace_area(target_cloud, source_cloud, replacement_area_file, outfile, writer_params, filter=""):
     crops = []
+    # pipeline to read target_cloud and remove points inside the polygon
     pipeline_target = pdal.Pipeline()
     pipeline_target |= pdal.Reader.las(filename=target_cloud)
     pipeline_target |= pdal.Filter.ferry(dimensions="=> geometryFid")
@@ -45,6 +48,7 @@ def replace_area(target_cloud, source_cloud, replacement_area_file, outfile, wri
     target_cloud_pruned = pipeline_target.arrays[0][output_dimensions]
     crops.append(target_cloud_pruned)
 
+    # pipeline to read source_cloud and remove points outside the polygon
     pipeline_source = pdal.Pipeline()
     pipeline_source |= pdal.Reader.las(filename=source_cloud)
     pipeline_source |= pdal.Filter.ferry(dimensions="=> geometryFid")
@@ -52,10 +56,21 @@ def replace_area(target_cloud, source_cloud, replacement_area_file, outfile, wri
     pipeline_source |= pdal.Filter.overlay(column="fid", dimension="geometryFid", datasource=replacement_area_file)
     # Keep only points in the area
     pipeline_source |= pdal.Filter.expression(expression="geometryFid>=0", tag="B")
+
     pipeline_source.execute()
 
-    # delete geometryFid from source_cloud
-    source_cloud_pruned = pipeline_source.arrays[0][output_dimensions]
+    # eventually add a dimensions in source to have same dimensions as target cloud
+    # we do that in numpy (instead of PDAL filter) to keep dimension types
+    source_cloud_crop = pipeline_source.arrays[0]
+    nb_points = source_cloud_crop.shape[0]
+    source_dims = source_cloud_crop.dtype.fields.keys()
+    for dim_name, dim_type in pipeline_target.arrays[0].dtype.fields.items():
+        if dim_name not in source_dims:
+            source_cloud_crop = rfn.append_fields(
+                base=source_cloud_crop, names=dim_name, data=np.zeros(nb_points, dtype=dim_type[0]), dtypes=dim_type[0]
+            )
+
+    source_cloud_pruned = source_cloud_crop[output_dimensions]
     crops.append(source_cloud_pruned)
 
     # Merge

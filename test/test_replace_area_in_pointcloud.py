@@ -3,11 +3,13 @@ import shutil
 import test.utils as tu
 
 import laspy
+import numpy as np
 import pdal
 
 from pdaltools.count_occurences.count_occurences_for_attribute import (
     compute_count_one_file,
 )
+from pdaltools.las_info import list_dims
 from pdaltools.replace_area_in_pointcloud import get_writer_params, replace_area
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -37,7 +39,7 @@ def get_nb_points(path):
     return nb_points
 
 
-def test_replace_area():
+def test_replace_area_base():
     output_file = os.path.join(TMP_PATH, "test_replace_area", "replaced.laz")
     os.makedirs(os.path.dirname(output_file))
     replace_area(TARGET_FILE, SOURCE_FILE, SHAPEFILE, output_file, WRITER_PARAMS)
@@ -101,18 +103,49 @@ def test_replace_two_datasources():
 
 
 def test_replace_extra_dims():
-    target_file_extra_dim = os.path.join(INPUT_DIR, "target_cloud_crop_extra_dim.laz")  # has target extra dimension
-    source_file_extra_dim = os.path.join(INPUT_DIR, "source_cloud_crop_extra_dim.laz")  # has source extra dimension
-    writer_params = get_writer_params(target_file_extra_dim)
-    output_file = os.path.join(TMP_PATH, "test_replace_extra_dims", "replaced.laz")
-    os.makedirs(os.path.dirname(output_file))
-    replace_area(target_file_extra_dim, source_file_extra_dim, SHAPEFILE, output_file, writer_params)
+    tmp_extra_dim = os.path.join(TMP_PATH, "test_replace_extra_dims")
+    os.makedirs(tmp_extra_dim)
 
-    pipeline = pdal.Pipeline()
-    pipeline |= pdal.Reader.las(filename=output_file)
+    # generate target with an extra dim target with value 1, and target2
+    target_file_extra_dim = os.path.join(tmp_extra_dim, "target_cloud_crop_extra_dim.laz")
+    writer_params = get_writer_params(TARGET_FILE)
+    pipeline = pdal.Pipeline() | pdal.Reader.las(TARGET_FILE)
+    pipeline |= pdal.Filter.ferry(dimensions="=>target")
+    pipeline |= pdal.Filter.assign(assignment="target[:]=1")
+
+    pipeline |= pdal.Filter.ferry(dimensions="=>target2")
+    pipeline |= pdal.Filter.assign(assignment="target2[:]=1")
+
+    pipeline |= pdal.Writer.las(target_file_extra_dim, forward="all", extra_dims="target=uint16,target2=uint8")
     pipeline.execute()
 
-    output_dimensions = list(pipeline.arrays[0].dtype.fields.keys())
+    target_dims = list_dims(target_file_extra_dim)
+    assert "target" in target_dims, "target should have 'target' dimension"
+    assert "target2" in target_dims, "target should have 'target2' dimension"
 
-    assert "target" in output_dimensions  # dimension from target cloud
-    assert "source" not in output_dimensions  # dimension from source cloud should not be kept
+    # generate source with an extra dim source
+    source_file_extra_dim = os.path.join(tmp_extra_dim, "source_cloud_crop_extra_dim.laz")
+    writer_params = get_writer_params(SOURCE_FILE)
+    pipeline = pdal.Pipeline() | pdal.Reader.las(SOURCE_FILE)
+    pipeline |= pdal.Filter.ferry(dimensions="=>source")
+    pipeline |= pdal.Writer.las(source_file_extra_dim, forward="all", extra_dims="all")
+    pipeline.execute()
+
+    source_dims = list_dims(source_file_extra_dim)
+    assert "source" in source_dims, "source should have 'source' dimension"
+    assert "target" not in source_dims, "source should not have 'target' dimension"
+
+    writer_params = get_writer_params(target_file_extra_dim)
+    output_file = os.path.join(tmp_extra_dim, "replaced.laz")
+    replace_area(target_file_extra_dim, source_file_extra_dim, SHAPEFILE, output_file, writer_params)
+
+    replaced_dims = list_dims(output_file)
+
+    assert "target" in replaced_dims  # dimension from target cloud
+    assert "target2" in replaced_dims  # dimension from target cloud
+    assert "source" not in replaced_dims  # dimension from source cloud should not be kept
+
+    # check dimensions dtype
+    las = laspy.read(output_file)
+    assert las["target"].dtype == np.uint16
+    assert las["target2"].dtype == np.uint8
