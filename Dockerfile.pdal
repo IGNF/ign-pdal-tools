@@ -1,3 +1,12 @@
+
+## Note :
+## This Dockerfile permits to build a PDAL image with the custom fork and branch
+## It's used when it's necessary to use a specific version of PDAL 
+## typicaly when some features are not available in the conda-forge channel
+## the PDAL version is specified by variables GITHUB_SERVER_URL and GITHUB_REPOSITORY
+## and the branch by GITHUB_SHA
+##
+
 # code from https://github.com/PDAL/PDAL/blob/master/scripts/docker/ubuntu/Dockerfile
 FROM condaforge/mambaforge:latest AS mamba_pdal
 
