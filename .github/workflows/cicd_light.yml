@@ -35,5 +35,5 @@ jobs:
 
       - name: Run tests with pytest
         shell: micromamba-shell {0}
-        run: python -m pytest ./test -s --log-cli-level DEBUG -m "not geopf and not pdal_custom"
+        run: python -m pytest ./test -s --log-cli-level DEBUG -m "not geopf"
 

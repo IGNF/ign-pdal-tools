@@ -4,7 +4,7 @@ channels:
 dependencies:
   - python=3.11.*
   - numpy
-  - conda-forge:pdal==2.8.*
+  - conda-forge:pdal>=2.9.*
   - conda-forge:python-pdal>=3.4
   - requests
   - gdal

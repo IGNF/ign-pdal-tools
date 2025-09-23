@@ -19,7 +19,7 @@ install:
 ##############################
 
 testing:
-	python -m pytest ./test -s --log-cli-level DEBUG -m "not geopf and not pdal_custom"
+	python -m pytest ./test -s --log-cli-level DEBUG -m "not geopf"
 
 testing_full:
 	python -m pytest ./test -s --log-cli-level DEBUG
@@ -56,14 +56,16 @@ clean:
 REGISTRY=ghcr.io
 NAMESPACE=ignf
 IMAGE_NAME=ign-pdal-tools
+CUSTOM_PDAL_SHA=master_28_05_25
+CUSTOM_PDAL_REPOSITORY=alavenant/PDAL
 VERSION=`python -m pdaltools._version`
 FULL_IMAGE_NAME=${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:${VERSION}
 
 docker-build: clean
 	docker build --no-cache -t ${IMAGE_NAME}:${VERSION} -f Dockerfile .
 
-docker-build-pdal: clean
-	docker build --build-arg GITHUB_REPOSITORY=alavenant/PDAL --build-arg GITHUB_SHA=master_28_05_25 -t ${IMAGE_NAME}:${VERSION} -f Dockerfile.pdal .
+docker-build-custom-pdal: clean
+	docker build --build-arg GITHUB_REPOSITORY=${CUSTOM_PDAL_REPOSITORY} --build-arg GITHUB_SHA=${CUSTOM_PDAL_SHA} -t ${IMAGE_NAME}:${VERSION} -f Dockerfile.pdal .
 
 docker-test-pdal-version: clean
 	docker run --rm  -t ${IMAGE_NAME}:${VERSION} pdal --version

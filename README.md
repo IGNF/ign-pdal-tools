@@ -119,3 +119,5 @@ To generate a pip package and deploy it on pypi, use the [Makefile](Makefile) at
 To build a docker image with the library installed: `make docker-build`
 
 To test the docker image: `make docker-test`
+
+To build a docker image with a custom version of PDAL: `make docker-build-custom-pdal` ; the custom version is defined in the Makefile (see Makefile for details) 
