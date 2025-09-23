@@ -13,7 +13,6 @@ packages = ["pdaltools"]
 [tool.pytest.ini_options]
 markers = [
   "geopf: marks tests that request the (sometimes unreliable) data.geopf.fr",
-  "pdal: marks tests wich test some PDAL features (especialy feature only available in a modern version of PDAL)",
 ]
 
 [tool.black]
