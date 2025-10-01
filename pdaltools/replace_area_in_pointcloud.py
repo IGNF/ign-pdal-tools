@@ -209,4 +209,5 @@ def replace_area(
 
 
 if __name__ == "__main__":
-    argument_parser().parse_args().func()
+    args = argument_parser().parse_args()
+    args.func(args)

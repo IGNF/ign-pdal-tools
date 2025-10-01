@@ -1,3 +1,5 @@
+- [fix] replace_area_in_pointcloud: fix main function
+
 # 1.15.0
 - [fix] replace_area_in_pointcloud: handle different dimensions in source pointcloud
 - use pdal>=2.9 and deactivate the Dockerfile.pdal from CI
