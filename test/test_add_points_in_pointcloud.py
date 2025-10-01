@@ -352,6 +352,40 @@ def test_add_points_from_geometry_to_las_nok(input_file, input_points, epsg, spa
             altitude_column,
         )
 
+def test_no_duplicate():
+    # there should have no duplicate in final las
+
+    input_las_file =  os.path.join(TEST_PATH, "data/crop_duplicate.laz")
+    input_geo_file =  os.path.join(TEST_PATH, "data/crop_duplicate.geojson")
+
+    add_points_in_pointcloud.add_points_from_geometry_to_las(
+        input_geo_file, input_las_file, OUTPUT_FILE, 68, "EPSG:2154", 1000, 0.25, None
+    )
+    assert Path(OUTPUT_FILE).exists()  # check output exists
+
+    las = laspy.read(OUTPUT_FILE)
+    
+    # Get all points with classification 68
+    class_68_points = las.points[las.classification == 68]
+    num_class_68_points = len(class_68_points)
+    
+    # Print some information
+    print(f"Total points in file: {len(las.points)}")
+    print(f"Points with class 68: {num_class_68_points}")
+    
+    # Verify we have some points with class 68
+    assert num_class_68_points > 0, "Expected to find points with class 68"
+    
+    # Check for duplicate points (same X, Y, Z coordinates)
+    points_array = np.column_stack((class_68_points.x, class_68_points.y, class_68_points.z))
+    unique_points = np.unique(points_array, axis=0)
+    
+    print(f"Number of unique points: {len(unique_points)}")
+    print(f"Number of total points: {len(points_array)}")
+    
+    # Verify no duplicates
+    assert len(unique_points) == len(points_array), "Found duplicate points in class 68"
+
 
 def test_parse_args():
     # sanity check for arguments parsing
