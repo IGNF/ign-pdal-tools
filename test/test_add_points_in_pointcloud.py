@@ -249,7 +249,6 @@ def test_generate_3d_points_from_lines(lines_gdf, spacing, altitude_column, expe
     # Check the result
     assert points_gdf.geometry.tolist() == expected_points
 
-
 @pytest.mark.parametrize(
     "input_file, input_points, epsg, expected_nb_points, spacing, altitude_column",
     [
@@ -261,7 +260,7 @@ def test_generate_3d_points_from_lines(lines_gdf, spacing, altitude_column, expe
             INPUT_PCD,
             INPUT_LIGNES_2D_GEOJSON,
             "EPSG:2154",
-            678,
+            677,
             0.25,
             "RecupZ",
         ),  # should add only lines (.GeoJSON) within tile extend
@@ -269,16 +268,16 @@ def test_generate_3d_points_from_lines(lines_gdf, spacing, altitude_column, expe
             INPUT_PCD,
             INPUT_LIGNES_SHAPE,
             "EPSG:2154",
-            678,
+            677,
             0.25,
             "RecupZ",
         ),  # should add only lines (.shp) within tile extend
-        (INPUT_PCD, INPUT_LIGNES_SHAPE, None, 678, 0.25, "RecupZ"),  # Should work with or with an input epsg
+        (INPUT_PCD, INPUT_LIGNES_SHAPE, None, 677, 0.25, "RecupZ"),  # Should work with or with an input epsg
         (
             INPUT_PCD,
             INPUT_LIGNES_3D_GEOJSON,
             None,
-            678,
+            677,
             0.25,
             None,
         ),  # Should work with or without an input epsg and without altitude_column
@@ -386,6 +385,51 @@ def test_no_duplicate():
     # Verify no duplicates
     assert len(unique_points) == len(points_array), "Found duplicate points in class 68"
 
+
+@pytest.mark.parametrize(
+    "spacing",
+    [
+        0.1,
+        0.01,
+        0.001,
+        0.25,
+        0.5,
+        1,
+    ]
+)
+def test_no_duplicate(spacing):
+    # there should have no duplicate in final las
+
+    input_las_file =  os.path.join(TEST_PATH, "data/crop_duplicate.laz")
+    input_geo_file =  os.path.join(TEST_PATH, "data/crop_duplicate.geojson")
+
+    add_points_in_pointcloud.add_points_from_geometry_to_las(
+        input_geo_file, input_las_file, OUTPUT_FILE, 68, "EPSG:2154", 1000, spacing, None
+    )
+    assert Path(OUTPUT_FILE).exists()  # check output exists
+
+    las = laspy.read(OUTPUT_FILE)
+    
+    # Get all points with classification 68
+    class_68_points = las.points[las.classification == 68]
+    num_class_68_points = len(class_68_points)
+    
+    # Print some information
+    print(f"Total points in file: {len(las.points)}")
+    print(f"Points with class 68: {num_class_68_points}")
+    
+    # Verify we have some points with class 68
+    assert num_class_68_points > 0, "Expected to find points with class 68"
+    
+    # Check for duplicate points (same X, Y, Z coordinates)
+    points_array = np.column_stack((class_68_points.x, class_68_points.y, class_68_points.z))
+    unique_points = np.unique(points_array, axis=0)
+    
+    print(f"Number of unique points: {len(unique_points)}")
+    print(f"Number of total points: {len(points_array)}")
+    
+    # Verify no duplicates
+    assert len(unique_points) == len(points_array), "Found duplicate points in class 68"
 
 def test_parse_args():
     # sanity check for arguments parsing
