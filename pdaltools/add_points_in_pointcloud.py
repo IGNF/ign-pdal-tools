@@ -6,6 +6,7 @@ import geopandas as gpd
 import laspy
 import numpy as np
 import pdal
+from shapely import set_precision
 from shapely.geometry import MultiPoint, Point, box
 
 from pdaltools.las_info import get_epsg_from_las, get_tile_bbox
@@ -326,6 +327,10 @@ def add_points_from_geometry_to_las(
 
     # Clip points from GeoJSON by LIDAR tile
     points_clipped = clip_3d_points_to_tile(points_gdf, input_las, spatial_ref, tile_width)
+
+    # Remove duplicate points (due to precision issue) - las file have centrimetric precision
+    points_clipped.geometry = set_precision(points_clipped.geometry, grid_size=0.01)
+    points_clipped = points_clipped.drop_duplicates()
 
     # Add points by LIDAR tile and save the result
     add_points_to_las(points_clipped, input_las, output_las, spatial_ref, virtual_points_classes)
