@@ -30,7 +30,7 @@ SOURCE_CLOUD = os.path.join(INPUT_DIR, "source_cloud_crop.laz")
 
 # source may be a digital surface model
 SOURCE_DSM = os.path.join(INPUT_DIR, "DSM.tif")
-SOURCE_GROUND_AREA = os.path.join(INPUT_DIR, "ground_area.geojson")
+SOURCE_GROUND_MASK = os.path.join(INPUT_DIR, "ground_mask.tif")
 SOURCE_CLASSIF = 68
 
 TMP_EXTRA_DIMS = os.path.join(TMP_PATH, "input_with_extra_dims")
@@ -285,7 +285,7 @@ def test_replace_area_with_no_output_point_with_extra_dims():
 def test_pipeline_read_from_DSM():
     cloud_from_DSM = os.path.join(TMP_PATH, "las_from_DSM.laz")
 
-    pipeline = pipeline_read_from_DSM(dsm=SOURCE_DSM, ground_area=SOURCE_GROUND_AREA, classification=SOURCE_CLASSIF)
+    pipeline = pipeline_read_from_DSM(dsm=SOURCE_DSM, ground_mask=SOURCE_GROUND_MASK, classification=SOURCE_CLASSIF)
     pipeline |= pdal.Writer.las(cloud_from_DSM, forward="all", extra_dims="all")
     pipeline.execute()
 
@@ -326,9 +326,10 @@ def test_main_from_cloud_with_filter():
 
 
 def test_main_from_DSM():
-    output_file = os.path.join(TMP_PATH, "output_main_from_cloud.laz")
+    output_file = os.path.join(TMP_PATH, "main_from_DSM", "output_main_from_DSM.laz")
+    os.makedirs(os.path.dirname(output_file))
     cmd = (
-        f"from_DSM -d {SOURCE_DSM} -g {SOURCE_GROUND_AREA} -c {SOURCE_CLASSIF} -t {TARGET_CLOUD} -r {REPLACE_AREA}"
+        f"from_DSM -d {SOURCE_DSM} -g {SOURCE_GROUND_MASK} -c {SOURCE_CLASSIF} -t {TARGET_CLOUD} -r {REPLACE_AREA}"
         f" -o {output_file}"
     ).split()
     args = argument_parser().parse_args(cmd)

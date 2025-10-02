@@ -33,13 +33,14 @@ def argument_parser():
         help="path of the source digital surface model (DSM), used to generate source points",
     )
     from_DSM.add_argument(
-        "--source_ground_area",
+        "--source_ground_mask",
         "-g",
         required=True,
         type=str,
         help=(
-            "area of the ground, used to intersect source cloud. "
-            "(shapefile, geojson or other format readable by GDAL)"
+            "ground mask, a raster file used to filter source cloud. "
+            "Pixel with value > 0 is considered as ground, and define the source cloud we keep. "
+            "(tif or other raster format readable by GDAL)"
         ),
     )
     from_DSM.add_argument(
@@ -65,7 +66,7 @@ def add_common_options(parser):
         "-r",
         required=True,
         type=str,
-        help="area to replace (shapefile, geojson or other format readable by GDAL)",
+        help="area to replace (shapefile, geojson or other vector format readable by GDAL)",
     )
     parser.add_argument("--output_cloud", "-o", required=True, type=str, help="output cloud file")
 
@@ -84,7 +85,7 @@ def from_DSM_func(args):
     replace_area(
         target_cloud=args.target_cloud,
         pipeline_source=pipeline_read_from_DSM(
-            dsm=args.source_dsm, ground_area=args.source_ground_area, classification=args.source_classification
+            dsm=args.source_dsm, ground_mask=args.source_ground_mask, classification=args.source_classification
         ),
         replacement_area=args.replacement_area,
         output_cloud=args.output_cloud,
@@ -106,7 +107,7 @@ def pipeline_read_from_cloud(filename):
     return pipeline_source
 
 
-def pipeline_read_from_DSM(dsm, ground_area, classification):
+def pipeline_read_from_DSM(dsm, ground_mask, classification):
     # get nodata value
     ds = gdal.Open(dsm)
     band = ds.GetRasterBand(1)
@@ -117,11 +118,11 @@ def pipeline_read_from_DSM(dsm, ground_area, classification):
     pipeline |= pdal.Reader.gdal(filename=dsm, header="Z")
     pipeline |= pdal.Filter.expression(expression=f"Z != {nodata_value}")
 
-    pipeline |= pdal.Filter.ferry(dimensions="=> geometryFid")
-    pipeline |= pdal.Filter.assign(assignment="geometryFid[:]=-1")
-    pipeline |= pdal.Filter.overlay(column="fid", dimension="geometryFid", datasource=ground_area)
+    pipeline |= pdal.Filter.ferry(dimensions="=> ground")
+    pipeline |= pdal.Filter.assign(assignment="ground[:]=-1")
+    pipeline |= pdal.Filter.colorization(dimensions="ground:1:1.0", raster=ground_mask)
     # Keep only points in the area
-    pipeline |= pdal.Filter.expression(expression="geometryFid>=0")
+    pipeline |= pdal.Filter.expression(expression="ground>0")
 
     # assign class
     pipeline |= pdal.Filter.ferry(dimensions="=>Classification")
