@@ -116,23 +116,6 @@ def clip_3d_points_to_tile(
     return clipped_points
 
 
-def remove_duplicate_points(input_points: gpd.GeoDataFrame, precision: float = 0.01) -> gpd.GeoDataFrame:
-    """
-    Remove duplicate points from a GeoDataFrame.
-
-    Args:
-        input_points (gpd.GeoDataFrame): GeoDataFrame with 3D points.
-
-    Returns:
-        gpd.GeoDataFrame: Points 2D with "Z" value
-    """
-    # Remove duplicate points based on their coordinates
-        
-    input_points.geometry = set_precision(input_points.geometry, grid_size=precision)
-    unique_points = input_points.drop_duplicates()    
-
-    return unique_points
-
 def add_points_to_las(
     input_points_with_z: gpd.GeoDataFrame, input_las: str, output_las: str, crs: str, virtual_points_classes: int = 66
 ):
@@ -345,7 +328,8 @@ def add_points_from_geometry_to_las(
     points_clipped = clip_3d_points_to_tile(points_gdf, input_las, spatial_ref, tile_width)
 
     # Remove duplicate points (due to precision issue) - las file have centrimetric precision
-    points_clipped = remove_duplicate_points(points_clipped, precision=0.01)
+    points_clipped.geometry = set_precision(points_clipped.geometry, grid_size=0.01)
+    points_clipped = points_clipped.drop_duplicates()    
 
     # Add points by LIDAR tile and save the result
     add_points_to_las(points_clipped, input_las, output_las, spatial_ref, virtual_points_classes)
