@@ -109,7 +109,7 @@ def test_add_points_to_las(input_file, epsg, input_points_2d, expected_nb_points
     metadata_out = las_info_metadata(OUTPUT_FILE)
     output_dimensions = metadata_out["dimensions"]
 
-    assert input_dimensions == output_dimensions # All dimension should be preserve
+    assert input_dimensions == output_dimensions  # All dimension should be preserve
 
     point_count = compute_count_one_file(OUTPUT_FILE)["68"]
     assert point_count == expected_nb_points  # Add all points from geojson
@@ -249,6 +249,7 @@ def test_generate_3d_points_from_lines(lines_gdf, spacing, altitude_column, expe
     # Check the result
     assert points_gdf.geometry.tolist() == expected_points
 
+
 @pytest.mark.parametrize(
     "input_file, input_points, epsg, expected_nb_points, spacing, altitude_column",
     [
@@ -351,6 +352,7 @@ def test_add_points_from_geometry_to_las_nok(input_file, input_points, epsg, spa
             altitude_column,
         )
 
+
 @pytest.mark.parametrize(
     "spacing",
     [
@@ -360,13 +362,13 @@ def test_add_points_from_geometry_to_las_nok(input_file, input_points, epsg, spa
         0.25,
         0.5,
         1,
-    ]
+    ],
 )
-def test_add_points_from_geometry_to_las_no_dupplicate_base(spacing):
+def test_add_points_from_geometry_to_las_no_dupplicate(spacing):
     # there should have no duplicate in final las
 
-    input_las_file =  os.path.join(TEST_PATH, "data/crop_duplicate.laz")
-    input_geo_file =  os.path.join(TEST_PATH, "data/crop_duplicate.geojson")
+    input_las_file = os.path.join(TEST_PATH, "data/crop_duplicate.laz")
+    input_geo_file = os.path.join(TEST_PATH, "data/crop_duplicate.geojson")
 
     add_points_in_pointcloud.add_points_from_geometry_to_las(
         input_geo_file, input_las_file, OUTPUT_FILE, 68, "EPSG:2154", 1000, spacing, None
@@ -374,27 +376,28 @@ def test_add_points_from_geometry_to_las_no_dupplicate_base(spacing):
     assert Path(OUTPUT_FILE).exists()  # check output exists
 
     las = laspy.read(OUTPUT_FILE)
-    
+
     # Get all points with classification 68
     class_68_points = las.points[las.classification == 68]
     num_class_68_points = len(class_68_points)
-    
+
     # Print some information
     print(f"Total points in file: {len(las.points)}")
     print(f"Points with class 68: {num_class_68_points}")
-    
+
     # Verify we have some points with class 68
     assert num_class_68_points > 0, "Expected to find points with class 68"
-    
+
     # Check for duplicate points (same X, Y, Z coordinates)
     points_array = np.column_stack((class_68_points.x, class_68_points.y, class_68_points.z))
     unique_points = np.unique(points_array, axis=0)
-    
+
     print(f"Number of unique points: {len(unique_points)}")
     print(f"Number of total points: {len(points_array)}")
-    
+
     # Verify no duplicates
     assert len(unique_points) == len(points_array), "Found duplicate points in class 68"
+
 
 def test_parse_args():
     # sanity check for arguments parsing

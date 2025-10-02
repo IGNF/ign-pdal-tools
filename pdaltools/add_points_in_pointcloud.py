@@ -6,8 +6,8 @@ import geopandas as gpd
 import laspy
 import numpy as np
 import pdal
-from shapely.geometry import MultiPoint, Point, box
 from shapely import set_precision
+from shapely.geometry import MultiPoint, Point, box
 
 from pdaltools.las_info import get_epsg_from_las, get_tile_bbox
 
@@ -173,6 +173,7 @@ def add_points_to_las(
         pipeline |= pdal.Writer.las(filename=output_las, forward="all", extra_dims="all", a_srs=a_srs)
         pipeline.execute()
 
+
 def line_to_multipoint(line, spacing: float, z_value: float = None):
     """
     Convert a LineString to a MultiPoint with equally spaced points and a given Z value.
@@ -329,7 +330,7 @@ def add_points_from_geometry_to_las(
 
     # Remove duplicate points (due to precision issue) - las file have centrimetric precision
     points_clipped.geometry = set_precision(points_clipped.geometry, grid_size=0.01)
-    points_clipped = points_clipped.drop_duplicates()    
+    points_clipped = points_clipped.drop_duplicates()
 
     # Add points by LIDAR tile and save the result
     add_points_to_las(points_clipped, input_las, output_las, spatial_ref, virtual_points_classes)
