@@ -1,3 +1,5 @@
+- [fix] add_points_to_pointcloud: remove duplicate points added from geometry before adding in the result las
+
 # 1.15.1
 - [fix] replace_area_in_pointcloud: fix main function
 
