@@ -159,7 +159,8 @@ def replace_area(
     pipeline_target |= pdal.Filter.overlay(column="fid", dimension="geometryFid", datasource=replacement_area)
     # Keep only points out of the area
     pipeline_target |= pdal.Filter.expression(expression="geometryFid==-1", tag="A")
-    pipeline_target.execute()
+    target_count = pipeline_target.execute()
+    print("Step 1: target count: ", target_count)
 
     # get input dimensions dtype from target
     if pipeline_target.arrays:
@@ -190,10 +191,11 @@ def replace_area(
     pipeline_source |= pdal.Filter.overlay(column="fid", dimension="geometryFid", datasource=replacement_area)
     # Keep only points in the area
     pipeline_source |= pdal.Filter.expression(expression="geometryFid>=0", tag="B")
-    pipeline_source.execute()
+    source_count = pipeline_source.execute()
+    print("Step 2: source count: ", source_count)
 
     # add source to the result
-    if pipeline_source.arrays:
+    if source_count:
         # eventually add dimensions in source to have same dimensions as target cloud
         # we do that in numpy (instead of PDAL filter) to keep dimension types
         source_cloud_crop = pipeline_source.arrays[0]
