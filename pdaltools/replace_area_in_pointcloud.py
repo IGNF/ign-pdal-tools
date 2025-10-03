@@ -142,11 +142,11 @@ def pipeline_read_from_DSM(dsm, ground_mask, classification):
 def replace_area(
     target_cloud, pipeline_source, replacement_area, output_cloud, source_pdal_filter="", target_pdal_filter=""
 ):
-    print("target cloud:", target_cloud)
-    print("replacement_area", replacement_area)
-    print("output_cloud", output_cloud)
-    print("source_pdal_filter", source_pdal_filter)
-    print("target_pdal_filter", target_pdal_filter)
+    print("target cloud: ", target_cloud)
+    print("replacement area: ", replacement_area)
+    print("output cloud: ", output_cloud)
+    print("source pdal filter: ", source_pdal_filter)
+    print("target pdal filter: ", target_pdal_filter)
     crops = []
     # pipeline to read target_cloud and remove points inside the polygon
     pipeline_target = pdal.Pipeline()
