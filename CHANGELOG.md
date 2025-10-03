@@ -1,3 +1,4 @@
+# 1.15.3
 - [fix] replace_area_plointcloud: handle DSM without 'nodata' value
 
 # 1.15.2
