@@ -102,21 +102,29 @@ def get_writer_params(input_file):
 
 
 def pipeline_read_from_cloud(filename):
+    print("source cloud: ", filename)
     pipeline_source = pdal.Pipeline()
     pipeline_source |= pdal.Reader.las(filename=filename)
     return pipeline_source
 
 
 def pipeline_read_from_DSM(dsm, ground_mask, classification):
+    print("DSM: ", dsm)
+    print("ground_mask: ", ground_mask)
+    print("classification: ", classification)
+
     # get nodata value
     ds = gdal.Open(dsm)
     band = ds.GetRasterBand(1)
     nodata_value = band.GetNoDataValue()
+    print("DSM: nodata:", nodata_value)
     ds.Close()
 
     pipeline = pdal.Pipeline()
     pipeline |= pdal.Reader.gdal(filename=dsm, header="Z")
-    pipeline |= pdal.Filter.expression(expression=f"Z != {nodata_value}")
+
+    if nodata_value is not None:  # nodata_value may be None and cause bugs
+        pipeline |= pdal.Filter.expression(expression=f"Z != {nodata_value}")
 
     pipeline |= pdal.Filter.ferry(dimensions="=> ground")
     pipeline |= pdal.Filter.assign(assignment="ground[:]=-1")
@@ -134,6 +142,11 @@ def pipeline_read_from_DSM(dsm, ground_mask, classification):
 def replace_area(
     target_cloud, pipeline_source, replacement_area, output_cloud, source_pdal_filter="", target_pdal_filter=""
 ):
+    print("target cloud: ", target_cloud)
+    print("replacement area: ", replacement_area)
+    print("output cloud: ", output_cloud)
+    print("source pdal filter: ", source_pdal_filter)
+    print("target pdal filter: ", target_pdal_filter)
     crops = []
     # pipeline to read target_cloud and remove points inside the polygon
     pipeline_target = pdal.Pipeline()
