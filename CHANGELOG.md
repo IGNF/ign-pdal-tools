@@ -1,4 +1,5 @@
 - [fix] add_points_to_pointcloud: remove duplicate points added from geometry before adding in the result las
+- replace_area_plointcloud: from DSM: ground_area (vector) is replaced by ground_mask (raster)
 
 # 1.15.1
 - [fix] replace_area_in_pointcloud: fix main function
