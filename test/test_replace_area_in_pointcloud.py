@@ -353,6 +353,6 @@ def test_main_from_DSM_light_replace_all():
     args = argument_parser().parse_args(cmd)
     args.func(args)
 
-    # # same result as test_from_DMS
+    # only have points from source
     counts = compute_count_one_file(output_file, "Classification")
     assert counts == {str(SOURCE_CLASSIF): 81}
