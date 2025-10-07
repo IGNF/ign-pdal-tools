@@ -1,3 +1,7 @@
+- [optimization] replace_area_plointcloud: select polygons in replace_area that intersect target LAS.
+  - make the normal case faster
+  - when there is no polygon, a simple copy of target file is enough.
+
 # 1.15.4
 - [fix] replace_area_plointcloud: better handling of source cloud with all points filtered
 
