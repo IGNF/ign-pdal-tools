@@ -325,7 +325,7 @@ def test_main_from_cloud_with_filter():
     assert get_nb_points(output_file) == 6390
 
 
-def test_main_from_DSM():
+def test_main_from_DSM_light():
     output_file = os.path.join(TMP_PATH, "main_from_DSM", "output_main_from_DSM.laz")
     os.makedirs(os.path.dirname(output_file))
     cmd = (
@@ -338,3 +338,21 @@ def test_main_from_DSM():
     # same result as test_from_DMS
     counts = compute_count_one_file(output_file, "Classification")
     assert counts == {"1": 3841, "2": 2355, str(SOURCE_CLASSIF): 45}
+
+
+def test_main_from_DSM_light_replace_all():
+    output_file = os.path.join(TMP_PATH, "main_from_DSM_replace_around", "output_main_from_DSM.laz")
+    os.makedirs(os.path.dirname(output_file))
+
+    # use replacement area bigger than the tile
+    REPLACE_AREA_2 = os.path.join(INPUT_DIR, "replace_area_2.geojson")
+    cmd = (
+        f"from_DSM -d {SOURCE_DSM} -g {SOURCE_GROUND_MASK} -c {SOURCE_CLASSIF} -t {TARGET_CLOUD} -r {REPLACE_AREA_2}"
+        f" -o {output_file}"
+    ).split()
+    args = argument_parser().parse_args(cmd)
+    args.func(args)
+
+    # only have points from source
+    counts = compute_count_one_file(output_file, "Classification")
+    assert counts == {str(SOURCE_CLASSIF): 81}

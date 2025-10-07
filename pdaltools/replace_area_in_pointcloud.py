@@ -1,12 +1,22 @@
 import argparse
+import os
+import shutil
+import tempfile
+import time
 import warnings
 
+import geopandas as gpd
 import numpy as np
 import pdal
 from numpy.lib import recfunctions as rfn
 from osgeo import gdal
+from shapely.geometry import box
 
-from pdaltools.las_info import get_writer_parameters_from_reader_metadata
+from pdaltools.las_info import (
+    get_bounds_from_header_info,
+    get_writer_parameters_from_reader_metadata,
+    las_info_metadata,
+)
 
 
 def argument_parser():
@@ -139,6 +149,18 @@ def pipeline_read_from_DSM(dsm, ground_mask, classification):
     return pipeline
 
 
+def clip_area(area_input, area_output, las_file):
+    start = time.time()
+    gdf = gpd.read_file(area_input)
+    minx, maxx, miny, maxy = get_bounds_from_header_info(las_info_metadata(las_file))
+    selection = gdf[gdf.intersects(box(minx, miny, maxx, maxy))]
+    num_polygon = len(selection)
+    selection.to_file(area_output)
+    end = time.time()
+    print(f"Create replacement area cropped: {num_polygon} polygons in {end-start:.2f} seconds")
+    return num_polygon
+
+
 def replace_area(
     target_cloud, pipeline_source, replacement_area, output_cloud, source_pdal_filter="", target_pdal_filter=""
 ):
@@ -147,6 +169,24 @@ def replace_area(
     print("output cloud: ", output_cloud)
     print("source pdal filter: ", source_pdal_filter)
     print("target pdal filter: ", target_pdal_filter)
+
+    start = time.time()
+    tmpdir = tempfile.mkdtemp()
+    replacement_name, ext = os.path.splitext(os.path.basename(replacement_area))
+    las_name, _ = os.path.splitext(os.path.basename(target_cloud))
+    replacement_area_crop = os.path.join(tmpdir, f"{replacement_name}_{las_name}{ext}")
+    print("replacement area crop: ", replacement_area_crop)
+
+    num_polygon = clip_area(replacement_area, replacement_area_crop, target_cloud)
+    if num_polygon == 0:
+        print("No polygon inside target cloud, output file is target cloud. We copy target in output.")
+
+        shutil.copy2(src=target_cloud, dst=output_cloud)
+        end = time.time()
+        print("all steps done in ", f"{end-start:.2f}", " seconds")
+        return
+
+    replacement_area = replacement_area_crop
     crops = []
     # pipeline to read target_cloud and remove points inside the polygon
     pipeline_target = pdal.Pipeline()
@@ -160,7 +200,9 @@ def replace_area(
     # Keep only points out of the area
     pipeline_target |= pdal.Filter.expression(expression="geometryFid==-1", tag="A")
     target_count = pipeline_target.execute()
-    print("Step 1: target count: ", target_count)
+
+    t1 = time.time()
+    print(f"Step 1: target count: {target_count} points in {t1-start:.2f} seconds")
 
     # get input dimensions dtype from target
     if pipeline_target.arrays:
@@ -171,7 +213,10 @@ def replace_area(
         pipeline_target2 |= pdal.Reader.las(filename=target_cloud)
         pipeline_target2.execute()
         input_dim_dtype = pipeline_target2.arrays[0].dtype
+        t1_bis = time.time()
+        print(f"Step 1-bis: re-read to have dimensions: {t1_bis-t1:.2f} seconds")
 
+    t2 = time.time()
     # get input dimensions names
     input_dimensions = list(input_dim_dtype.fields.keys())
 
@@ -179,7 +224,7 @@ def replace_area(
     output_dimensions = [dim for dim in input_dimensions if dim not in "geometryFid"]
 
     # add target to the result after keeping only the expected dimensions
-    if pipeline_target.arrays:
+    if target_count:
         target_cloud_pruned = pipeline_target.arrays[0][output_dimensions]
         crops.append(target_cloud_pruned)
 
@@ -192,7 +237,9 @@ def replace_area(
     # Keep only points in the area
     pipeline_source |= pdal.Filter.expression(expression="geometryFid>=0", tag="B")
     source_count = pipeline_source.execute()
-    print("Step 2: source count: ", source_count)
+
+    t3 = time.time()
+    print(f"Step 2: source count: {source_count} points in {t3-t2:.2f} seconds")
 
     # add source to the result
     if source_count:
@@ -221,7 +268,11 @@ def replace_area(
 
     writer_params = get_writer_params(target_cloud)
     pipeline |= pdal.Writer.las(filename=output_cloud, **writer_params)
-    pipeline.execute()
+    points = pipeline.execute()
+
+    end = time.time()
+    print(f"Step 3: merge: { points }, points in {end-t3:.2f} seconds")
+    print("all steps done in ", f"{end-start:.2f}", " seconds")
 
 
 if __name__ == "__main__":
