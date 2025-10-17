@@ -1,8 +1,9 @@
 import os
-import pytest
-import numpy as np
-import laspy
 import sys
+
+import laspy
+import numpy as np
+import pytest
 
 from pdaltools.create_random_laz import create_random_laz, main
 
@@ -138,13 +139,14 @@ def test_create_random_laz_data_ranges():
         assert np.all(las.uint_dim >= 0)
         assert np.all(las.uint_dim <= 100)
 
+
 @pytest.mark.parametrize(
     "classifications",
     [
         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
-        [1, 2, 3, 66, 68]
-    ]
+        [1, 2, 3, 66, 68],
+    ],
 )
 def test_create_random_laz_classifications(classifications):
     """Test that generated data is within expected ranges for different types"""
@@ -158,18 +160,18 @@ def test_create_random_laz_classifications(classifications):
 
     with laspy.open(output_file) as las_file:
         las = las_file.read()
-        
+
         # Convert to set for faster lookups
         valid_classifications = set(classifications)
-        
+
         # Check that all classification values are in the provided list
         unique_classes = set(np.unique(las.classification))
-        assert unique_classes.issubset(valid_classifications), \
-            f"Found unexpected classification values: {unique_classes - valid_classifications}"
-            
+        assert unique_classes.issubset(
+            valid_classifications
+        ), f"Found unexpected classification values: {unique_classes - valid_classifications}"
+
         # Also check that we have the expected number of points
-        assert len(las.classification) == 1000, \
-            f"Expected 1000 points, got {len(las.classification)}"
+        assert len(las.classification) == 1000, f"Expected 1000 points, got {len(las.classification)}"
 
 
 def test_main():
@@ -191,11 +193,21 @@ def test_main():
             "--crs",
             "2154",
             "--center",
-            "650000", "6810000",
+            "650000",
+            "6810000",
             "--extra_dims",
             "height:float32",
             "--classifications",
-            "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
         ]
 
         # Run main function
@@ -209,12 +221,13 @@ def test_main():
             las = las_file.read()
             assert len(las.points) == 50
             assert "height" in las.point_format.dimension_names
-            
+
             # Verify classifications are within the provided range
             unique_classes = set(np.unique(las.classification))
             expected_classes = set(range(1, 11))  # 1-10
-            assert unique_classes.issubset(expected_classes), \
-                f"Found unexpected classification values: {unique_classes - expected_classes}"
+            assert unique_classes.issubset(
+                expected_classes
+            ), f"Found unexpected classification values: {unique_classes - expected_classes}"
 
     finally:
         # Restore original sys.argv

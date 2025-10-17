@@ -153,7 +153,7 @@ def remove_points_from_buffer(input_file: str, output_file: str):
         input_file (str): path to the input file containing the "is_in_original" dimension
         output_file (str): path to the output_file
     """
-    with tempfile.NamedTemporaryFile(suffix="_with_additional_dim.las") as tmp_las:
+    with tempfile.NamedTemporaryFile(suffix="_with_additional_dim.las", delete_on_close=False) as tmp_las:
         pipeline = pdal.Pipeline() | pdal.Reader.las(input_file)
         pipeline |= pdal.Filter.range(limits=f"{ORIGINAL_TILE_TAG}[1:1]")
         pipeline |= pdal.Writer.las(filename=tmp_las.name, forward="all", extra_dims="all")
@@ -217,8 +217,8 @@ def run_on_buffered_las(
                 )
 
             with (
-                tempfile.NamedTemporaryFile(suffix="_buffered_input.laz", dir=".") as buf_in,
-                tempfile.NamedTemporaryFile(suffix="_buffered_output.laz", dir=".") as buf_out,
+                tempfile.NamedTemporaryFile(suffix="_buffered_input.laz", dir=".", delete_on_close=False) as buf_in,
+                tempfile.NamedTemporaryFile(suffix="_buffered_output.laz", dir=".", delete_on_close=False) as buf_out,
             ):
                 create_las_with_buffer(
                     Path(input_file).parent,

@@ -37,9 +37,9 @@ def test_remove_all_dimension():
     # get initial data
     points_ini = get_points(ini_las)
 
-    with tempfile.NamedTemporaryFile(suffix="_add.las") as tmp_las:
+    with tempfile.NamedTemporaryFile(suffix="_add.las", delete_on_close=False) as tmp_las:
         append_dimension(ini_las, tmp_las.name)
-        with tempfile.NamedTemporaryFile(suffix="_rm.las") as tmp_las_rm:
+        with tempfile.NamedTemporaryFile(suffix="_rm.las", delete_on_close=False) as tmp_las_rm:
             # remove all dimensions
             las_remove_dimensions.remove_dimensions_from_las(tmp_las.name, added_dimensions, tmp_las_rm.name)
             points_end = get_points(tmp_las_rm.name)
@@ -50,9 +50,9 @@ def test_remove_one_dimension():
     # get initial data
     points_ini = get_points(ini_las)
 
-    with tempfile.NamedTemporaryFile(suffix="_add.las") as tmp_las:
+    with tempfile.NamedTemporaryFile(suffix="_add.las", delete_on_close=False) as tmp_las:
         append_dimension(ini_las, tmp_las.name)
-        with tempfile.NamedTemporaryFile(suffix="_rm.las") as tmp_las_rm:
+        with tempfile.NamedTemporaryFile(suffix="_rm.las", delete_on_close=False) as tmp_las_rm:
             # remove one dimension
             las_remove_dimensions.remove_dimensions_from_las(tmp_las.name, ["DIM_1"], tmp_las_rm.name)
             points_end = get_points(tmp_las_rm.name)

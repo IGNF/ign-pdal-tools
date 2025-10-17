@@ -1,8 +1,9 @@
-import laspy
-from pathlib import Path
-import numpy as np
 import argparse
+from pathlib import Path
 from typing import Tuple
+
+import laspy
+import numpy as np
 
 
 def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None) -> Tuple[bool, int, float]:

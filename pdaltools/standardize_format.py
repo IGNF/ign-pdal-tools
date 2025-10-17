@@ -9,13 +9,14 @@
 """
 
 import argparse
+import os
 import tempfile
 from typing import Dict, List
 
 import pdal
 
-from pdaltools.unlock_file import copy_and_hack_decorator
 from pdaltools.las_rename_dimension import rename_dimension
+from pdaltools.unlock_file import copy_and_hack_decorator
 
 # Standard parameters to pass to the pdal writer
 STANDARD_PARAMETERS = dict(
@@ -76,6 +77,7 @@ def get_writer_parameters(new_parameters: Dict) -> Dict:
     params = STANDARD_PARAMETERS | new_parameters
     return params
 
+
 @copy_and_hack_decorator
 def standardize(
     input_file: str, output_file: str, params_from_parser: Dict, classes_to_remove: List = [], rename_dims: List = []
@@ -104,6 +106,10 @@ def standardize(
         pipeline |= pdal.Filter.expression(expression=expression)
     pipeline |= pdal.Writer(filename=output_file, forward="all", **params)
     pipeline.execute()
+
+    # remove the temporary file
+    if rename_dims and os.path.exists(tmp_file_name):
+        os.remove(tmp_file_name)
 
 
 def main():

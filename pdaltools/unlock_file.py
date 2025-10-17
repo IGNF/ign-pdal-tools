@@ -39,10 +39,9 @@ def copy_and_hack_decorator(func):
             if "readers.las: Global encoding WKT flag not set for point format 6 - 10." in str(e):
                 args = list(args)
                 in_file = args[0]
-                with tempfile.NamedTemporaryFile(suffix=os.path.splitext(in_file)[-1]) as tmp:
+                with tempfile.NamedTemporaryFile(suffix=os.path.splitext(in_file)[-1], delete_on_close=False) as tmp:
                     copy_and_hack_input_file(in_file, tmp.name)
                     args[0] = tmp.name
-
                     return func(*args, **kwargs)
 
             else:
