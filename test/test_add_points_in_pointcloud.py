@@ -429,7 +429,7 @@ def test_parse_args():
 
 
 def test_namedtemporaryfile_delete_on_close_false():
-    """Test that NamedTemporaryFile could be use on windows in the context with delete_on_close=False"""
+    """Test that NamedTemporaryFile could be used on windows in the context with delete_on_close=False"""
     temp_file_path = None
 
     with tempfile.NamedTemporaryFile(suffix="_test.las", delete_on_close=False) as tmp:
@@ -449,7 +449,7 @@ def test_namedtemporaryfile_delete_on_close_false():
 
 
 def test_namedtemporaryfile_delete_false_with_pdal():
-    """Test that NamedTemporaryFile could be use on windows in the context
+    """Test that NamedTemporaryFile could be used on windows in the context
     with delete_on_close=False and some pdal operations"""
 
     def read_las(input_las, tmp):

@@ -1,4 +1,4 @@
-- [fix] fix use of tempory file in windows
+- [fix] fix use of temporary file in windows
 
 # 1.15.5
 - [optimization] replace_area_plointcloud: select polygons in replace_area that intersect target LAS.
