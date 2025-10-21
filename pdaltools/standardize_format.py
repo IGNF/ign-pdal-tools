@@ -108,10 +108,8 @@ def standardize(
     pipeline.execute()
 
     # remove the temporary file
-    #if rename_dims and os.path.exists(tmp_file_name):
-    #    os.remove(tmp_file_name)
-    if rename_dims:
-        assert not os.path.exists(tmp_file_name)
+    if rename_dims and os.path.exists(tmp_file_name):
+        os.remove(tmp_file_name)
 
 
 def main():
