@@ -1,10 +1,12 @@
 import inspect
 import os
+import tempfile
 from pathlib import Path
 
 import geopandas as gpd
 import laspy
 import numpy as np
+import pdal
 import pytest
 from shapely.geometry import LineString, MultiPoint, Point
 
@@ -424,3 +426,49 @@ def test_parse_args():
     parsed_args_keys = args.__dict__.keys()
     main_parameters = inspect.signature(add_points_in_pointcloud.add_points_from_geometry_to_las).parameters.keys()
     assert set(parsed_args_keys) == set(main_parameters)
+
+
+def test_namedtemporaryfile_delete_on_close_false():
+    """Test that NamedTemporaryFile could be used on windows in the context with delete_on_close=False"""
+    temp_file_path = None
+
+    with tempfile.NamedTemporaryFile(suffix="_test.las", delete_on_close=False) as tmp:
+        temp_file_path = tmp.name
+        # Verify that the file exists during the context
+        assert os.path.exists(temp_file_path)
+
+        # Write some data to the temporary file
+        with open(temp_file_path, "w") as f:
+            f.write("test data")
+        f.close()
+
+    # Verify that the file still exists after exiting the context
+    assert not os.path.exists(
+        temp_file_path
+    ), f"Temporary file {temp_file_path} should not exist oustside the context with delete_on_close=False"
+
+
+def test_namedtemporaryfile_delete_false_with_pdal():
+    """Test that NamedTemporaryFile could be used on windows in the context
+    with delete_on_close=False and some pdal operations"""
+
+    def read_las(input_las, tmp):
+        pipeline = pdal.Pipeline()
+        pipeline |= pdal.Reader.las(filename=input_las)
+        pipeline |= pdal.Writer.las(filename=tmp.name, forward="all", extra_dims="all")
+        pipeline.execute()
+
+    input_las = os.path.join(TEST_PATH, "data/crop_duplicate.laz")
+    temp_file_path = None
+    with tempfile.NamedTemporaryFile(suffix="_test.las", delete_on_close=False) as tmp:
+        temp_file_path = tmp.name
+        read_las(input_las, tmp)
+        pipeline = pdal.Pipeline()
+        pipeline |= pdal.Reader.las(filename=tmp.name)
+        pipeline.execute()
+        assert os.path.exists(tmp.name)
+
+    # Verify that the file still exists after exiting the context
+    assert not os.path.exists(
+        temp_file_path
+    ), f"Temporary file {temp_file_path} should not exist oustside the context with delete_on_close=False"

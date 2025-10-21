@@ -6,11 +6,13 @@ This script allows renaming dimensions in a LAS file while preserving all other 
 
 import argparse
 import logging
-import pdal
 import sys
 from pathlib import Path
-from pdaltools.las_remove_dimensions import remove_dimensions_from_points
+
+import pdal
+
 from pdaltools.las_info import las_info_metadata
+from pdaltools.las_remove_dimensions import remove_dimensions_from_points
 
 
 def rename_dimension(input_file: str, output_file: str, old_dims: list[str], new_dims: list[str]):

@@ -1,0 +1,37 @@
+name: cicd_light_windows
+
+on:
+  # Run tests for non-draft pull request on dev
+  pull_request:
+    branches:
+      - dev
+
+
+jobs:
+  test_light_windows:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest]
+    permissions:
+        contents: read
+        packages: write
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      # See https://github.com/marketplace/actions/setup-micromamba
+      - name: setup-micromamba
+        uses: mamba-org/setup-micromamba@v1.9.0
+        with:
+          micromamba-version: '1.5.8-0'  # temporary fix as setup-mircomamba hangs with later mamba version
+          environment-file: environment.yml
+          environment-name: pdaltools  # activate the environment
+          cache-environment: true
+          cache-downloads: true
+          generate-run-shell: true
+
+      - name: Run tests with pytest
+        shell: cmd
+        run: micromamba run -n pdaltools python -m pytest ./test -s --log-cli-level DEBUG -m "not geopf"

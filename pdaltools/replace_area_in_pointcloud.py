@@ -271,7 +271,7 @@ def replace_area(
     points = pipeline.execute()
 
     end = time.time()
-    print(f"Step 3: merge: { points }, points in {end-t3:.2f} seconds")
+    print(f"Step 3: merge: {points}, points in {end-t3:.2f} seconds")
     print("all steps done in ", f"{end-start:.2f}", " seconds")
 
 

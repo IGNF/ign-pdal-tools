@@ -185,7 +185,7 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
                 tmp_gpg_ortho.append(cells_ortho_paths)
 
         # merge the cells
-        with tempfile.NamedTemporaryFile(suffix="_gpf.vrt") as tmp_vrt:
+        with tempfile.NamedTemporaryFile(suffix="_gpf.vrt", delete_on_close=False) as tmp_vrt:
             gdal.BuildVRT(tmp_vrt.name, tmp_gpg_ortho)
             gdal.Translate(outfile, tmp_vrt.name)
 

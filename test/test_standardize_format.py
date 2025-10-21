@@ -3,17 +3,18 @@ import os
 import platform
 import shutil
 import subprocess as sp
+import sys
 from test.utils import EXPECTED_DIMS_BY_DATAFORMAT, get_pdal_infos_summary
+
 import laspy
 import pdal
 import pytest
-import sys
 
 from pdaltools.count_occurences.count_occurences_for_attribute import (
     compute_count_one_file,
 )
-from pdaltools.standardize_format import standardize, main
 from pdaltools.las_comparison import compare_las_dimensions
+from pdaltools.standardize_format import main, standardize
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMP_PATH = os.path.join(TEST_PATH, "tmp")
@@ -277,7 +278,7 @@ def test_standardize_with_extra_dims_origin_and_dxm_marker():
 
     # check output file is same as input file for origin and dxm_marker
     result, _, _ = compare_las_dimensions(input_file, output_file, ["origin", "dsm_marker", "dtm_marker"])
-    assert result == True
+    assert result is True
 
 
 def test_main_with_rename_dimensions():

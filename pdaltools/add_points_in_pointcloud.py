@@ -156,7 +156,7 @@ def add_points_to_las(
     new_points.z = z_coords.astype(new_points.z.dtype)
     new_points.classification = classes.astype(new_points.classification.dtype)
 
-    with tempfile.NamedTemporaryFile(suffix="_new_points.las") as tmp:
+    with tempfile.NamedTemporaryFile(suffix="_new_points.las", delete_on_close=False) as tmp:
         with laspy.open(tmp.name, mode="w", header=header) as las_file:
             las_file.write_points(new_points)
 
