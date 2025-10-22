@@ -101,7 +101,7 @@ def color(
 
     tmp_ortho = None
     if color_rvb_enabled:
-        tmp_ortho = tempfile.NamedTemporaryFile(suffix="_rvb.tif")
+        tmp_ortho = tempfile.NamedTemporaryFile(suffix="_rvb.tif", delete_on_close=False)
         download_image(
             proj,
             stream_RGB,
@@ -124,7 +124,7 @@ def color(
 
     tmp_ortho_irc = None
     if color_ir_enabled:
-        tmp_ortho_irc = tempfile.NamedTemporaryFile(suffix="_irc.tif")
+        tmp_ortho_irc = tempfile.NamedTemporaryFile(suffix="_irc.tif", delete_on_close=False)
         download_image(
             proj,
             stream_IRC,

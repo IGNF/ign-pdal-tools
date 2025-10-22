@@ -1,10 +1,12 @@
-import pytest
 import tempfile
-import numpy as np
 from pathlib import Path
-import laspy
-from pdaltools.las_comparison import compare_las_dimensions, main
 from typing import Tuple
+
+import laspy
+import numpy as np
+import pytest
+
+from pdaltools.las_comparison import compare_las_dimensions, main
 
 
 def create_test_las_file(x: np.ndarray, y: np.ndarray, z: np.ndarray, dimensions: dict = None) -> Path:
@@ -236,8 +238,8 @@ def test_single_point():
 def test_main_function():
     """Test the main function with direct sys.argv"""
     import sys
-    from io import StringIO
     from contextlib import redirect_stdout
+    from io import StringIO
 
     # Test with identical files
     points = 100

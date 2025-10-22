@@ -1,9 +1,10 @@
-import numpy as np
-import laspy
-from pathlib import Path
 import argparse
-from pyproj import CRS
+from pathlib import Path
 from typing import List, Tuple
+
+import laspy
+import numpy as np
+from pyproj import CRS
 
 
 def create_random_laz(
@@ -27,7 +28,7 @@ def create_random_laz(
                 (default: (650000, 6810000) ; around Paris)
         extra_dims: List of tuples (dimension_name, dimension_type) where type can be:
                    'float32', 'float64', 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'
-        classifications: Optional list of classification values. 
+        classifications: Optional list of classification values.
     """
 
     # Create a new point cloud
@@ -103,7 +104,6 @@ def create_random_laz(
 
 
 def test_output_file(result: dict, output_file: str):
-
     # Validate output file path
     output_path = Path(output_file)
     if not output_path.exists():
@@ -126,12 +126,14 @@ def parse_args():
     )
     parser.add_argument("--crs", type=int, default=2154, help="Projection code")
     parser.add_argument(
-        "--center", type=float, nargs=2, default=[650000.0, 6810000.0],
-        help="Center coordinates (x y) of the area to generate points in (space-separated)"
+        "--center",
+        type=float,
+        nargs=2,
+        default=[650000.0, 6810000.0],
+        help="Center coordinates (x y) of the area to generate points in (space-separated)",
     )
     parser.add_argument(
-        "--classifications", type=int, nargs='+',
-        help="List of classification values (space-separated)"
+        "--classifications", type=int, nargs="+", help="List of classification values (space-separated)"
     )
     return parser.parse_args()
 
@@ -145,19 +147,13 @@ def main():
 
     # Parse center
     center = tuple(args.center[:2])  # Only take first 2 values if more are provided
-    
+
     # Parse classifications if provided
     classifications = args.classifications
 
     # Call create_random_laz
     result = create_random_laz(
-        args.output_file, 
-        args.point_format, 
-        args.num_points, 
-        args.crs, 
-        center, 
-        extra_dims,
-        classifications
+        args.output_file, args.point_format, args.num_points, args.crs, center, extra_dims, classifications
     )
 
     # Test output file

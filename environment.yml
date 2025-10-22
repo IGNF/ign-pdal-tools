@@ -2,7 +2,7 @@ name: pdaltools
 channels:
   - conda-forge
 dependencies:
-  - python=3.11.*
+  - python=3.12.*
   - numpy
   - conda-forge:pdal>=2.9.*
   - conda-forge:python-pdal>=3.4
