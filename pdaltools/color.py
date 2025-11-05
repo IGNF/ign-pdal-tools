@@ -31,7 +31,7 @@ def match_min_max_with_pixel_size(min_d: float, max_d: float, pixel_per_meter: f
     return min_d, max_d
 
 
-def color(
+def color_from_stream(
     input_file: str,
     output_file: str,
     proj="",
@@ -156,17 +156,96 @@ def color(
     return tmp_ortho, tmp_ortho_irc
 
 
-def parse_args():
-    parser = argparse.ArgumentParser("Colorize tool", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("--input", "-i", type=str, required=True, help="Input file")
-    parser.add_argument("--output", "-o", type=str, default="", help="Output file")
-    parser.add_argument(
+def color_from_files(
+    input_file: str,
+    output_file: str,
+    rgb_image: str,
+    irc_image: str,
+    color_rvb_enabled=True,
+    color_ir_enabled=True,
+    veget_index_file="",
+    vegetation_dim="Deviation",
+):
+    pipeline = pdal.Reader.las(filename=input_file)
+
+    writer_extra_dims = "all"
+
+    if veget_index_file and veget_index_file != "":
+        print(f"Remplissage du champ {vegetation_dim} à partir du fichier {veget_index_file}")
+        pipeline |= pdal.Filter.colorization(raster=veget_index_file, dimensions=f"{vegetation_dim}:1:256.0")
+        writer_extra_dims = [f"{vegetation_dim}=ushort"]
+
+    # Warning: the initial color is multiplied by 256 despite its initial 8-bits encoding
+    # which turns it to a 0 to 255*256 range.
+    # It is kept this way because of other dependencies that have been tuned to fit this range
+    if color_rvb_enabled:
+        pipeline |= pdal.Filter.colorization(raster=rgb_image, dimensions="Red:1:256.0, Green:2:256.0, Blue:3:256.0")
+    if color_ir_enabled:
+        pipeline |= pdal.Filter.colorization(raster=irc_image, dimensions="Infrared:1:256.0")
+
+    pipeline |= pdal.Writer.las(
+        filename=output_file, extra_dims=writer_extra_dims, minor_version="4", dataformat_id="8", forward="all"
+    )
+
+    print("Traitement du nuage de point")
+    pipeline.execute()
+
+
+def argument_parser():
+    parser = argparse.ArgumentParser("Colorize tool")
+    subparsers = parser.add_subparsers(required=True)
+
+    # first command is 'from_stream'
+    from_stream = subparsers.add_parser("from_stream", help="Images are downloaded from streams")
+    from_stream.add_argument(
         "--proj", "-p", type=str, default="", help="Projection, default will use projection from metadata input"
     )
-    parser.add_argument("--resolution", "-r", type=float, default=5, help="Resolution, in pixel per meter")
-    parser.add_argument("--timeout", "-t", type=int, default=300, help="Timeout, in seconds")
-    parser.add_argument("--rvb", action="store_true", help="Colorize RVB")
-    parser.add_argument("--ir", action="store_true", help="Colorize IR")
+    from_stream.add_argument("--timeout", "-t", type=int, default=300, help="Timeout, in seconds")
+    from_stream.add_argument("--rvb", action="store_true", help="Colorize RVB")
+    from_stream.add_argument("--ir", action="store_true", help="Colorize IR")
+    from_stream.add_argument("--resolution", "-r", type=float, default=5, help="Resolution, in pixel per meter")
+    from_stream.add_argument(
+        "--check-images", "-c", action="store_true", help="Check that downloaded image is not white"
+    )
+    from_stream.add_argument(
+        "--stream-RGB",
+        type=str,
+        default="ORTHOIMAGERY.ORTHOPHOTOS",
+        help="""WMS raster stream for RGB colorization:
+default stream (ORTHOIMAGERY.ORTHOPHOTOS) let the server choose the resolution
+for 20cm resolution rasters, use HR.ORTHOIMAGERY.ORTHOPHOTOS
+for 50 cm resolution rasters, use ORTHOIMAGERY.ORTHOPHOTOS.BDORTHO""",
+    )
+    from_stream.add_argument(
+        "--stream-IRC",
+        type=str,
+        default="ORTHOIMAGERY.ORTHOPHOTOS.IRC",
+        help="""WMS raster stream for IRC colorization. Default to ORTHOIMAGERY.ORTHOPHOTOS.IRC
+Documentation about possible stream : https://geoservices.ign.fr/services-web-experts-ortho""",
+    )
+    from_stream.add_argument(
+        "--size-max-GPF",
+        type=int,
+        default=5000,
+        help="Maximum edge size (in pixels) of downloaded images."
+        " If input file needs more, several images are downloaded and merged.",
+    )
+    add_common_options(from_stream)
+    from_stream.set_defaults(func=from_stream_func)
+
+    # second command is 'from_files'
+    from_files = subparsers.add_parser("from_files", help="Images are in directories from RGB/IRC")
+    from_files.add_argument("--image_RGB", type=str, required=True, help="RGB image filepath")
+    from_files.add_argument("--image_IRC", type=str, required=True, help="IRC image filepath")
+    add_common_options(from_files)
+    from_files.set_defaults(func=from_files_func)
+
+    return parser
+
+
+def add_common_options(parser):
+    parser.add_argument("--input", "-i", type=str, required=True, help="Input file")
+    parser.add_argument("--output", "-o", type=str, default="", help="Output file")
     parser.add_argument(
         "--vegetation",
         type=str,
@@ -176,37 +255,10 @@ def parse_args():
     parser.add_argument(
         "--vegetation_dim", type=str, default="Deviation", help="name of the extra_dim uses for the vegetation value"
     )
-    parser.add_argument("--check-images", "-c", action="store_true", help="Check that downloaded image is not white")
-    parser.add_argument(
-        "--stream-RGB",
-        type=str,
-        default="ORTHOIMAGERY.ORTHOPHOTOS",
-        help="""WMS raster stream for RGB colorization:
-default stream (ORTHOIMAGERY.ORTHOPHOTOS) let the server choose the resolution
-for 20cm resolution rasters, use HR.ORTHOIMAGERY.ORTHOPHOTOS
-for 50 cm resolution rasters, use ORTHOIMAGERY.ORTHOPHOTOS.BDORTHO""",
-    )
-    parser.add_argument(
-        "--stream-IRC",
-        type=str,
-        default="ORTHOIMAGERY.ORTHOPHOTOS.IRC",
-        help="""WMS raster stream for IRC colorization. Default to ORTHOIMAGERY.ORTHOPHOTOS.IRC
-Documentation about possible stream : https://geoservices.ign.fr/services-web-experts-ortho""",
-    )
-    parser.add_argument(
-        "--size-max-GPF",
-        type=int,
-        default=5000,
-        help="Maximum edge size (in pixels) of downloaded images."
-        " If input file needs more, several images are downloaded and merged.",
-    )
-
-    return parser.parse_args()
 
 
-if __name__ == "__main__":
-    args = parse_args()
-    color(
+def from_stream_func(args):
+    color_from_stream(
         input_file=args.input,
         output_file=args.output,
         proj=args.proj,
@@ -221,3 +273,33 @@ if __name__ == "__main__":
         stream_IRC=args.stream_IRC,
         size_max_gpf=args.size_max_GPF,
     )
+
+
+def from_files_func(args):
+    if args.image_RGB and args.image_RGB != "":
+        color_rvb_enabled = True
+    else:
+        color_rvb_enabled = False
+    if args.image_IRC and args.image_IRC != "":
+        color_irc_enabled = True
+    else:
+        color_irc_enabled = False
+
+    if not color_rvb_enabled and not color_irc_enabled:
+        raise ValueError("At least one of --rvb or --ir must be provided")
+
+    color_from_files(
+        input_file=args.input,
+        output_file=args.output,
+        rgb_image=args.image_RGB,
+        irc_image=args.image_IRC,
+        color_rvb_enabled=color_rvb_enabled,
+        color_ir_enabled=color_irc_enabled,
+        veget_index_file=args.vegetation,
+        vegetation_dim=args.vegetation_dim,
+    )
+
+
+if __name__ == "__main__":
+    args = argument_parser.parse_args()
+    args.func(args)
