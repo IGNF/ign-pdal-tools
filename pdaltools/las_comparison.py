@@ -62,11 +62,6 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None, pr
         # Compare each dimension
         for dim in dimensions:
             try:
-
-
-                print("las1[dim]: ", las1[dim])
-
-                print("las2[dim]: ", las2[dim])
                 
                 # Get sorted dimension arrays
                 dim1 = np.array(las1[dim])[sort_idx1]
@@ -80,12 +75,6 @@ def compare_las_dimensions(file1: Path, file2: Path, dimensions: list = None, pr
                 # Compare dimensions
                 if dim_precision is not None:
                     # Use tolerance-based comparison for floats
-
-
-                    print("dim1: ", dim1)
-                    print("dim2: ", dim2)
-                    print("dim_precision: ", dim_precision)
-                    
                     are_equal = np.allclose(dim1, dim2, rtol=0, atol=dim_precision)
                     if not are_equal:
                         # Find differences
