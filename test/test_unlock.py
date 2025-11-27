@@ -4,7 +4,7 @@ import shutil
 import laspy
 import pytest
 
-from pdaltools.color import color
+from pdaltools.color import color_from_stream
 from pdaltools.las_info import las_info_metadata
 from pdaltools.unlock_file import copy_and_hack_decorator, unlock_file
 
@@ -39,7 +39,7 @@ def test_copy_and_hack_decorator_color():
     LAS_FILE = os.path.join(TMPDIR, "test_pdalfail_0643_6319_LA93_IGN69.las")
 
     # Color works only when an epsg is present in the header or as a parameter
-    color(LAZ_FILE, LAS_FILE, "2154", 1)
+    color_from_stream(LAZ_FILE, LAS_FILE, "2154", 1)
 
     las = laspy.read(LAS_FILE)
     print(las.header)

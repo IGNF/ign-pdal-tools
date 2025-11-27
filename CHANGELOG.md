@@ -1,3 +1,7 @@
+# 1.15.7
+- [update] Update las_comparison with tolerance 
+- [update] Colorisation of Las with stream or files
+
 # 1.15.6
 - [fix] fix use of tempory file in windows
 
