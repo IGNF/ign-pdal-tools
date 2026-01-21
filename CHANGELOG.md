@@ -1,3 +1,5 @@
+- [fix] las_merge: handle filenames with different prefix
+
 # 1.15.7
 - [update] Update las_comparison with tolerance 
 - [update] Colorisation of Las with stream or files

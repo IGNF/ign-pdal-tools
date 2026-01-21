@@ -1,11 +1,12 @@
 import logging
 import os
+from pathlib import Path
 from test.utils import assert_header_info_are_similar
 
 import laspy
 import numpy as np
 
-from pdaltools.las_merge import las_merge
+from pdaltools.las_merge import create_tiles_list, las_merge
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMP_PATH = os.path.join(TEST_PATH, "tmp")
@@ -72,6 +73,25 @@ def test_las_merge():
 
     # check that the las format is preserved
     assert_header_info_are_similar(output_file, input_file)
+
+
+def test_create_tiles_list_with_different_prefix():
+    files = [f"Semis_2021_0770_{6200 + i}_LA93_IGN69.las" for i in range(1, 10)]
+
+    # add another tile with different year in prefix
+    files.append("Semis_2018_0770_6200_LA93_IGN69.las")
+    files.append("Semis_2020_0770_6200_LA93_IGN69.las")
+    files.append("Semis_2019_0770_6200_LA93_IGN69.las")
+
+    result = create_tiles_list(files, "las_dir", "las_dir/Semis_2021_0770_6201_LA93_IGN69.las")
+    result_path = [Path(p) for p in result]
+
+    expected_path = [
+        Path("las_dir") / Path("Semis_2021_0770_6202_LA93_IGN69.las"),
+        Path("las_dir") / Path("Semis_2020_0770_6200_LA93_IGN69.las"),
+        Path("las_dir") / Path("Semis_2021_0770_6201_LA93_IGN69.las"),
+    ]
+    assert result_path == expected_path
 
 
 if __name__ == "__main__":
