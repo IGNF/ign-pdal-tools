@@ -1,3 +1,6 @@
+# 1.15.9
+- [fix] color: fix main
+
 # 1.15.8
 - [fix] las_merge: handle filenames with different prefix
 

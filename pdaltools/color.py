@@ -301,5 +301,5 @@ def from_files_func(args):
 
 
 if __name__ == "__main__":
-    args = argument_parser.parse_args()
+    args = argument_parser().parse_args()
     args.func(args)
