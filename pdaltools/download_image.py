@@ -142,7 +142,7 @@ def download_image(proj, layer, minx, miny, maxx, maxy, pixel_per_meter, outfile
     download_image_from_geoplateforme_retrying = retry(times=9, delay=5, factor=2)(download_image_from_geoplateforme)
 
     size_x_p, nb_cells_x, cell_size_x = compute_cells_size(minx, maxx, pixel_per_meter, size_max_gpf)
-    size_y_p, nb_cells_y, cell_size_y = compute_cells_size(minx, maxx, pixel_per_meter, size_max_gpf)
+    size_y_p, nb_cells_y, cell_size_y = compute_cells_size(miny, maxy, pixel_per_meter, size_max_gpf)
 
     # the image size is under SIZE_MAX_IMAGE_GPF
     if (size_x_p <= size_max_gpf) and (size_y_p <= size_max_gpf):
