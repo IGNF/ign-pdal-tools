@@ -1,3 +1,6 @@
+# dev
+- [fix] update pandas to 3.0.0
+
 # 1.15.9
 - [fix] color: fix main
 
