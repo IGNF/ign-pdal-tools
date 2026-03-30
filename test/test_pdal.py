@@ -16,7 +16,7 @@ def test_pdal_read_severals_extra_dims():
     metadata = pipeline.quickinfo["readers.las"]
 
     # dimensions should contains 'Deviation' and 'confidence'
-    assert "Deviation" in metadata["dimensions"]
+    assert "PredictionOccupationSol" in metadata["dimensions"]
     assert "confidence" in metadata["dimensions"]
 
     # Test Python PDAL bindings

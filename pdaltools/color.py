@@ -40,7 +40,7 @@ def color_from_stream(
     color_rvb_enabled=True,
     color_ir_enabled=True,
     veget_index_file="",
-    vegetation_dim="Deviation",
+    vegetation_dim="PredictionOccupationSol",
     check_images=False,
     stream_RGB="ORTHOIMAGERY.ORTHOPHOTOS",
     stream_IRC="ORTHOIMAGERY.ORTHOPHOTOS.IRC",
@@ -64,7 +64,7 @@ def color_from_stream(
         veget_index_file (str, optional): Path to the tiff tile to use for "vegetation_dim" colorization.
         Defaults to "".
         vegetation_dim (str, optional): Name of the dimension to use to store the values of "veget_index_file".
-        Defaults to "Deviation".
+        Defaults to "PredictionOccupationSol".
         check_images (bool, optional): If true, check if images from the geoplateform data feed are white
         (and raise and error in this case). Defaults to False.
         stream_RGB (str, optional): WMS raster stream for RGB colorization:
@@ -164,7 +164,7 @@ def color_from_files(
     color_rvb_enabled=True,
     color_ir_enabled=True,
     veget_index_file="",
-    vegetation_dim="Deviation",
+    vegetation_dim="PredictionOccupationSol",
 ):
     pipeline = pdal.Reader.las(filename=input_file)
 
@@ -253,7 +253,10 @@ def add_common_options(parser):
         help="Vegetation file (raster), value will be stored in 'vegetation_dim' field",
     )
     parser.add_argument(
-        "--vegetation_dim", type=str, default="Deviation", help="name of the extra_dim uses for the vegetation value"
+        "--vegetation_dim",
+        type=str,
+        default="PredictionOccupationSol",
+        help="name of the extra_dim uses for the vegetation value",
     )
 
 
