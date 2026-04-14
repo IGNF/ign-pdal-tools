@@ -92,48 +92,33 @@ def _dims_to_copy(base: laspy.LasData, source: laspy.LasData, dimensions: Option
     return [d for d in requested if d in missing]
 
 
-def _las_point_attr(dimension_name: str) -> str:
-    return {"X": "x", "Y": "y", "Z": "z"}.get(dimension_name, dimension_name)
-
-
-def _verify_merge_output(
-    base_path: Path,
-    source_path: Path,
-    output_path: Path,
-    dim_list: Sequence[str],
-    *,
-    xyz_atol: float,
-    gps_atol: float,
-    gps_rtol: float,
-) -> None:
-    """Re-read files and assert base dimensions are preserved and copied dims match the source mapping."""
+def _test_output_file(base_path: Path, source_path: Path, output_path: Path, dimensions: Optional[Iterable[str]]) -> None:
+    """Test that the output file has the same number of points as the base file."""
     base = laspy.read(base_path)
     source = laspy.read(source_path)
     output = laspy.read(output_path)
-    if not (len(base) == len(output) == len(source)):
-        raise AssertionError(
-            f"point count mismatch after merge: base={len(base)} output={len(output)} source={len(source)}"
-        )
-    row_map = _source_row_for_each_base_row(
-        base, source, xyz_atol=xyz_atol, gps_atol=gps_atol, gps_rtol=gps_rtol
-    )
+    assert len(base) == len(output)
     for name in base.point_format.dimension_names:
-        attr = _las_point_attr(name)
-        b = np.asarray(getattr(base, attr))
-        o = np.asarray(getattr(output, attr))
-        if np.issubdtype(b.dtype, np.floating):
-            if not np.allclose(b, o, rtol=0, atol=1e-3):
-                raise AssertionError(f"dimension {name!r} differs between base and output")
-        elif not np.array_equal(b, o):
-            raise AssertionError(f"dimension {name!r} differs between base and output")
-    for name in dim_list:
-        src_arr = np.asarray(getattr(source, name))[row_map]
-        out_arr = np.asarray(getattr(output, name))
-        if np.issubdtype(src_arr.dtype, np.floating):
-            if not np.allclose(src_arr, out_arr, rtol=0, atol=1e-5):
-                raise AssertionError(f"copied dimension {name!r} does not match source after alignment")
-        elif not np.array_equal(src_arr, out_arr):
-            raise AssertionError(f"copied dimension {name!r} does not match source after alignment")
+        assert name in output.point_format.dimension_names
+        assert np.all(np.asarray(getattr(base, name)) == np.asarray(getattr(output, name)))
+
+    for name in dimensions:
+        assert name in output.point_format.dimension_names
+        assert np.all(np.asarray(getattr(output, name)) == np.asarray(getattr(source, name)))
+
+    assert np.all(np.asarray(base.gps_time) == np.asarray(output.gps_time))
+
+    assert np.all(np.asarray(base.x) == np.asarray(output.x))
+    assert np.all(np.asarray(base.y) == np.asarray(output.y))
+    assert np.all(np.asarray(base.z) == np.asarray(output.z))
+
+    assert np.all(np.asarray(base.intensity) == np.asarray(output.intensity))
+
+    assert np.all(np.asarray(base.classification) == np.asarray(output.classification))
+
+    assert np.all(np.asarray(base.return_number) == np.asarray(output.return_number))
+
+    print("All tests passed")
 
 
 def add_extra_dims_from_las(
@@ -186,16 +171,8 @@ def add_extra_dims_from_las(
     logger.info("Written: %s", output_path)
 
     if test_output:
-        _verify_merge_output(
-            base_path,
-            source_path,
-            output_path,
-            dim_list,
-            xyz_atol=xyz_atol,
-            gps_atol=tiebreak_atol,
-            gps_rtol=tiebreak_rtol,
-        )
-        logger.info("Output file verified: %s", output_path)
+        _test_output_file(base_path, source_path, output_path, dimensions)
+        logger.info("Output file tested: %s", output_path)
 
 
 def _is_las_file(path: Path) -> bool:

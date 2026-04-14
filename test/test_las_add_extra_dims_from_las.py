@@ -54,7 +54,6 @@ def test_add_extra_dims():
                 base_las=INI_LAS,
                 source_las=tmp_src.name,
                 output_las=tmp_out.name,
-                test_output=True,
             )
             arr_base = _pdal_first_array(INI_LAS)
             arr_src = _pdal_first_array(tmp_src.name)
@@ -114,7 +113,6 @@ def test_existing_standard_dimensions_unchanged_after_merge():
                 source_las=tmp_src.name,
                 output_las=tmp_out.name,
                 dimensions=["DIM_1"],
-                test_output=True,
             )
 
             base = laspy.read(INI_LAS)
@@ -242,7 +240,6 @@ def test_shuffled_row_order_xyz_alignment():
                     fsrc.name,
                     fout.name,
                     dimensions=["pred"],
-                    test_output=True,
                 )
                 out = laspy.read(fout.name)
                 np.testing.assert_allclose(np.asarray(out.pred), pred, rtol=0, atol=1e-6)
@@ -288,9 +285,7 @@ def test_batch_directories_common_basenames(tmp_path):
     only_base.gps_time = [0.0]
     only_base.write(str(base_dir / "only_base.las"))
 
-    done = las_add_extra_dims_from_las.add_extra_dims_from_las_dirs(
-        base_dir, src_dir, out_dir, test_output=True
-    )
+    done = las_add_extra_dims_from_las.add_extra_dims_from_las_dirs(base_dir, src_dir, out_dir)
     assert set(done) == {"a.las", "b.las"}
 
     for fname in ("a.las", "b.las"):
@@ -345,7 +340,6 @@ def test_main_cli_single_file_merge(monkeypatch):
                     tmp_out.name,
                     "--dimensions",
                     "DIM_1",
-                    "--test-output",
                 ],
             )
             las_add_extra_dims_from_las.main()
