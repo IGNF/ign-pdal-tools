@@ -1,5 +1,6 @@
 # dev
 - [fix] update pandas to 3.0.0
+- [update] standarize accept pdal filter as an input data
 
 # 1.15.9
 - [fix] color: fix main
