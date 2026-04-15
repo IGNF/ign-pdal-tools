@@ -9,9 +9,10 @@
 """
 
 import argparse
+import json
 import os
 import tempfile
-from typing import Dict, List
+from typing import Any, Dict, List, Sequence
 
 import pdal
 
@@ -45,13 +46,6 @@ def parse_args():
     )
     parser.add_argument("--projection", default="EPSG:2154", type=str, help="Projection, eg. EPSG:2154")
     parser.add_argument(
-        "--class_points_removed",
-        default=[],
-        nargs="*",
-        type=str,
-        help="List of classes number. Points of this classes will be removed from the file",
-    )
-    parser.add_argument(
         "--extra_dims",
         default=[],
         nargs="*",
@@ -66,7 +60,35 @@ def parse_args():
         type=str,
         help="Rename dimensions in pairs: --rename_dims old_name1 new_name1 old_name2 new_name2 ...",
     )
+    parser.add_argument(
+        "--extra_filters",
+        default=None,
+        metavar="JSON",
+        help='Optional JSON array of PDAL filter stages (each object must have a "type" key), '
+        "inserted in order after readers.las and before writers.las.",
+    )
     return parser.parse_args()
+
+
+def parse_optional_extra_filters_json(raw: str | None) -> Sequence[Dict[str, Any]] | None:
+    """Parse CLI ``--extra_filters``: a JSON array of PDAL stage dicts, or ``None`` if unset/blank."""
+    if raw is None:
+        return None
+    stripped = raw.strip()
+    if not stripped:
+        return None
+    try:
+        parsed = json.loads(stripped)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"invalid JSON for --extra_filters: {e}") from e
+    if not isinstance(parsed, list):
+        raise ValueError("--extra_filters must be a JSON array of objects")
+    for i, stage in enumerate(parsed):
+        if not isinstance(stage, dict) or "type" not in stage:
+            raise ValueError(
+                f"--extra_filters[{i}] must be an object with a 'type' key (PDAL stage), got {stage!r}."
+            )
+    return parsed
 
 
 def get_writer_parameters(new_parameters: Dict) -> Dict:
@@ -78,59 +100,106 @@ def get_writer_parameters(new_parameters: Dict) -> Dict:
     return params
 
 
+def build_standardize_pipeline_json(
+    input_path: str,
+    output_path: str,
+    writer_parameter_overrides: Dict,
+    extra_filters: Sequence[Dict[str, Any]] | None = None,
+) -> str:
+    """
+    Build a PDAL pipeline as a JSON string:
+
+    ``readers.las`` → optional ``extra_filters`` → ``writers.las`` with :data:`STANDARD_PARAMETERS`
+    merged with ``writer_parameter_overrides``.
+
+    ``extra_filters`` is a sequence of PDAL stage dicts (each must include a ``type`` key), inserted
+    in order before the writer. Do not put a final ``writers.las`` there; the closing writer stage
+    is always appended by this function.
+
+    Example — remove classes 64 and 65 before the writer::
+        standardize(
+            "in.laz",
+            "out.laz",
+            {"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": []},
+            extra_filters=[{"type": "filters.expression", "expression": "Classification != 64&&Classification != 65"}],
+        )
+    """
+    writer_opts = get_writer_parameters(writer_parameter_overrides)
+    stages: List[Dict] = [{"type": "readers.las", "filename": input_path}]
+    if extra_filters:
+        for i, stage in enumerate(extra_filters):
+            if not isinstance(stage, dict) or "type" not in stage:
+                raise ValueError(
+                    f"extra_filters[{i}] must be a dict with a 'type' key (PDAL stage), got {stage!r}."
+                )
+            stages.append(dict(stage))
+    stages.append({"type": "writers.las", "filename": output_path, "forward": "all", **writer_opts})
+    return json.dumps(stages)
+
+
 @copy_and_hack_decorator
 def standardize(
-    input_file: str, 
-    output_file: str, 
-    params_from_parser: Dict, 
-    classes_to_remove: List = [], 
-    rename_dims: List = []
+    input_file: str,
+    output_file: str,
+    writer_parameter_overrides: Dict,
+    rename_dims: List | None = None,
+    extra_filters: Sequence[Dict[str, Any]] | None = None,
 ) -> None:
     """
-    Standardize a LAS/LAZ file with improved error handling and resource management.
-    
-    Args:
-        input_file: Input file path
-        output_file: Output file path
-        params_from_parser: Parameters for the PDAL writer
-        classes_to_remove: List of classification classes to remove
-        rename_dims: List of dimension names to rename (pairs of old_name, new_name)
-    """
-    params = get_writer_parameters(params_from_parser)
-    tmp_file_name = None
+    Build the standardization pipeline via :func:`build_standardize_pipeline_json` and run it.
 
+    ``input_file`` must remain the first argument for :func:`pdaltools.unlock_file.copy_and_hack_decorator`.
+
+    Args:
+        input_file: Input LAS/LAZ path.
+        output_file: Output LAS/LAZ path.
+        writer_parameter_overrides: Writer options merged with :data:`STANDARD_PARAMETERS` (e.g. ``dataformat_id``, ``a_srs``, ``extra_dims``).
+        rename_dims: Optional flat list ``[old0, new0, ...]``; a temp copy is renamed before PDAL reads it.
+        extra_filters: Optional PDAL stages before the writer (see :func:`build_standardize_pipeline_json`).
+    """
+    rename_dims = rename_dims or []
+    tmp_file_name = None
     try:
-        # Create temporary file for dimension renaming if needed
         if rename_dims:
             with tempfile.NamedTemporaryFile(suffix=".laz", delete=False) as tmp_file:
                 tmp_file_name = tmp_file.name
-                old_dims = rename_dims[::2]
-                new_dims = rename_dims[1::2]
-                rename_dimension(input_file, tmp_file_name, old_dims, new_dims)
-                input_file = tmp_file_name
+            old_dims = rename_dims[::2]
+            new_dims = rename_dims[1::2]
+            rename_dimension(input_file, tmp_file_name, old_dims, new_dims)
+            reader_path = tmp_file_name
+        else:
+            reader_path = input_file
 
-        pipeline = pdal.Pipeline()
-        pipeline |= pdal.Reader.las(input_file)
-        if classes_to_remove:
-            expression = "&&".join([f"Classification != {c}" for c in classes_to_remove])
-            pipeline |= pdal.Filter.expression(expression=expression)
-        pipeline |= pdal.Writer(filename=output_file, forward="all", **params)
-        pipeline.execute()
-
+        pipeline_json = build_standardize_pipeline_json(
+            reader_path,
+            output_file,
+            writer_parameter_overrides,
+            extra_filters=extra_filters,
+        )
+        pdal.Pipeline(pipeline_json).execute()
     finally:
-        # Clean up temporary file
         if tmp_file_name and os.path.exists(tmp_file_name):
             os.remove(tmp_file_name)
 
 
 def main():
     args = parse_args()
+    try:
+        extra_filters = parse_optional_extra_filters_json(args.extra_filters)
+    except ValueError as e:
+        raise SystemExit(f"standardize_format: {e}") from e
     params_from_parser = dict(
         dataformat_id=args.record_format,
         a_srs=args.projection,
         extra_dims=args.extra_dims,
     )
-    standardize(args.input_file, args.output_file, params_from_parser, args.class_points_removed, args.rename_dims)
+    standardize(
+        args.input_file,
+        args.output_file,
+        params_from_parser,
+        args.rename_dims,
+        extra_filters,
+    )
 
 
 if __name__ == "__main__":
