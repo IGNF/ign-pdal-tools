@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Retrait des points de classification 2 via --extra_filters (JSON).
+# Drop LAS classification 2 using --extra_filters (JSON).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 mkdir -p test/tmp

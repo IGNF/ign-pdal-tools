@@ -34,7 +34,8 @@ DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS = {"dataformat_id": 6, "a_srs": "EPSG:2154", 
 
 def _extra_filters_drop_classifications(class_values: Sequence) -> List[Dict[str, Any]]:
     """Test helper: build ``filters.expression`` stages to drop LAS classifications (``&&`` of ``Classification != …``).
-        This permit to remove points by classification before the writer.
+
+    Allows removing points by classification before the writer.
     """
     if not class_values:
         return []
@@ -88,7 +89,7 @@ def test_build_standardize_pipeline_json_extra_filters_order():
 
 
 def test_build_standardize_pipeline_json_several_extra_filters_order():
-    """Plusieurs étapes ``extra_filters`` (types PDAL différents) dans l’ordre entre reader et writer."""
+    """Several ``extra_filters`` stages (different PDAL types) in order between reader and writer."""
     stages = json.loads(
         build_standardize_pipeline_json(
             "a.laz",
@@ -114,7 +115,7 @@ def test_build_standardize_pipeline_json_several_extra_filters_order():
 
 
 def test_standardize_several_extra_filters_point_count_unchanged():
-    """Chaîne ``expression`` + ``range`` + ``assign`` : même nombre de points."""
+    """``expression`` + ``range`` + ``assign`` chain: input and output point counts match."""
     input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
     output_file = os.path.join(TMP_PATH, "formatted_several_extra_filters.laz")
     extra_filters = [
@@ -485,7 +486,7 @@ def test_parse_optional_extra_filters_json():
 
 
 def test_main_with_extra_filters_reduces_point_count():
-    """CLI ``--extra_filters`` : même effet qu’un ``extra_filters`` passé à l’API."""
+    """CLI ``--extra_filters`` matches passing ``extra_filters`` to the Python API."""
     input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
     output_file = os.path.join(TMP_PATH, "test_main_extra_filters.laz")
     original_argv = sys.argv
@@ -514,7 +515,7 @@ def test_main_with_extra_filters_reduces_point_count():
 
 
 def test_standardize_drop_class_64_via_extra_filters():
-    """Retrait de points par classe via ``extra_filters`` (API Python, pas le CLI ``main``)."""
+    """Drop points by class via ``extra_filters`` on the Python API (not CLI ``main``)."""
     input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
     output_file = os.path.join(TMP_PATH, "test_drop_class_64_extra_filters.laz")
     _standardize(
