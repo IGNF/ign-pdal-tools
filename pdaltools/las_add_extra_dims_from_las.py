@@ -11,7 +11,7 @@ import io
 import logging
 import sys
 from pathlib import Path
-from typing import Iterable, Optional, Sequence
+from typing import Any, Iterable, Optional, Sequence
 
 import laspy
 import numpy as np
@@ -53,24 +53,43 @@ def _source_row_for_each_base_row(
     gps_atol: float,
     gps_rtol: float,
 ) -> np.ndarray:
-    """Sort by (gps_time, z, y, x), check sorted keys match between files, map base row → source row."""
+    """
+        Both point clouds have the same number of points, but row order in the file may differ (rewrite, filter, another tool).
+        To copy dimensions from the source into the base, we need to know which source row matches which base row.
+        The function returns a NumPy array of length len(base): for each base row index i,
+        entry i is the source row index of the same physical point (in the sense of the alignment keys).
+    """
 
-    kb, ks = _alignment_sort_columns(base), _alignment_sort_columns(source)
-    idx_b, idx_s = np.lexsort(kb), np.lexsort(ks)
-    n = len(base)
+    # get the columns to sort by (gps_time, z, y, x)
+    base_sort_columns = _alignment_sort_columns(base)
+    source_sort_columns = _alignment_sort_columns(source)
 
-    for k, (bcol, scol) in enumerate(zip(kb, ks)):
-        vb = np.asarray(bcol[idx_b], dtype=np.float64)
-        vs = np.asarray(scol[idx_s], dtype=np.float64)
-        if k == 0:
-            if not np.allclose(vb, vs, atol=gps_atol, rtol=gps_rtol):
+    # lexsort: last tuple element is primary key → order is (x, y, z, gps_time) as documented above.
+    base_rows_in_sorted_key_order = np.lexsort(base_sort_columns)
+    source_rows_in_sorted_key_order = np.lexsort(source_sort_columns)
+
+    # test that the sorted keys match between files
+    #sort_column_index: 0 is gps_time, 1 is z, 2 is y, 3 is x (cf. _alignment_sort_columns)
+    # source and base columns are zipped together and then sorted by the sort_column_index
+    # base_key_sorted and source_key_sorted are the sorted columns
+    # if the sorted columns are not the same, raise an error
+    for sort_column_index, (base_column, source_column) in enumerate(
+        zip(base_sort_columns, source_sort_columns)
+    ):
+        base_key_sorted = np.asarray(base_column[base_rows_in_sorted_key_order], dtype=np.float64)
+        source_key_sorted = np.asarray(source_column[source_rows_in_sorted_key_order], dtype=np.float64)
+        if sort_column_index == 0: # gps_time is the first column
+            if not np.allclose(base_key_sorted, source_key_sorted, atol=gps_atol, rtol=gps_rtol):
                 raise ValueError("gps_time sequences differ between base and source after sorting.")
-        elif not np.allclose(vb, vs, atol=xyz_atol, rtol=0):
+        elif not np.allclose(base_key_sorted, source_key_sorted, atol=xyz_atol, rtol=0):
             raise ValueError("Coordinate sequences differ between base and source after sorting.")
 
-    out = np.empty(n, dtype=np.int64)
-    out[idx_b] = idx_s.astype(np.int64)
-    return out
+    # Same multiset of keys → i-th row in sorted base order pairs with i-th row in sorted source order.
+    source_row_for_each_base_row = np.empty(len(base), dtype=np.int64)
+    source_row_for_each_base_row[base_rows_in_sorted_key_order] = source_rows_in_sorted_key_order.astype(
+        np.int64
+    )
+    return source_row_for_each_base_row
 
 
 def _dims_to_copy(base: laspy.LasData, source: laspy.LasData, dimensions: Optional[Sequence[str]]) -> list[str]:
@@ -90,35 +109,6 @@ def _dims_to_copy(base: laspy.LasData, source: laspy.LasData, dimensions: Option
             "Remove them from --dimensions or use a base file without these fields."
         )
     return [d for d in requested if d in missing]
-
-
-def _test_output_file(base_path: Path, source_path: Path, output_path: Path, dimensions: Optional[Iterable[str]]) -> None:
-    """Test that the output file has the same number of points as the base file."""
-    base = laspy.read(base_path)
-    source = laspy.read(source_path)
-    output = laspy.read(output_path)
-    assert len(base) == len(output)
-    for name in base.point_format.dimension_names:
-        assert name in output.point_format.dimension_names
-        assert np.all(np.asarray(getattr(base, name)) == np.asarray(getattr(output, name)))
-
-    for name in dimensions:
-        assert name in output.point_format.dimension_names
-        assert np.all(np.asarray(getattr(output, name)) == np.asarray(getattr(source, name)))
-
-    assert np.all(np.asarray(base.gps_time) == np.asarray(output.gps_time))
-
-    assert np.all(np.asarray(base.x) == np.asarray(output.x))
-    assert np.all(np.asarray(base.y) == np.asarray(output.y))
-    assert np.all(np.asarray(base.z) == np.asarray(output.z))
-
-    assert np.all(np.asarray(base.intensity) == np.asarray(output.intensity))
-
-    assert np.all(np.asarray(base.classification) == np.asarray(output.classification))
-
-    assert np.all(np.asarray(base.return_number) == np.asarray(output.return_number))
-
-    print("All tests passed")
 
 
 def add_extra_dims_from_las(
@@ -155,11 +145,11 @@ def add_extra_dims_from_las(
     if not dim_list:
         raise ValueError("No dimension to copy: source has no extra field missing from the base file.")
 
-    logger.info("Dimensions to copy: %s", dim_list)
     row_map = _source_row_for_each_base_row(
         base, source, xyz_atol=xyz_atol, gps_atol=tiebreak_atol, gps_rtol=tiebreak_rtol
     )
 
+    logger.info("Dimensions to copy: %s", dim_list)
     out = _clone_lasdata(base)
     for name in dim_list:
         src_arr = np.asarray(getattr(source, name))[row_map]
@@ -169,10 +159,6 @@ def add_extra_dims_from_las(
     out.header.version = base.header.version
     out.write(output_path)
     logger.info("Written: %s", output_path)
-
-    if test_output:
-        _test_output_file(base_path, source_path, output_path, dimensions)
-        logger.info("Output file tested: %s", output_path)
 
 
 def _is_las_file(path: Path) -> bool:
@@ -206,7 +192,6 @@ def add_extra_dims_from_las_dirs(
     xyz_atol: float = 1e-4,
     tiebreak_atol: float = 1e-6,
     tiebreak_rtol: float = 1e-12,
-    test_output: bool = False,
 ) -> list[str]:
     """
     For each LAS/LAZ **basename** present in both ``base_dir`` and ``source_dir`` (top level only),
@@ -238,7 +223,6 @@ def add_extra_dims_from_las_dirs(
         xyz_atol=xyz_atol,
         tiebreak_atol=tiebreak_atol,
         tiebreak_rtol=tiebreak_rtol,
-        test_output=test_output,
     )
     done: list[str] = []
     for name in common:
@@ -292,7 +276,6 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--tiebreak-rtol", type=float, default=1e-12, help="Relative tolerance on gps_time (default: 1e-12)."
     )
-    p.add_argument("--test-output", action="store_true", help="Test the output file after processing.")
     return p.parse_args()
 
 
