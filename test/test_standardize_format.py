@@ -9,6 +9,7 @@ from test.utils import EXPECTED_DIMS_BY_DATAFORMAT, get_pdal_infos_summary
 import laspy
 import pdal
 import pytest
+from packaging.version import Version
 
 from pdaltools.count_occurences.count_occurences_for_attribute import (
     compute_count_one_file,
@@ -57,9 +58,10 @@ def test_standardize_format(params):
     assert os.path.isfile(output_file)
     # check values from metadata
     json_info = get_pdal_infos_summary(output_file)
-    if pdal.info.version < "2.5":
+    pdal_ver = Version(str(pdal.info.version))
+    if pdal_ver < Version("2.5"):
         raise NotImplementedError("This test is not implemented for pdal < 2.5")
-    elif pdal.info.version <= "2.5.2":
+    elif pdal_ver <= Version("2.5.2"):
         metadata = json_info["summary"]["metadata"][1]
     else:
         metadata = json_info["summary"]["metadata"]
