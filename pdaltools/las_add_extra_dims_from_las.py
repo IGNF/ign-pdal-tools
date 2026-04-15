@@ -18,6 +18,8 @@ import numpy as np
 
 _LAS_SUFFIXES = frozenset({".las", ".laz"})
 logger = logging.getLogger(__name__)
+# ANSI for terminal emphasis (ignored by non-TTY handlers in most setups).
+_BOLD, _RESET = "\033[1m", "\033[0m"
 
 
 def _clone_lasdata(las: laspy.LasData) -> laspy.LasData:
@@ -67,6 +69,12 @@ def _source_row_for_each_base_row(
     # lexsort: last tuple element is primary key → order is (x, y, z, gps_time) as documented above.
     base_rows_in_sorted_key_order = np.lexsort(base_sort_columns)
     source_rows_in_sorted_key_order = np.lexsort(source_sort_columns)
+
+    #test that in base, there is no duplicate x,y,z,gps_time => warning if there is
+    if np.unique(base_sort_columns).shape[0] != len(base_sort_columns):
+        logger.warning(
+            f"{_BOLD}Base file contains duplicate x,y,z,gps_time. This may cause unexpected behavior.{_RESET}"
+        )
 
     # test that the sorted keys match between files
     #sort_column_index: 0 is gps_time, 1 is z, 2 is y, 3 is x (cf. _alignment_sort_columns)
