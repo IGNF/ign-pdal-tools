@@ -120,7 +120,6 @@ def add_extra_dims_from_las(
     xyz_atol: float = 1e-4,
     tiebreak_atol: float = 1e-6,
     tiebreak_rtol: float = 1e-12,
-    test_output: bool = False,
 ) -> None:
     """
     Copy into ``base_las`` every dimension that exists in ``source_las`` but not in the base
@@ -290,7 +289,6 @@ def main() -> None:
         xyz_atol=args.xyz_atol,
         tiebreak_atol=args.tiebreak_atol,
         tiebreak_rtol=args.tiebreak_rtol,
-        test_output=args.test_output,
     )
 
     if base_p.is_dir() and source_p.is_dir():

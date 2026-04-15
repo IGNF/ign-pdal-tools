@@ -78,7 +78,6 @@ def test_add_subset_dimensions():
                 source_las=tmp_src.name,
                 output_las=tmp_out.name,
                 dimensions=["DIM_1"],
-                test_output=True,
             )
             n_base = _pdal_first_array(INI_LAS).shape[0]
             arr_out = _pdal_first_array(tmp_out.name)
