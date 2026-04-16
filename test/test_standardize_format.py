@@ -18,9 +18,11 @@ from pdaltools.count_occurences.count_occurences_for_attribute import (
 )
 from pdaltools.las_comparison import compare_las_dimensions
 from pdaltools.standardize_format import (
+    _parse_cli_json_if_nonblank,
     build_standardize_pipeline_json,
     main,
     parse_optional_extra_filters_json,
+    parse_writer_parameters_json,
     standardize,
 )
 
@@ -60,9 +62,9 @@ def _standardize(
     standardize(
         input_file,
         output_file,
-        writer_overrides,
-        rename_dims,
-        extra_filters,
+        writer_parameters=writer_overrides,
+        rename_dims=rename_dims,
+        extra_filters=extra_filters,
     )
 
 
@@ -71,7 +73,7 @@ def test_build_standardize_pipeline_json_extra_filters_order():
         build_standardize_pipeline_json(
             "in.laz",
             "out.laz",
-            {"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": []},
+            writer_parameters={"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": []},
             extra_filters=[
                 *_extra_filters_drop_classifications(["2"]),
                 {"type": "filters.assign", "value": "Classification = 2 WHERE Classification==5"},
@@ -94,7 +96,7 @@ def test_build_standardize_pipeline_json_several_extra_filters_order():
         build_standardize_pipeline_json(
             "a.laz",
             "b.laz",
-            DEFAULT_PARAMS,
+            writer_parameters=DEFAULT_PARAMS,
             extra_filters=[
                 {"type": "filters.expression", "expression": "Classification != 9"},
                 {"type": "filters.range", "limits": "Classification[0:255]"},
@@ -438,12 +440,8 @@ def test_main_with_rename_dimensions():
             input_file,
             "--output_file",
             output_file,
-            "--record_format",
-            "6",
-            "--projection",
-            "EPSG:2154",
-            "--extra_dims",
-            "all",
+            "--writer_parameters",
+            '{"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": ["all"]}',
             "--rename_dims",
             "dtm_marker",
             "new_dtm_marker",
@@ -468,6 +466,28 @@ def test_main_with_rename_dimensions():
     finally:
         # Restore original sys.argv
         sys.argv = original_argv
+
+
+def test_parse_cli_json_if_nonblank():
+    assert _parse_cli_json_if_nonblank(None, "--flag") is None
+    assert _parse_cli_json_if_nonblank("", "--flag") is None
+    assert _parse_cli_json_if_nonblank("   ", "--flag") is None
+    assert _parse_cli_json_if_nonblank("42", "--flag") == 42
+    assert _parse_cli_json_if_nonblank("[1]", "--flag") == [1]
+    with pytest.raises(ValueError, match="invalid JSON for --myflag"):
+        _parse_cli_json_if_nonblank("{", "--myflag")
+
+
+def test_parse_writer_parameters_json():
+    assert parse_writer_parameters_json(None) == {}
+    assert parse_writer_parameters_json("") == {}
+    assert parse_writer_parameters_json("  \n") == {}
+    assert parse_writer_parameters_json("{}") == {}
+    assert parse_writer_parameters_json('{"dataformat_id": 8}') == {"dataformat_id": 8}
+    with pytest.raises(ValueError, match="JSON"):
+        parse_writer_parameters_json("{not json")
+    with pytest.raises(ValueError, match="object"):
+        parse_writer_parameters_json("[]")
 
 
 def test_parse_optional_extra_filters_json():
@@ -498,10 +518,8 @@ def test_main_with_extra_filters_reduces_point_count():
             input_file,
             "--output_file",
             output_file,
-            "--record_format",
-            "6",
-            "--projection",
-            "EPSG:2154",
+            "--writer_parameters",
+            '{"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": []}',
             "--extra_filters",
             extra_filters_json,
         ]
@@ -512,6 +530,34 @@ def test_main_with_extra_filters_reduces_point_count():
     original_count = compute_count_one_file(input_file)
     new_count = compute_count_one_file(output_file)
     assert new_count < original_count, "Points count should be reduced after removing class 64"
+
+
+def test_main_without_writer_parameters_uses_standard_defaults():
+    """Omitting ``--writer_parameters`` is equivalent to passing ``{}`` (built-in writer defaults only)."""
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
+    output_file = os.path.join(TMP_PATH, "test_main_no_writer_params.laz")
+    original_argv = sys.argv
+    try:
+        sys.argv = [
+            "standardize_format",
+            "--input_file",
+            input_file,
+            "--output_file",
+            output_file,
+        ]
+        main()
+    finally:
+        sys.argv = original_argv
+    assert os.path.isfile(output_file)
+    json_info = get_pdal_infos_summary(output_file)
+    pdal_ver = Version(str(pdal.info.version))
+    if pdal_ver < Version("2.5"):
+        raise NotImplementedError("This test is not implemented for pdal < 2.5")
+    elif pdal_ver <= Version("2.5.2"):
+        metadata = json_info["summary"]["metadata"][1]
+    else:
+        metadata = json_info["summary"]["metadata"]
+    assert metadata["dataformat_id"] == 6
 
 
 def test_standardize_drop_class_64_via_extra_filters():

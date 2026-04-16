@@ -42,16 +42,12 @@ def parse_args():
     parser.add_argument("--input_file", type=str, help="Laz input file.")
     parser.add_argument("--output_file", type=str, help="Laz output file")
     parser.add_argument(
-        "--record_format", choices=[6, 8], type=int, help="Record format: 6 (no color) or 8 (4 color channels)"
-    )
-    parser.add_argument("--projection", default="EPSG:2154", type=str, help="Projection, eg. EPSG:2154")
-    parser.add_argument(
-        "--extra_dims",
-        default=[],
-        nargs="*",
-        type=str,
-        help="List of extra dims to keep in the output (default=[], use 'all' to keep all extra dims), "
-        "extra_dims must be specified with their type (see pdal.writers.las documentation, eg 'dim1=double')",
+        "--writer_parameters",
+        default=None,
+        metavar="JSON",
+        help="JSON object of writers.las overrides merged with built-in defaults (e.g. "
+        '{"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": []} or "extra_dims": ["all"]). '
+        "Omit or pass '{}' to use only defaults.",
     )
     parser.add_argument(
         "--rename_dims",
@@ -70,17 +66,38 @@ def parse_args():
     return parser.parse_args()
 
 
-def parse_optional_extra_filters_json(raw: str | None) -> Sequence[Dict[str, Any]] | None:
-    """Parse CLI ``--extra_filters``: a JSON array of PDAL stage dicts, or ``None`` if unset/blank."""
+def _parse_cli_json_if_nonblank(raw: str | None, flag: str) -> Any | None:
+    """If ``raw`` is unset or whitespace-only, return ``None``; otherwise return ``json.loads`` result.
+
+    Raises:
+        ValueError: invalid JSON (message includes ``flag``).
+    """
     if raw is None:
         return None
     stripped = raw.strip()
     if not stripped:
         return None
     try:
-        parsed = json.loads(stripped)
+        return json.loads(stripped)
     except json.JSONDecodeError as e:
-        raise ValueError(f"invalid JSON for --extra_filters: {e}") from e
+        raise ValueError(f"invalid JSON for {flag}: {e}") from e
+
+
+def parse_writer_parameters_json(raw: str | None) -> Dict[str, Any]:
+    """Parse CLI ``--writer_parameters``: JSON object merged over :data:`STANDARD_PARAMETERS`; omit or blank for ``{}``."""
+    parsed = _parse_cli_json_if_nonblank(raw, "--writer_parameters")
+    if parsed is None:
+        return {}
+    if not isinstance(parsed, dict):
+        raise ValueError("--writer_parameters must be a JSON object")
+    return parsed
+
+
+def parse_optional_extra_filters_json(raw: str | None) -> Sequence[Dict[str, Any]] | None:
+    """Parse CLI ``--extra_filters``: a JSON array of PDAL stage dicts, or ``None`` if unset/blank."""
+    parsed = _parse_cli_json_if_nonblank(raw, "--extra_filters")
+    if parsed is None:
+        return None
     if not isinstance(parsed, list):
         raise ValueError("--extra_filters must be a JSON array of objects")
     for i, stage in enumerate(parsed):
@@ -103,7 +120,8 @@ def get_writer_parameters(new_parameters: Dict) -> Dict:
 def build_standardize_pipeline_json(
     input_path: str,
     output_path: str,
-    writer_parameter_overrides: Dict,
+    *,
+    writer_parameters: Dict,
     extra_filters: Sequence[Dict[str, Any]] | None = None,
 ) -> str:
     """
@@ -124,7 +142,7 @@ def build_standardize_pipeline_json(
             extra_filters=[{"type": "filters.expression", "expression": "Classification != 64&&Classification != 65"}],
         )
     """
-    writer_opts = get_writer_parameters(writer_parameter_overrides)
+    writer_parameters = get_writer_parameters(writer_parameters)
     stages: List[Dict] = [{"type": "readers.las", "filename": input_path}]
     if extra_filters:
         for i, stage in enumerate(extra_filters):
@@ -133,7 +151,7 @@ def build_standardize_pipeline_json(
                     f"extra_filters[{i}] must be a dict with a 'type' key (PDAL stage), got {stage!r}."
                 )
             stages.append(dict(stage))
-    stages.append({"type": "writers.las", "filename": output_path, "forward": "all", **writer_opts})
+    stages.append({"type": "writers.las", "filename": output_path, "forward": "all", **writer_parameters})
     return json.dumps(stages)
 
 
@@ -141,7 +159,8 @@ def build_standardize_pipeline_json(
 def standardize(
     input_file: str,
     output_file: str,
-    writer_parameter_overrides: Dict,
+    *,
+    writer_parameters: Dict,
     rename_dims: List | None = None,
     extra_filters: Sequence[Dict[str, Any]] | None = None,
 ) -> None:
@@ -153,13 +172,17 @@ def standardize(
     Args:
         input_file: Input LAS/LAZ path.
         output_file: Output LAS/LAZ path.
-        writer_parameter_overrides: Writer options merged with :data:`STANDARD_PARAMETERS` (e.g. ``dataformat_id``, ``a_srs``, ``extra_dims``).
+        writer_parameters: Writer options merged with :data:`STANDARD_PARAMETERS` (e.g. ``dataformat_id``, ``a_srs``, ``extra_dims``).
         rename_dims: Optional flat list ``[old0, new0, ...]``; a temp copy is renamed before PDAL reads it.
         extra_filters: Optional PDAL stages before the writer (see :func:`build_standardize_pipeline_json`).
     """
     rename_dims = rename_dims or []
     tmp_file_name = None
     try:
+        
+        # this step is used to rename the dimensions if the user wants to rename the dimensions
+        # it should be process first to avoid issues with the extra_filters
+        # there is no pdal function to do this, so we need to use a temporary file
         if rename_dims:
             with tempfile.NamedTemporaryFile(suffix=".laz", delete=False) as tmp_file:
                 tmp_file_name = tmp_file.name
@@ -170,13 +193,15 @@ def standardize(
         else:
             reader_path = input_file
 
+        # build the pipeline json
         pipeline_json = build_standardize_pipeline_json(
             reader_path,
             output_file,
-            writer_parameter_overrides,
+            writer_parameters=writer_parameters,
             extra_filters=extra_filters,
         )
         pdal.Pipeline(pipeline_json).execute()
+
     finally:
         if tmp_file_name and os.path.exists(tmp_file_name):
             os.remove(tmp_file_name)
@@ -184,21 +209,23 @@ def standardize(
 
 def main():
     args = parse_args()
+    
+    try:
+        writer_params = parse_writer_parameters_json(args.writer_parameters)
+    except ValueError as e:
+        raise SystemExit(f"standardize_format: {e}") from e
+    
     try:
         extra_filters = parse_optional_extra_filters_json(args.extra_filters)
     except ValueError as e:
         raise SystemExit(f"standardize_format: {e}") from e
-    params_from_parser = dict(
-        dataformat_id=args.record_format,
-        a_srs=args.projection,
-        extra_dims=args.extra_dims,
-    )
+    
     standardize(
         args.input_file,
         args.output_file,
-        params_from_parser,
-        args.rename_dims,
-        extra_filters,
+        writer_parameters=writer_params,
+        rename_dims=args.rename_dims,
+        extra_filters=extra_filters,
     )
 
 
