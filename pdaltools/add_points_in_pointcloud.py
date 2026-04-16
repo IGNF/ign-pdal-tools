@@ -316,9 +316,10 @@ def add_points_from_geometry_to_las(
         gdf = clip_3d_lines_to_tile(gdf, input_las, spatial_ref, tile_width)
         # If the geometry type is LineString, generate 3D points
         if spacing <= 0:
+            geom_type_str = str(unique_geom_type[0])  # scalar for stable message across pandas versions
             raise NotImplementedError(
-                f"add_points_from_geometry_to_las requires spacing > 0 to run on (Multi)LineString geometries, \
-                but the values provided are geometry type: {unique_geom_type} and spacing = {spacing} "
+                f"add_points_from_geometry_to_las requires spacing > 0 to run on (Multi)LineString geometries, "
+                f"but the values provided are geometry type: {geom_type_str} and spacing = {spacing}"
             )
         else:
             points_gdf = generate_3d_points_from_lines(gdf, spacing, altitude_column)

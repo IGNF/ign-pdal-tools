@@ -10,7 +10,7 @@ dependencies:
   - gdal
   - lastools # for check that lasinfo warnings desapear when standardizing 
   - geopandas
-  - pandas=2.3.3 # in the next version (3.0.0), test_add_points_from_geometry_to_las fails
+  - pandas
 # --------- dev dep --------- #
   - pre-commit # hooks for applying linters on commit
   - black # code formatting
