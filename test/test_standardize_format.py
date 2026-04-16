@@ -1,5 +1,7 @@
+import json
 import logging
 import os
+from typing import Any, Dict, List, Sequence
 import platform
 import shutil
 import subprocess as sp
@@ -15,7 +17,14 @@ from pdaltools.count_occurences.count_occurences_for_attribute import (
     compute_count_one_file,
 )
 from pdaltools.las_comparison import compare_las_dimensions
-from pdaltools.standardize_format import main, standardize
+from pdaltools.standardize_format import (
+    _parse_cli_json_if_nonblank,
+    build_standardize_pipeline_json,
+    main,
+    parse_optional_extra_filters_json,
+    parse_writer_parameters_json,
+    standardize,
+)
 
 TEST_PATH = os.path.dirname(os.path.abspath(__file__))
 TMP_PATH = os.path.join(TEST_PATH, "tmp")
@@ -23,6 +32,129 @@ INPUT_DIR = os.path.join(TEST_PATH, "data")
 
 DEFAULT_PARAMS = {"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": []}
 DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS = {"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": "all"}
+
+
+def _extra_filters_drop_classifications(class_values: Sequence) -> List[Dict[str, Any]]:
+    """Test helper: build ``filters.expression`` stages to drop LAS classifications (``&&`` of ``Classification != …``).
+
+    Allows removing points by classification before the writer.
+    """
+    if not class_values:
+        return []
+    expression = "&&".join(f"Classification != {c}" for c in class_values)
+    return [{"type": "filters.expression", "expression": expression}]
+
+
+def test_helper_extra_filters_drop_classifications_expression():
+    assert _extra_filters_drop_classifications([]) == []
+    assert _extra_filters_drop_classifications([64, 65]) == [
+        {"type": "filters.expression", "expression": "Classification != 64&&Classification != 65"}
+    ]
+
+
+def _standardize(
+    input_file: str,
+    output_file: str,
+    writer_overrides: dict,
+    rename_dims: list | None = None,
+    extra_filters: list | None = None,
+) -> None:
+    standardize(
+        input_file,
+        output_file,
+        writer_parameters=writer_overrides,
+        rename_dims=rename_dims,
+        extra_filters=extra_filters,
+    )
+
+
+def test_build_standardize_pipeline_json_extra_filters_order():
+    stages = json.loads(
+        build_standardize_pipeline_json(
+            "in.laz",
+            "out.laz",
+            writer_parameters={"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": []},
+            extra_filters=[
+                *_extra_filters_drop_classifications(["2"]),
+                {"type": "filters.assign", "value": "Classification = 2 WHERE Classification==5"},
+            ],
+        )
+    )
+    assert [s["type"] for s in stages] == [
+        "readers.las",
+        "filters.expression",
+        "filters.assign",
+        "writers.las",
+    ]
+    assert stages[1]["expression"] == "Classification != 2"
+    assert stages[2]["value"] == "Classification = 2 WHERE Classification==5"
+
+
+def test_build_standardize_pipeline_json_several_extra_filters_order():
+    """Several ``extra_filters`` stages (different PDAL types) in order between reader and writer."""
+    stages = json.loads(
+        build_standardize_pipeline_json(
+            "a.laz",
+            "b.laz",
+            writer_parameters=DEFAULT_PARAMS,
+            extra_filters=[
+                {"type": "filters.expression", "expression": "Classification != 9"},
+                {"type": "filters.range", "limits": "Classification[0:255]"},
+                {"type": "filters.assign", "value": "Intensity = Intensity WHERE Intensity >= 0"},
+            ],
+        )
+    )
+    assert [s["type"] for s in stages] == [
+        "readers.las",
+        "filters.expression",
+        "filters.range",
+        "filters.assign",
+        "writers.las",
+    ]
+    assert stages[1]["expression"] == "Classification != 9"
+    assert stages[2]["limits"] == "Classification[0:255]"
+    assert stages[3]["value"] == "Intensity = Intensity WHERE Intensity >= 0"
+
+
+def test_standardize_several_extra_filters_point_count_unchanged():
+    """``expression`` + ``range`` + ``assign`` chain: input and output point counts match."""
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
+    output_file = os.path.join(TMP_PATH, "formatted_several_extra_filters.laz")
+    extra_filters = [
+        {"type": "filters.expression", "expression": "Z >= -1e38"},
+        {"type": "filters.range", "limits": "Classification[0:255]"},
+        {"type": "filters.assign", "value": "Intensity = Intensity WHERE Intensity >= 0"},
+    ]
+    _standardize(input_file, output_file, DEFAULT_PARAMS, extra_filters=extra_filters)
+    assert os.path.isfile(output_file)
+    assert len(laspy.read(input_file)) == len(laspy.read(output_file))
+
+
+def test_standardize_with_extra_filters_assign():
+    """End-to-end standardize with ``filters.assign`` in ``extra_filters`` (no-op on ReturnNumber)."""
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
+    output_file = os.path.join(TMP_PATH, "formatted_with_filters_assign.laz")
+    extra_filters = [
+        {"type": "filters.assign", "value": "Classification = 2 WHERE Classification==5"},
+    ]
+    _standardize(input_file, output_file, DEFAULT_PARAMS, extra_filters=extra_filters)
+    assert os.path.isfile(output_file)
+    assert len(laspy.read(input_file)) == len(laspy.read(output_file))
+
+    # Check that there is no point with classification 5
+    with laspy.open(output_file) as las_file:
+        las = las_file.read()
+        assert not any(las.classification == 5)
+    # Check that point of classification 2 of output are the same as input file + points from Classification 5
+    with laspy.open(input_file) as las_file:
+        input_las = las_file.read()
+        input_points_classification_5 = input_las[input_las.classification == 5]
+    with laspy.open(output_file) as las_file:
+        output_las = las_file.read()
+        output_points_classification_2 = output_las[output_las.classification == 2]    
+    assert len(output_points_classification_2) == len(input_points_classification_5) + len(input_las[input_las.classification == 2])
+
+
 
 MUTLIPLE_PARAMS = [
     DEFAULT_PARAMS,
@@ -53,7 +185,7 @@ def setup_module(module):
 def test_standardize_format(params):
     input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
     output_file = os.path.join(TMP_PATH, "formatted.laz")
-    standardize(input_file, output_file, params, [])
+    _standardize(input_file, output_file, params)
     # check file exists
     assert os.path.isfile(output_file)
     # check values from metadata
@@ -112,7 +244,7 @@ def test_standardize_rename_dimensions(params, rename_dims):
         original_dims = las.point_format.dimension_names
 
     # Standardize with dimension renaming
-    standardize(input_file, output_file, params, [], rename_dims)
+    _standardize(input_file, output_file, params, rename_dims=rename_dims)
 
     # Verify dimensions were renamed
     with laspy.open(output_file) as las_file:
@@ -159,7 +291,8 @@ def test_standardize_rename_dimensions(params, rename_dims):
 def test_standardize_classes(classes_to_remove):
     input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
     output_file = os.path.join(TMP_PATH, "formatted.laz")
-    standardize(input_file, output_file, DEFAULT_PARAMS, classes_to_remove)
+    extra = _extra_filters_drop_classifications(classes_to_remove) or None
+    _standardize(input_file, output_file, DEFAULT_PARAMS, extra_filters=extra)
     # Check that there is the expected number of points for each class
     expected_points_counts = compute_count_one_file(input_file)
     for cl in classes_to_remove:
@@ -205,7 +338,13 @@ def test_standardize_with_all_options():
 
     # Standardize with all extra dimensions
     params = DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS
-    standardize(input_file, output_file, params, remove_classes, rename_dims)
+    _standardize(
+        input_file,
+        output_file,
+        params,
+        rename_dims=rename_dims,
+        extra_filters=_extra_filters_drop_classifications(remove_classes),
+    )
 
     # Check that there is the expected number of points for each class
     expected_points_counts = compute_count_one_file(input_file)
@@ -248,14 +387,14 @@ def test_standardize_does_NOT_produce_any_warning_with_Lasinfo():
     # if you want to see input_file warnings
     # assert_lasinfo_no_warning(input_file)
 
-    standardize(input_file, output_file, DEFAULT_PARAMS, [], [])
+    _standardize(input_file, output_file, DEFAULT_PARAMS)
     assert_lasinfo_no_warning(output_file)
 
 
 def test_standardize_malformed_laz():
     input_file = os.path.join(TEST_PATH, "data/test_pdalfail_0643_6319_LA93_IGN69.laz")
     output_file = os.path.join(TMP_PATH, "standardize_pdalfail_0643_6319_LA93_IGN69.laz")
-    standardize(input_file, output_file, DEFAULT_PARAMS, [], [])
+    _standardize(input_file, output_file, DEFAULT_PARAMS)
     assert os.path.isfile(output_file)
 
 
@@ -266,7 +405,7 @@ def test_standardize_with_extra_dims_origin_and_dxm_marker():
     input_file = os.path.join(INPUT_DIR, "las_with_origin_dsmMarker.laz")
     output_file = os.path.join(TMP_PATH, "test_main_with_extra_dims.laz")
 
-    standardize(input_file, output_file, DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS, [], [])
+    _standardize(input_file, output_file, DEFAULT_PARAMS_WITH_ALL_EXTRA_DIMS)
 
     # Check that the output file exists
     assert os.path.isfile(output_file)
@@ -301,12 +440,8 @@ def test_main_with_rename_dimensions():
             input_file,
             "--output_file",
             output_file,
-            "--record_format",
-            "6",
-            "--projection",
-            "EPSG:2154",
-            "--extra_dims",
-            "all",
+            "--writer_parameters",
+            '{"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": ["all"]}',
             "--rename_dims",
             "dtm_marker",
             "new_dtm_marker",
@@ -333,46 +468,112 @@ def test_main_with_rename_dimensions():
         sys.argv = original_argv
 
 
-def test_main_with_class_points_removed():
-    """
-    Test the main function with class points removed
-    """
+def test_parse_cli_json_if_nonblank():
+    assert _parse_cli_json_if_nonblank(None, "--flag") is None
+    assert _parse_cli_json_if_nonblank("", "--flag") is None
+    assert _parse_cli_json_if_nonblank("   ", "--flag") is None
+    assert _parse_cli_json_if_nonblank("42", "--flag") == 42
+    assert _parse_cli_json_if_nonblank("[1]", "--flag") == [1]
+    with pytest.raises(ValueError, match="invalid JSON for --myflag"):
+        _parse_cli_json_if_nonblank("{", "--myflag")
+
+
+def test_parse_writer_parameters_json():
+    assert parse_writer_parameters_json(None) == {}
+    assert parse_writer_parameters_json("") == {}
+    assert parse_writer_parameters_json("  \n") == {}
+    assert parse_writer_parameters_json("{}") == {}
+    assert parse_writer_parameters_json('{"dataformat_id": 8}') == {"dataformat_id": 8}
+    with pytest.raises(ValueError, match="JSON"):
+        parse_writer_parameters_json("{not json")
+    with pytest.raises(ValueError, match="object"):
+        parse_writer_parameters_json("[]")
+
+
+def test_parse_optional_extra_filters_json():
+    assert parse_optional_extra_filters_json(None) is None
+    assert parse_optional_extra_filters_json("") is None
+    assert parse_optional_extra_filters_json("  \n") is None
+    assert parse_optional_extra_filters_json(
+        '[{"type": "filters.expression", "expression": "Z>0"}]'
+    ) == [{"type": "filters.expression", "expression": "Z>0"}]
+    with pytest.raises(ValueError, match="JSON"):
+        parse_optional_extra_filters_json("{not json")
+    with pytest.raises(ValueError, match="array"):
+        parse_optional_extra_filters_json('{"type":"filters.expression"}')
+    with pytest.raises(ValueError, match="type"):
+        parse_optional_extra_filters_json('[{"nope": 1}]')
+
+
+def test_main_with_extra_filters_reduces_point_count():
+    """CLI ``--extra_filters`` matches passing ``extra_filters`` to the Python API."""
     input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
-    output_file = os.path.join(TMP_PATH, "test_main_with_class_remove.laz")
-
-    # Save original sys.argv
+    output_file = os.path.join(TMP_PATH, "test_main_extra_filters.laz")
     original_argv = sys.argv
-
+    extra_filters_json = '[{"type":"filters.expression","expression":"Classification != 64"}]'
     try:
-        # Set up mock command-line arguments
         sys.argv = [
             "standardize_format",
             "--input_file",
             input_file,
             "--output_file",
             output_file,
-            "--record_format",
-            "6",
-            "--projection",
-            "EPSG:2154",
-            "--class_points_removed",
-            "64",
+            "--writer_parameters",
+            '{"dataformat_id": 6, "a_srs": "EPSG:2154", "extra_dims": []}',
+            "--extra_filters",
+            extra_filters_json,
         ]
-
-        # Run main function
         main()
-
-        # Verify output file exists
-        assert os.path.isfile(output_file)
-
-        # Verify points count is reduced
-        original_count = compute_count_one_file(input_file)
-        new_count = compute_count_one_file(output_file)
-        assert new_count < original_count, "Points count should be reduced after removing class 64"
-
     finally:
-        # Restore original sys.argv
         sys.argv = original_argv
+    assert os.path.isfile(output_file)
+    original_count = compute_count_one_file(input_file)
+    new_count = compute_count_one_file(output_file)
+    assert new_count < original_count, "Points count should be reduced after removing class 64"
+
+
+def test_main_without_writer_parameters_uses_standard_defaults():
+    """Omitting ``--writer_parameters`` is equivalent to passing ``{}`` (built-in writer defaults only)."""
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
+    output_file = os.path.join(TMP_PATH, "test_main_no_writer_params.laz")
+    original_argv = sys.argv
+    try:
+        sys.argv = [
+            "standardize_format",
+            "--input_file",
+            input_file,
+            "--output_file",
+            output_file,
+        ]
+        main()
+    finally:
+        sys.argv = original_argv
+    assert os.path.isfile(output_file)
+    json_info = get_pdal_infos_summary(output_file)
+    pdal_ver = Version(str(pdal.info.version))
+    if pdal_ver < Version("2.5"):
+        raise NotImplementedError("This test is not implemented for pdal < 2.5")
+    elif pdal_ver <= Version("2.5.2"):
+        metadata = json_info["summary"]["metadata"][1]
+    else:
+        metadata = json_info["summary"]["metadata"]
+    assert metadata["dataformat_id"] == 6
+
+
+def test_standardize_drop_class_64_via_extra_filters():
+    """Drop points by class via ``extra_filters`` on the Python API (not CLI ``main``)."""
+    input_file = os.path.join(INPUT_DIR, "test_data_77055_627755_LA93_IGN69_extra_dims.laz")
+    output_file = os.path.join(TMP_PATH, "test_drop_class_64_extra_filters.laz")
+    _standardize(
+        input_file,
+        output_file,
+        DEFAULT_PARAMS,
+        extra_filters=_extra_filters_drop_classifications(["64"]),
+    )
+    assert os.path.isfile(output_file)
+    original_count = compute_count_one_file(input_file)
+    new_count = compute_count_one_file(output_file)
+    assert new_count < original_count, "Points count should be reduced after removing class 64"
 
 
 if __name__ == "__main__":
