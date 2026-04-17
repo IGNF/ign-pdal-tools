@@ -70,10 +70,27 @@ def _source_row_for_each_base_row(
     base_rows_in_sorted_key_order = np.lexsort(base_sort_columns)
     source_rows_in_sorted_key_order = np.lexsort(source_sort_columns)
 
-    #test that in base, there is no duplicate x,y,z,gps_time => warning if there is
-    if np.unique(base_sort_columns).shape[0] != len(base_sort_columns):
+    # Test duplicates in base on full key (x, y, z, gps_time), and log offending keys.
+    key_dtype = np.dtype([("x", "f8"), ("y", "f8"), ("z", "f8"), ("gps_time", "f8")])
+    base_keys = np.empty(len(base), dtype=key_dtype)
+    base_keys["x"] = np.asarray(base.x, dtype=np.float64)
+    base_keys["y"] = np.asarray(base.y, dtype=np.float64)
+    base_keys["z"] = np.asarray(base.z, dtype=np.float64)
+    base_keys["gps_time"] = np.asarray(base.gps_time, dtype=np.float64)
+    uniq_keys, counts = np.unique(base_keys, return_counts=True)
+    duplicate_mask = counts > 1
+    if np.any(duplicate_mask):
+        duplicate_count = int(np.sum(duplicate_mask))
+        duplicate_examples = ", ".join(
+            [
+                f"(x={k['x']}, y={k['y']}, z={k['z']}, gps_time={k['gps_time']})"
+                for k, c in zip(uniq_keys[duplicate_mask][:10], counts[duplicate_mask][:10])
+            ]
+        )
         logger.warning(
-            f"{_BOLD}Base file contains duplicate x,y,z,gps_time. This may cause unexpected behavior.{_RESET}"
+            f"{_BOLD}Base file contains {duplicate_count} duplicate key(s) on "
+            f"(x,y,z,gps_time). This may cause unexpected behavior. "
+            f"Examples: {duplicate_examples}{_RESET}"
         )
 
     # test that the sorted keys match between files
