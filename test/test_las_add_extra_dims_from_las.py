@@ -158,6 +158,105 @@ def test_output_las_version_follows_base_not_source():
                     )
 
 
+def test_fail_on_duplicates_raises():
+    """With fail_on_duplicates=True, duplicate (x,y,z,gps_time,intensity) in base raises ValueError."""
+    n = 2
+    x = np.array([1.0, 1.0], dtype=np.float64)
+    y = np.zeros(n, dtype=np.float64)
+    z = np.zeros(n, dtype=np.float64)
+    gps = np.array([0.5, 0.5], dtype=np.float64)
+
+    with tempfile.NamedTemporaryFile(suffix="_base.las", delete=False) as fbase:
+        with tempfile.NamedTemporaryFile(suffix="_src.las", delete=False) as fsrc:
+            with tempfile.NamedTemporaryFile(suffix="_out.las", delete=False) as fout:
+                base = laspy.create(point_format=3, file_version="1.4")
+                base.x, base.y, base.z, base.gps_time = x, y, z, gps
+                base.intensity[:] = np.array([42, 42], dtype=np.uint16)
+                base.write(fbase.name)
+
+                src = laspy.create(point_format=3, file_version="1.4")
+                src.x, src.y, src.z, src.gps_time = x, y, z, gps
+                src.intensity[:] = np.array([42, 42], dtype=np.uint16)
+                src.add_extra_dim(laspy.ExtraBytesParams(name="pred", type=np.float32))
+                src.pred[:] = np.array([1.0, 2.0], dtype=np.float32)
+                src.write(fsrc.name)
+
+                with pytest.raises(ValueError, match="duplicate"):
+                    las_add_extra_dims_from_las.add_extra_dims_from_las(
+                        fbase.name,
+                        fsrc.name,
+                        fout.name,
+                        dimensions=["pred"],
+                        fail_on_duplicates=True,
+                    )
+
+
+def test_fail_on_duplicates_not_raised_when_intensity_differs():
+    """Same x,y,z,gps_time but different intensity: not a duplicate key; processing succeeds."""
+    n = 2
+    x = np.array([1.0, 1.0], dtype=np.float64)
+    y = np.zeros(n, dtype=np.float64)
+    z = np.zeros(n, dtype=np.float64)
+    gps = np.array([0.5, 0.5], dtype=np.float64)
+
+    with tempfile.NamedTemporaryFile(suffix="_base.las", delete=False) as fbase:
+        with tempfile.NamedTemporaryFile(suffix="_src.las", delete=False) as fsrc:
+            with tempfile.NamedTemporaryFile(suffix="_out.las", delete=False) as fout:
+                base = laspy.create(point_format=3, file_version="1.4")
+                base.x, base.y, base.z, base.gps_time = x, y, z, gps
+                base.intensity[:] = np.array([10, 20], dtype=np.uint16)
+                base.write(fbase.name)
+
+                src = laspy.create(point_format=3, file_version="1.4")
+                src.x, src.y, src.z, src.gps_time = x, y, z, gps
+                src.intensity[:] = np.array([10, 20], dtype=np.uint16)
+                src.add_extra_dim(laspy.ExtraBytesParams(name="pred", type=np.float32))
+                src.pred[:] = np.array([1.0, 2.0], dtype=np.float32)
+                src.write(fsrc.name)
+
+                las_add_extra_dims_from_las.add_extra_dims_from_las(
+                    fbase.name,
+                    fsrc.name,
+                    fout.name,
+                    dimensions=["pred"],
+                    fail_on_duplicates=True,
+                )
+                out = laspy.read(fout.name)
+                assert np.allclose(out.pred, src.pred)
+
+
+def test_intensity_mismatch_between_files_raises():
+    """Same geometry and gps_time but source intensity differs on a point → ValueError."""
+    n = 2
+    x = np.array([1.0, 1.0], dtype=np.float64)
+    y = np.zeros(n, dtype=np.float64)
+    z = np.zeros(n, dtype=np.float64)
+    gps = np.array([0.5, 0.5], dtype=np.float64)
+
+    with tempfile.NamedTemporaryFile(suffix="_base.las", delete=False) as fbase:
+        with tempfile.NamedTemporaryFile(suffix="_src.las", delete=False) as fsrc:
+            with tempfile.NamedTemporaryFile(suffix="_out.las", delete=False) as fout:
+                base = laspy.create(point_format=3, file_version="1.4")
+                base.x, base.y, base.z, base.gps_time = x, y, z, gps
+                base.intensity[:] = np.array([10, 20], dtype=np.uint16)
+                base.write(fbase.name)
+
+                src = laspy.create(point_format=3, file_version="1.4")
+                src.x, src.y, src.z, src.gps_time = x, y, z, gps
+                src.intensity[:] = np.array([10, 99], dtype=np.uint16)
+                src.add_extra_dim(laspy.ExtraBytesParams(name="pred", type=np.float32))
+                src.pred[:] = np.array([1.0, 2.0], dtype=np.float32)
+                src.write(fsrc.name)
+
+                with pytest.raises(ValueError, match="intensity"):
+                    las_add_extra_dims_from_las.add_extra_dims_from_las(
+                        fbase.name,
+                        fsrc.name,
+                        fout.name,
+                        dimensions=["pred"],
+                    )
+
+
 def test_missing_gps_time_in_base_raises():
     """GPS time is required in the base file."""
     with tempfile.NamedTemporaryFile(suffix="_base.las", delete_on_close=False) as fbase:
