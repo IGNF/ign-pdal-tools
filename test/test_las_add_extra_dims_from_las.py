@@ -475,9 +475,5 @@ def test_main_cli_mixed_file_and_directory_exits(monkeypatch, tmp_path):
             str(out_las),
         ],
     )
-    with pytest.raises(SystemExit, match="both be files or both be directories"):
+    with pytest.raises(ValueError, match="both be files or both be directories"):
         las_add_extra_dims_from_las.main()
-
-
-if __name__ == "__main__":
-    raise SystemExit(pytest.main([__file__, "-v"]))

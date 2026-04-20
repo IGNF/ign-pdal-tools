@@ -3,15 +3,12 @@
 Also supports directory inputs: process every LAS/LAZ whose **basename** exists in both
 ``base_dir`` and ``source_dir`` (top level only), writing ``output_dir / basename``.
 """
-
-from __future__ import annotations
-
 import argparse
 import io
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Iterable, Optional, Sequence
+from typing import Iterable, Optional, Sequence
 
 import laspy
 import numpy as np
@@ -20,6 +17,8 @@ _LAS_SUFFIXES = frozenset({".las", ".laz"})
 logger = logging.getLogger(__name__)
 # ANSI for terminal emphasis (ignored by non-TTY handlers in most setups).
 _BOLD, _RESET = "\033[1m", "\033[0m"
+# Columns sorting order for np.lexsort  (last entry = primary sort key)
+SORT_ORDER = ["intensity", "gps_time", "z", "y", "x"]
 
 
 def _clone_lasdata(las: laspy.LasData) -> laspy.LasData:
@@ -49,20 +48,12 @@ def _alignment_sort_columns(las: laspy.LasData) -> tuple[np.ndarray, ...]:
 
     Order of significance: **x**, then **y**, **z**, **gps_time**, **intensity** (tiebreak).
     """
-    return (
-        np.asarray(las.intensity),
-        np.asarray(las.gps_time),
-        np.asarray(las.z),
-        np.asarray(las.y),
-        np.asarray(las.x),
-    )
+    return tuple([np.asarray(las[col]) for col in SORT_ORDER])
 
 
 def _base_duplicate_keys_message(base: laspy.LasData) -> tuple[bool, str]:
     """Return (has_duplicates, human-readable detail for duplicate alignment keys in base)."""
-    key_dtype = np.dtype(
-        [("x", "f8"), ("y", "f8"), ("z", "f8"), ("gps_time", "f8"), ("intensity", "f8")]
-    )
+    key_dtype = np.dtype([("x", "f8"), ("y", "f8"), ("z", "f8"), ("gps_time", "f8"), ("intensity", "f8")])
     base_keys = np.empty(len(base), dtype=key_dtype)
     base_keys["x"] = np.asarray(base.x, dtype=np.float64)
     base_keys["y"] = np.asarray(base.y, dtype=np.float64)
@@ -94,17 +85,17 @@ def _base_duplicate_keys_message(base: laspy.LasData) -> tuple[bool, str]:
 def _source_row_for_each_base_row(
     base: laspy.LasData,
     source: laspy.LasData,
-    *,
     xyz_atol: float,
-    gps_atol: float,
-    gps_rtol: float,
+    gpstime_atol: float,
+    intensity_rtol: float,
     fail_on_duplicates: bool = False,
 ) -> np.ndarray:
     """
-        Both point clouds have the same number of points, but row order in the file may differ (rewrite, filter, another tool).
-        To copy dimensions from the source into the base, we need to know which source row matches which base row.
-        The function returns a NumPy array of length len(base): for each base row index i,
-        entry i is the source row index of the same physical point (in the sense of the alignment keys).
+    Both point clouds have the same number of points, but row order in the file may differ (rewrite, filter,
+    another tool).
+    To copy dimensions from the source into the base, we need to know which source row matches which base row.
+    The function returns a NumPy array of length len(base): for each base row index i,
+    entry i is the source row index of the same physical point (in the sense of the alignment keys).
     """
 
     # Columns for lexsort (see _alignment_sort_columns): primary x, then y, z, gps_time, intensity.
@@ -122,22 +113,21 @@ def _source_row_for_each_base_row(
         logger.warning(f"{_BOLD}{dup_msg}{_RESET}")
 
     # Zip order matches _alignment_sort_columns: 0=intensity, 1=gps_time, 2=z, 3=y, 4=x
-    for sort_column_index, (base_column, source_column) in enumerate(
-        zip(base_sort_columns, source_sort_columns)
-    ):
+    for column_name, base_column, source_column in zip(SORT_ORDER, base_sort_columns, source_sort_columns):
         base_key_sorted = np.asarray(base_column[base_rows_in_sorted_key_order], dtype=np.float64)
         source_key_sorted = np.asarray(source_column[source_rows_in_sorted_key_order], dtype=np.float64)
-        if sort_column_index == 0: # gps_time is the first column
-            if not np.allclose(base_key_sorted, source_key_sorted, atol=gps_atol, rtol=gps_rtol):
+        if column_name == "intensity":
+            if not np.allclose(base_key_sorted, source_key_sorted, atol=0, rtol=intensity_rtol):
+                raise ValueError("intensity sequences differ between base and source after sorting.")
+        elif column_name == "gps_time":
+            if not np.allclose(base_key_sorted, source_key_sorted, atol=gpstime_atol, rtol=0):
                 raise ValueError("gps_time sequences differ between base and source after sorting.")
         elif not np.allclose(base_key_sorted, source_key_sorted, atol=xyz_atol, rtol=0):
             raise ValueError("Coordinate sequences differ between base and source after sorting.")
 
     # Same multiset of keys → i-th row in sorted base order pairs with i-th row in sorted source order.
     source_row_for_each_base_row = np.empty(len(base), dtype=np.int64)
-    source_row_for_each_base_row[base_rows_in_sorted_key_order] = source_rows_in_sorted_key_order.astype(
-        np.int64
-    )
+    source_row_for_each_base_row[base_rows_in_sorted_key_order] = source_rows_in_sorted_key_order.astype(np.int64)
     return source_row_for_each_base_row
 
 
@@ -165,10 +155,9 @@ def add_extra_dims_from_las(
     source_las: Path | str,
     output_las: Path | str,
     dimensions: Optional[Iterable[str]] = None,
-    *,
-    xyz_atol: float = 1e-4,
-    tiebreak_atol: float = 1e-6,
-    tiebreak_rtol: float = 1e-12,
+    xyz_atol: float = 1e-3,
+    gpstime_atol: float = 1e-6,
+    intensity_rtol: float = 1e-12,
     fail_on_duplicates: bool = False,
 ) -> None:
     """
@@ -203,8 +192,8 @@ def add_extra_dims_from_las(
         base,
         source,
         xyz_atol=xyz_atol,
-        gps_atol=tiebreak_atol,
-        gps_rtol=tiebreak_rtol,
+        gpstime_atol=gpstime_atol,
+        intensity_rtol=intensity_rtol,
         fail_on_duplicates=fail_on_duplicates,
     )
 
@@ -247,10 +236,9 @@ def add_extra_dims_from_las_dirs(
     source_dir: Path | str,
     output_dir: Path | str,
     dimensions: Optional[Iterable[str]] = None,
-    *,
-    xyz_atol: float = 1e-4,
-    tiebreak_atol: float = 1e-6,
-    tiebreak_rtol: float = 1e-12,
+    xyz_atol: float = 1e-3,
+    gpstime_atol: float = 1e-6,
+    intensity_rtol: float = 1e-12,
     fail_on_duplicates: bool = False,
 ) -> list[str]:
     """
@@ -281,8 +269,8 @@ def add_extra_dims_from_las_dirs(
     common_args = dict(
         dimensions=dimensions,
         xyz_atol=xyz_atol,
-        tiebreak_atol=tiebreak_atol,
-        tiebreak_rtol=tiebreak_rtol,
+        gpstime_atol=gpstime_atol,
+        intensity_rtol=intensity_rtol,
         fail_on_duplicates=fail_on_duplicates,
     )
     done: list[str] = []
@@ -332,15 +320,21 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Dimensions to copy (default: all missing from base).",
     )
-    p.add_argument("--xyz-atol", type=float, default=1e-4, help="Tolerance on x,y,z (default: 1e-4).")
-    p.add_argument("--tiebreak-atol", type=float, default=1e-6, help="Absolute tolerance on gps_time (default: 1e-6).")
+    p.add_argument("--xyz-atol", type=float, default=1e-3, help="Tolerance on x,y,z (default: 1e-3 aka millimeters).")
     p.add_argument(
-        "--tiebreak-rtol", type=float, default=1e-12, help="Relative tolerance on gps_time (default: 1e-12)."
+        "--gpstime-atol",
+        type=float,
+        default=1e-6,
+        help="Absolute tolerance on gps_time (default: 1e-6 aka milliseconds).",
+    )
+    p.add_argument(
+        "--intensity-rtol", type=float, default=1e-12, help="Relative tolerance on intensity (default: 1e-12)."
     )
     p.add_argument(
         "--fail-on-duplicates",
         action="store_true",
-        help="If the base LAS has duplicate (x,y,z,gps_time,intensity) keys, raise an error instead of only logging a warning.",
+        help="If the base LAS has duplicate (x,y,z,gps_time,intensity) keys, raise an error instead of only logging "
+        "a warning.",
     )
     return p.parse_args()
 
@@ -354,18 +348,18 @@ def main() -> None:
     common_args = dict(
         dimensions=args.dimensions,
         xyz_atol=args.xyz_atol,
-        tiebreak_atol=args.tiebreak_atol,
-        tiebreak_rtol=args.tiebreak_rtol,
+        gpstime_atol=args.gpstime_atol,
+        intensity_rtol=args.intensity_rtol,
         fail_on_duplicates=args.fail_on_duplicates,
     )
 
     if base_p.is_dir() and source_p.is_dir():
         if output_p.exists() and not output_p.is_dir():
-            raise SystemExit("--output must be a directory when --base and --source are directories.")
+            raise ValueError("--output must be a directory when --base and --source are directories.")
         output_p.mkdir(parents=True, exist_ok=True)
         add_extra_dims_from_las_dirs(base_p, source_p, output_p, **common_args)
     elif base_p.is_dir() or source_p.is_dir():
-        raise SystemExit("--base and --source must both be files or both be directories.")
+        raise ValueError("--base and --source must both be files or both be directories.")
     else:
         add_extra_dims_from_las(base_p, source_p, output_p, **common_args)
 
