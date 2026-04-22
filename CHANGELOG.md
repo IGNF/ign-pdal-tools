@@ -1,6 +1,6 @@
-# dev
+# 1.16.0
 - [fix] update pandas to 3.0.0
-- [new] add function who add extra_dims from an other las (las should have exactly same x,y,z,gps data)
+- [new] add function to add extra_dims from an other las (las points are matched using their x,y,z,gps_time, intensity, return_number information)
 
 # 1.15.9
 - [fix] color: fix main
@@ -36,13 +36,13 @@
 # 1.15.0
 - [fix] replace_area_in_pointcloud: handle different dimensions in source pointcloud
 - use pdal>=2.9 and deactivate the Dockerfile.pdal from CI
-- [new feature] replace_area_in_pointcloud: handle digital surface model (DSM) as source pointcloud
+- [new] replace_area_in_pointcloud: handle digital surface model (DSM) as source pointcloud
 
 # 1.14.0
 - [refactor] extract tools to download an image from IGN geoplateform to separate file [download_image.py](pdaltools/download_image.py)
 - color: add vegetation_dim parameter
 - las_add_buffer: fix test checking input and output dimensions consistency
-- [new feature] replace_area_in_pointcloud: replace part of a pointcloud by the points of another pointcloud
+- [new] replace_area_in_pointcloud: replace part of a pointcloud by the points of another pointcloud
 
 # 1.13.0
 - create_random_laz: add classifications parameter
