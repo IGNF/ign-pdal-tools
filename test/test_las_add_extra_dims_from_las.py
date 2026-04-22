@@ -15,10 +15,6 @@ INI_LAS = os.path.join(INPUT_DIR, "test_data_77055_627760_LA93_IGN69.laz")
 ADDED_DIMS = ["DIM_1", "DIM_2"]
 
 
-def _las_dim_attr(dimension_name: str) -> str:
-    return {"X": "x", "Y": "y", "Z": "z"}.get(dimension_name, dimension_name)
-
-
 def _append_extra_dims(input_las: str, output_las: str) -> None:
     pipeline = pdal.Pipeline()
     pipeline |= pdal.Reader.las(input_las)
@@ -36,9 +32,8 @@ def _pdal_first_array(las_path: str):
 def _assert_base_dimensions_unchanged(base: laspy.LasData, out: laspy.LasData) -> None:
     assert len(out) == len(base)
     for name in base.point_format.dimension_names:
-        attr = _las_dim_attr(name)
-        b = np.asarray(getattr(base, attr))
-        o = np.asarray(getattr(out, attr))
+        b = np.asarray(getattr(base, name))
+        o = np.asarray(getattr(out, name))
         if np.issubdtype(b.dtype, np.floating):
             np.testing.assert_allclose(b, o, rtol=0, atol=1e-3, err_msg=name)
         else:

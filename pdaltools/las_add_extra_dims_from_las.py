@@ -20,7 +20,9 @@ logger = logging.getLogger(__name__)
 # ANSI for terminal emphasis (ignored by non-TTY handlers in most setups).
 _BOLD, _RESET = "\033[1m", "\033[0m"
 # Columns sorting order for np.lexsort  (last entry = primary sort key)
-SORT_ORDER = ["return_number", "intensity", "gps_time", "z", "y", "x"]
+# Use X, Y, Z (raw attributes stored in las) and not x, y, z (scaled values)
+# to prevent handling data with a big offset
+SORT_ORDER = ["return_number", "intensity", "gps_time", "Z", "Y", "X"]
 
 
 def _clone_lasdata(las: laspy.LasData) -> laspy.LasData:
@@ -31,18 +33,13 @@ def _clone_lasdata(las: laspy.LasData) -> laspy.LasData:
     return laspy.read(buf)
 
 
-def _require_gps_time(base: laspy.LasData, source: laspy.LasData) -> None:
-    if "gps_time" not in base.point_format.dimension_names:
-        raise ValueError("Base LAS must contain dimension 'gps_time' (required for row matching).")
-    if "gps_time" not in source.point_format.dimension_names:
-        raise ValueError("Source LAS must contain dimension 'gps_time' (required for row matching).")
-
-
-def _require_intensity(base: laspy.LasData, source: laspy.LasData) -> None:
-    if "intensity" not in base.point_format.dimension_names:
-        raise ValueError("Base LAS must contain dimension 'intensity' (required for row matching).")
-    if "intensity" not in source.point_format.dimension_names:
-        raise ValueError("Source LAS must contain dimension 'intensity' (required for row matching).")
+def _require_dimensions(base: laspy.LasData, source: laspy.LasData, dimension_names=[]) -> None:
+    for name in dimension_names:
+        # use lower to handle x, y, z values that can be upper or lower case
+        if name not in base.point_format.dimension_names:
+            raise ValueError(f"Base LAS must contain dimension '{name}' (required for row matching).")
+        if name not in source.point_format.dimension_names:
+            raise ValueError(f"Source LAS must contain dimension '{name}' (required for row matching).")
 
 
 def _alignment_sort_columns(las: laspy.LasData) -> tuple[np.ndarray, ...]:
@@ -54,18 +51,18 @@ def _base_duplicate_keys_message(base: laspy.LasData) -> tuple[bool, str]:
     """Return (has_duplicates, human-readable detail for duplicate alignment keys in base)."""
     key_dtype = np.dtype(
         [
-            ("x", "f8"),
-            ("y", "f8"),
-            ("z", "f8"),
+            ("X", "f8"),
+            ("Y", "f8"),
+            ("Z", "f8"),
             ("gps_time", "f8"),
             ("intensity", "f8"),
             ("return_number", "uint8"),
         ]
     )
     base_keys = np.empty(len(base), dtype=key_dtype)
-    base_keys["x"] = np.asarray(base.x, dtype=np.float64)
-    base_keys["y"] = np.asarray(base.y, dtype=np.float64)
-    base_keys["z"] = np.asarray(base.z, dtype=np.float64)
+    base_keys["X"] = np.asarray(base.X, dtype=np.float64)
+    base_keys["Y"] = np.asarray(base.Y, dtype=np.float64)
+    base_keys["Z"] = np.asarray(base.Z, dtype=np.float64)
     base_keys["gps_time"] = np.asarray(base.gps_time, dtype=np.float64)
     base_keys["intensity"] = np.asarray(base.intensity, dtype=np.float64)
     base_keys["return_number"] = np.asarray(base.return_number, dtype=np.uint8)
@@ -78,7 +75,7 @@ def _base_duplicate_keys_message(base: laspy.LasData) -> tuple[bool, str]:
     duplicate_examples = ", ".join(
         [
             (
-                f"(x={k['x']}, y={k['y']}, z={k['z']}, gps_time={k['gps_time']}, "
+                f"(x={k['X']}, y={k['Y']}, z={k['Z']}, gps_time={k['gps_time']}, "
                 f"intensity={k['intensity']}, return_number={k['return_number']}, n={int(c)})"
             )
             for k, c in zip(uniq_keys[duplicate_mask][:10], counts[duplicate_mask][:10])
@@ -132,7 +129,7 @@ def _source_row_for_each_base_row(
         elif column_name == "gps_time":
             if not np.allclose(base_key_sorted, source_key_sorted, atol=gpstime_atol, rtol=0):
                 raise ValueError("gps_time sequences differ between base and source after sorting.")
-        elif column_name in ["x", "y", "z"]:
+        elif column_name in ["X", "Y", "Z"]:
             if not np.allclose(base_key_sorted, source_key_sorted, atol=xyz_atol, rtol=0):
                 raise ValueError("Coordinate sequences differ between base and source after sorting.")
         elif not np.all(base_key_sorted == source_key_sorted):
@@ -194,8 +191,7 @@ def add_extra_dims_from_las(
     if len(base) != len(source):
         raise ValueError(f"Point count mismatch: base has {len(base)} points, source has {len(source)}.")
 
-    _require_gps_time(base, source)
-    _require_intensity(base, source)
+    _require_dimensions(base, source, SORT_ORDER)
 
     dim_list = _dims_to_copy(base, source, list(dimensions) if dimensions is not None else None)
     if not dim_list:
