@@ -7,6 +7,7 @@ Also supports directory inputs: process every LAS/LAZ whose **basename** exists 
 import argparse
 import io
 import logging
+import shutil
 import sys
 from pathlib import Path
 from typing import Iterable, Optional, Sequence
@@ -198,26 +199,28 @@ def add_extra_dims_from_las(
 
     dim_list = _dims_to_copy(base, source, list(dimensions) if dimensions is not None else None)
     if not dim_list:
-        raise ValueError("No dimension to copy: source has no extra field missing from the base file.")
+        logger.info("No dimensions to copy.")
+        shutil.copyfile(source_path, output_path)
 
-    row_map = _source_row_for_each_base_row(
-        base,
-        source,
-        xyz_atol=xyz_atol,
-        gpstime_atol=gpstime_atol,
-        intensity_rtol=intensity_rtol,
-        fail_on_duplicates=fail_on_duplicates,
-    )
+    else:
+        row_map = _source_row_for_each_base_row(
+            base,
+            source,
+            xyz_atol=xyz_atol,
+            gpstime_atol=gpstime_atol,
+            intensity_rtol=intensity_rtol,
+            fail_on_duplicates=fail_on_duplicates,
+        )
 
-    logger.info("Dimensions to copy: %s", dim_list)
-    out = _clone_lasdata(base)
-    for name in dim_list:
-        src_arr = np.asarray(getattr(source, name))[row_map]
-        out.add_extra_dim(laspy.ExtraBytesParams(name=name, type=np.dtype(src_arr.dtype).type))
-        getattr(out, name)[:] = src_arr
+        logger.info("Dimensions to copy: %s", dim_list)
+        out = _clone_lasdata(base)
+        for name in dim_list:
+            src_arr = np.asarray(getattr(source, name))[row_map]
+            out.add_extra_dim(laspy.ExtraBytesParams(name=name, type=np.dtype(src_arr.dtype).type))
+            getattr(out, name)[:] = src_arr
 
-    out.header.version = base.header.version
-    out.write(output_path)
+        out.header.version = base.header.version
+        out.write(output_path)
     logger.info("Written: %s", output_path)
 
 

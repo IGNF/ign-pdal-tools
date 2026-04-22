@@ -87,6 +87,24 @@ def test_add_subset_dimensions():
             assert "DIM_2" not in names_out
 
 
+def test_no_dimension_to_add():
+    """Test that adding all extra dimensions works."""
+    with tempfile.NamedTemporaryFile(suffix="_merged.las", delete_on_close=False) as tmp_out:
+        las_add_extra_dims_from_las.add_extra_dims_from_las(
+            base_las=INI_LAS,
+            source_las=INI_LAS,
+            output_las=tmp_out.name,
+        )
+        arr_base = _pdal_first_array(INI_LAS)
+        arr_out = _pdal_first_array(tmp_out.name)
+        n_base = arr_base.shape[0]
+        assert n_base == arr_out.shape[0]
+        names_base = set(arr_base.dtype.names)
+        names_out = set(arr_out.dtype.names)
+        assert names_base == names_out
+        np.testing.assert_array_equal(arr_base, arr_out)
+
+
 def test_point_count_unchanged_after_merge():
     """Output and source point counts match the base file."""
     with tempfile.NamedTemporaryFile(suffix="_with_extra.las", delete_on_close=False) as tmp_src:
