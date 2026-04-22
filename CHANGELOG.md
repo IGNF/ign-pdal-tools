@@ -1,5 +1,6 @@
 # dev
 - [fix] update pandas to 3.0.0
+- [new] add function who add extra_dims from an other las (las should have exactly same x,y,z,gps data)
 
 # 1.15.9
 - [fix] color: fix main
