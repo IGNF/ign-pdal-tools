@@ -3,6 +3,7 @@
 Also supports directory inputs: process every LAS/LAZ whose **basename** exists in both
 ``base_dir`` and ``source_dir`` (top level only), writing ``output_dir / basename``.
 """
+
 import argparse
 import io
 import logging
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 # ANSI for terminal emphasis (ignored by non-TTY handlers in most setups).
 _BOLD, _RESET = "\033[1m", "\033[0m"
 # Columns sorting order for np.lexsort  (last entry = primary sort key)
-SORT_ORDER = ["intensity", "gps_time", "z", "y", "x"]
+SORT_ORDER = ["return_number", "intensity", "gps_time", "z", "y", "x"]
 
 
 def _clone_lasdata(las: laspy.LasData) -> laspy.LasData:
@@ -44,22 +45,30 @@ def _require_intensity(base: laspy.LasData, source: laspy.LasData) -> None:
 
 
 def _alignment_sort_columns(las: laspy.LasData) -> tuple[np.ndarray, ...]:
-    """Column arrays for ``np.lexsort`` (last entry = primary sort key).
-
-    Order of significance: **x**, then **y**, **z**, **gps_time**, **intensity** (tiebreak).
-    """
+    """Column arrays for ``np.lexsort`` (last entry = primary sort key)."""
     return tuple([np.asarray(las[col]) for col in SORT_ORDER])
 
 
 def _base_duplicate_keys_message(base: laspy.LasData) -> tuple[bool, str]:
     """Return (has_duplicates, human-readable detail for duplicate alignment keys in base)."""
-    key_dtype = np.dtype([("x", "f8"), ("y", "f8"), ("z", "f8"), ("gps_time", "f8"), ("intensity", "f8")])
+    key_dtype = np.dtype(
+        [
+            ("x", "f8"),
+            ("y", "f8"),
+            ("z", "f8"),
+            ("gps_time", "f8"),
+            ("intensity", "f8"),
+            ("return_number", "uint8"),
+        ]
+    )
     base_keys = np.empty(len(base), dtype=key_dtype)
     base_keys["x"] = np.asarray(base.x, dtype=np.float64)
     base_keys["y"] = np.asarray(base.y, dtype=np.float64)
     base_keys["z"] = np.asarray(base.z, dtype=np.float64)
     base_keys["gps_time"] = np.asarray(base.gps_time, dtype=np.float64)
     base_keys["intensity"] = np.asarray(base.intensity, dtype=np.float64)
+    base_keys["return_number"] = np.asarray(base.return_number, dtype=np.uint8)
+
     uniq_keys, counts = np.unique(base_keys, return_counts=True)
     duplicate_mask = counts > 1
     if not np.any(duplicate_mask):
@@ -69,14 +78,14 @@ def _base_duplicate_keys_message(base: laspy.LasData) -> tuple[bool, str]:
         [
             (
                 f"(x={k['x']}, y={k['y']}, z={k['z']}, gps_time={k['gps_time']}, "
-                f"intensity={k['intensity']}, n={int(c)})"
+                f"intensity={k['intensity']}, return_number={k['return_number']}, n={int(c)})"
             )
             for k, c in zip(uniq_keys[duplicate_mask][:10], counts[duplicate_mask][:10])
         ]
     )
     msg = (
         f"Base file contains {duplicate_count} duplicate key(s) on "
-        f"(x,y,z,gps_time,intensity). This may cause unexpected behavior. "
+        f"(x,y,z,gps_time,intensity,return_number). This may cause unexpected behavior. "
         f"Examples: {duplicate_examples}"
     )
     return True, msg
@@ -122,8 +131,11 @@ def _source_row_for_each_base_row(
         elif column_name == "gps_time":
             if not np.allclose(base_key_sorted, source_key_sorted, atol=gpstime_atol, rtol=0):
                 raise ValueError("gps_time sequences differ between base and source after sorting.")
-        elif not np.allclose(base_key_sorted, source_key_sorted, atol=xyz_atol, rtol=0):
-            raise ValueError("Coordinate sequences differ between base and source after sorting.")
+        elif column_name in ["x", "y", "z"]:
+            if not np.allclose(base_key_sorted, source_key_sorted, atol=xyz_atol, rtol=0):
+                raise ValueError("Coordinate sequences differ between base and source after sorting.")
+        elif not np.all(base_key_sorted == source_key_sorted):
+            raise ValueError(f"{column_name} sequences differ between base and source after sorting.")
 
     # Same multiset of keys → i-th row in sorted base order pairs with i-th row in sorted source order.
     source_row_for_each_base_row = np.empty(len(base), dtype=np.int64)
@@ -333,8 +345,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--fail-on-duplicates",
         action="store_true",
-        help="If the base LAS has duplicate (x,y,z,gps_time,intensity) keys, raise an error instead of only logging "
-        "a warning.",
+        help="If the base LAS has duplicate (x,y,z,gps_time,intensity,return_number) keys,"
+        "raise an error instead of only logging a warning.",
     )
     return p.parse_args()
 
