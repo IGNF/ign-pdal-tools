@@ -1,0 +1,6 @@
+[
+  {
+    "type": "filters.range",
+    "limits": "Classification[0:255]"
+  }
+]
