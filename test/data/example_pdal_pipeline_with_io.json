@@ -1,0 +1,16 @@
+[
+  {
+    "type": "readers.las",
+    "filename": "input.laz"
+  },
+  {
+    "type": "filters.range",
+    "limits": "Classification[0:255]"
+  },
+  {
+    "type": "writers.las",
+    "filename": "output.laz",
+    "extra_dims": "all",
+    "forward": "major_version"
+  }
+]

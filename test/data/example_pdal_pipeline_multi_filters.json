@@ -1,0 +1,10 @@
+[
+  {
+    "type": "filters.expression",
+    "expression": "Z > 30"
+  },
+  {
+    "type": "filters.assign",
+    "value": "Classification = 13 WHERE Classification == 5"
+  }
+]

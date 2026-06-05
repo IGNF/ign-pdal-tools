@@ -1,3 +1,6 @@
+# 1.17.0
+- [new] add function to launch a pdal pipeline on a Las file
+
 # 1.16.0
 - [fix] update pandas to 3.0.0
 - [new] add function to add extra_dims from an other las (las points are matched using their x,y,z,gps_time, intensity, return_number information)
