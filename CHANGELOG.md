@@ -1,3 +1,4 @@
+# 1.17.0
 - [new] add function to launch a pdal pipeline on a Las file
 
 # 1.16.0
