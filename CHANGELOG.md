@@ -1,4 +1,4 @@
-# dev
+# 1.18.0
 - [new] add check_las and use it when needed
 
 # 1.17.0
