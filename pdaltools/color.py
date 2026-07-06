@@ -6,6 +6,7 @@ from typing import Tuple
 import pdal
 
 import pdaltools.las_info as las_info
+from pdaltools.check_las import check_pdal_can_open_file_with_retry_decorator
 from pdaltools.download_image import download_image
 
 
@@ -31,6 +32,7 @@ def match_min_max_with_pixel_size(min_d: float, max_d: float, pixel_per_meter: f
     return min_d, max_d
 
 
+@check_pdal_can_open_file_with_retry_decorator(delay=10, filepath="output_file")
 def color_from_stream(
     input_file: str,
     output_file: str,
@@ -156,6 +158,7 @@ def color_from_stream(
     return tmp_ortho, tmp_ortho_irc
 
 
+@check_pdal_can_open_file_with_retry_decorator(delay=10, filepath="output_file")
 def color_from_files(
     input_file: str,
     output_file: str,
