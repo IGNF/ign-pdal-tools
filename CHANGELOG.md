@@ -1,3 +1,6 @@
+# 1.18.0
+- [new] add check_las and use it when needed
+
 # 1.17.0
 - [new] add function to launch a pdal pipeline on a Las file
 

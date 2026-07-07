@@ -15,6 +15,7 @@ from typing import Dict, List
 
 import pdal
 
+from pdaltools.check_las import check_pdal_can_open_file_with_retry_decorator
 from pdaltools.las_rename_dimension import rename_dimension
 from pdaltools.unlock_file import copy_and_hack_decorator
 
@@ -79,16 +80,13 @@ def get_writer_parameters(new_parameters: Dict) -> Dict:
 
 
 @copy_and_hack_decorator
+@check_pdal_can_open_file_with_retry_decorator(delay=10, filepath="output_file")
 def standardize(
-    input_file: str, 
-    output_file: str, 
-    params_from_parser: Dict, 
-    classes_to_remove: List = [], 
-    rename_dims: List = []
+    input_file: str, output_file: str, params_from_parser: Dict, classes_to_remove: List = [], rename_dims: List = []
 ) -> None:
     """
     Standardize a LAS/LAZ file with improved error handling and resource management.
-    
+
     Args:
         input_file: Input file path
         output_file: Output file path

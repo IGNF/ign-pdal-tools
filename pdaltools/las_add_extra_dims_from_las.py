@@ -15,6 +15,8 @@ from typing import Iterable, Optional, Sequence
 import laspy
 import numpy as np
 
+from pdaltools.check_las import check_pdal_can_open_file_with_retry_decorator
+
 _LAS_SUFFIXES = frozenset({".las", ".laz"})
 logger = logging.getLogger(__name__)
 # ANSI for terminal emphasis (ignored by non-TTY handlers in most setups).
@@ -160,6 +162,7 @@ def _dims_to_copy(base: laspy.LasData, source: laspy.LasData, dimensions: Option
     return [d for d in requested if d in missing]
 
 
+@check_pdal_can_open_file_with_retry_decorator(delay=10, filepath="output_las")
 def add_extra_dims_from_las(
     base_las: Path | str,
     source_las: Path | str,
