@@ -11,14 +11,15 @@ import numpy as np
 import pdal
 
 
-def compute_trajectory_from_returns(las_files: list[Path], fid: str) -> np.ndarray:
+def compute_trajectory_from_returns(las_files: list[Path], fid: str, output_dir: Path = Path(".")) -> np.ndarray:
     """Computes an estimate of the sensor location based on the position of multiple returns and the sensor scan angle.
 
-    Also writes the computed trajectory to `trajectoire_bande_{fid}.csv` as a side effect.
+    Also writes the computed trajectory to `{output_dir}/trajectoire_bande_{fid}.csv` as a side effect.
 
     Args:
         las_files (list[Path]): LAS/LAZ files to read.
         fid (str): `PointSourceId` values corresponding to the trajectory number.
+        output_dir (Path): Directory to write the trajectory CSV to. Default: current directory.
 
     Returns:
         np.ndarray: Structured array of the computed trajectory points, with fields
@@ -39,13 +40,14 @@ def compute_trajectory_from_returns(las_files: list[Path], fid: str) -> np.ndarr
     if len(returns) == 0:
         raise ValueError(f"No returns found for PointSourceId {fid} in the given LAS/LAZ files.")
 
+    output_csv = Path(output_dir) / f"trajectoire_bande_{fid}.csv"
     pipeline = pdal.Pipeline(
         json.dumps(
             [
                 {"type": "filters.trajectory", "dtr": 0.002, "minsep": 0.5, "tblock": 1.0, "tout": 0.01},
                 {
                     "type": "writers.text",
-                    "filename": f"trajectoire_bande_{fid}.csv",
+                    "filename": str(output_csv),
                     "format": "csv",
                     "order": "GpsTime,X,Y,Z",
                 },
@@ -54,7 +56,7 @@ def compute_trajectory_from_returns(las_files: list[Path], fid: str) -> np.ndarr
         arrays=[returns],
     )
     pipeline.execute()
-    print(f"Bande {fid} -> trajectoire_bande_{fid}.csv")
+    print(f"Bande {fid} -> {output_csv}")
     return pipeline.arrays[0]
 
 
@@ -123,6 +125,12 @@ if __name__ == "__main__":
         default=40.0,
         help="Alert threshold in meters for |Z_ref - Z_computed| (default: 40).",
     )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("."),
+        help="Directory to write the computed trajectory CSV to (default: current directory).",
+    )
     args = parser.parse_args()
 
     missing = [f for f in args.las_files if not f.is_file()]
@@ -130,8 +138,10 @@ if __name__ == "__main__":
         parser.error(f"file(s) not found: {', '.join(str(f) for f in missing)}")
     if args.reference_trajectory is not None and not args.reference_trajectory.is_file():
         parser.error(f"reference trajectory not found: {args.reference_trajectory}")
+    if not args.output_dir.is_dir():
+        parser.error(f"output directory not found: {args.output_dir}")
 
-    computed_trajectory = compute_trajectory_from_returns(args.las_files, args.PointSourceId)
+    computed_trajectory = compute_trajectory_from_returns(args.las_files, args.PointSourceId, args.output_dir)
 
     if args.reference_trajectory is not None:
         compare_trajectories(computed_trajectory, args.reference_trajectory, args.dz_threshold)
