@@ -24,13 +24,24 @@ def compute_trajectory_from_returns(las_files: list[Path], fid: str) -> np.ndarr
         np.ndarray: Structured array of the computed trajectory points, with fields
             `GpsTime`, `X`, `Y`, `Z`.
     """
-    pipeline = pdal.Pipeline(
+    selection_pipeline = pdal.Pipeline(
         json.dumps(
             [
                 *(str(f) for f in las_files),
                 {"type": "filters.merge"},
                 {"type": "filters.range", "limits": f"PointSourceId[{fid}:{fid}]"},
                 {"type": "filters.sort", "dimension": "GpsTime"},
+            ]
+        )
+    )
+    selection_pipeline.execute()
+    returns = selection_pipeline.arrays[0]
+    if len(returns) == 0:
+        raise ValueError(f"No returns found for PointSourceId {fid} in the given LAS/LAZ files.")
+
+    pipeline = pdal.Pipeline(
+        json.dumps(
+            [
                 {"type": "filters.trajectory", "dtr": 0.002, "minsep": 0.5, "tblock": 1.0, "tout": 0.01},
                 {
                     "type": "writers.text",
@@ -39,7 +50,8 @@ def compute_trajectory_from_returns(las_files: list[Path], fid: str) -> np.ndarr
                     "order": "GpsTime,X,Y,Z",
                 },
             ]
-        )
+        ),
+        arrays=[returns],
     )
     pipeline.execute()
     print(f"Bande {fid} -> trajectoire_bande_{fid}.csv")

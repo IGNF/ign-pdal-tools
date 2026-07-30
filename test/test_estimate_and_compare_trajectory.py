@@ -35,7 +35,7 @@ MISSING_FID = "999"  # PointSourceId absent from LAS_FILES
             LAS_FILES,
             MISSING_FID,
             REFERENCE_TRAJECTORY,
-            pytest.raises(RuntimeError, match="No returns to process"),
+            pytest.raises(ValueError, match="No returns found"),
             id="missing_pointsourceid",
         ),
         pytest.param(
