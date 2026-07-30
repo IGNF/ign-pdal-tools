@@ -81,8 +81,10 @@ def test_compute_trajectory_from_returns_writes_csv_to_output_dir(tmp_path, monk
     output_dir = tmp_path / "trajectories"
     output_dir.mkdir()
 
-    compute_trajectory_from_returns(LAS_FILES, FID, output_dir=output_dir)
+    computed = compute_trajectory_from_returns(LAS_FILES, FID, output_dir=output_dir)
 
+    assert {"GpsTime", "X", "Y", "Z"}.issubset(computed.dtype.names)
+    assert len(computed) > 0
     assert (output_dir / f"trajectoire_bande_{FID}.csv").is_file()
     assert not (tmp_path / f"trajectoire_bande_{FID}.csv").is_file()
 
