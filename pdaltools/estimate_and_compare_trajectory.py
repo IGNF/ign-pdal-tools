@@ -36,9 +36,11 @@ def compute_trajectory_from_returns(las_files: list[Path], fid: str, output_dir:
         )
     )
     selection_pipeline.execute()
-    returns = selection_pipeline.arrays[0]
-    if len(returns) == 0:
+    # Depending on the PDAL version, a pipeline that yields no points may return an empty
+    # `arrays` list instead of a list containing a zero-length array.
+    if not selection_pipeline.arrays or len(selection_pipeline.arrays[0]) == 0:
         raise ValueError(f"No returns found for PointSourceId {fid} in the given LAS/LAZ files.")
+    returns = selection_pipeline.arrays[0]
 
     output_csv = Path(output_dir) / f"trajectoire_bande_{fid}.csv"
     pipeline = pdal.Pipeline(
