@@ -1,10 +1,11 @@
 """
 Compute an estimate of the sensor location based on the position of multiple returns and the sensor scan angle.
-Then, ompares a computed trajectory against a reference trajectory and alerts on large Z gaps.
+Then, compares a computed trajectory against a reference trajectory and alerts on large Z gaps.
 
 """
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -62,7 +63,7 @@ def compute_trajectory_from_returns(las_files: list[Path], fid: str, output_dir:
     return pipeline.arrays[0]
 
 
-def compare_trajectories(computed: np.ndarray, reference_trajectory: Path, dz_threshold: float = 40.0) -> None:
+def compare_trajectories(computed: np.ndarray, reference_trajectory: Path, dz_threshold: float = 40.0) -> bool:
     """Compares a computed trajectory against a reference trajectory and alerts on large Z gaps.
 
     Args:
@@ -73,7 +74,7 @@ def compare_trajectories(computed: np.ndarray, reference_trajectory: Path, dz_th
         dz_threshold (float): Alert threshold in meters for `|Z_ref - Z_computed|`. Default 40.
 
     Returns:
-        None
+        bool: True if no point exceeds `dz_threshold`, False otherwise.
     """
     with open(reference_trajectory) as f:
         features = json.load(f)["features"]
@@ -102,8 +103,10 @@ def compare_trajectories(computed: np.ndarray, reference_trajectory: Path, dz_th
             f"ALERTE : {n_alerts}/{len(abs_dz)} points avec |Z_traj - Z_recalcule| > {dz_threshold} m "
             f"(ecart max = {abs_dz.max():.1f} m)"
         )
+        return False
     else:
         print(f"OK : ecart max |Z_traj - Z_recalcule| = {abs_dz.max():.1f} m (seuil {dz_threshold} m)")
+        return True
 
 
 if __name__ == "__main__":
@@ -146,4 +149,6 @@ if __name__ == "__main__":
     computed_trajectory = compute_trajectory_from_returns(args.las_files, args.PointSourceId, args.output_dir)
 
     if args.reference_trajectory is not None:
-        compare_trajectories(computed_trajectory, args.reference_trajectory, args.dz_threshold)
+        ok = compare_trajectories(computed_trajectory, args.reference_trajectory, args.dz_threshold)
+        if not ok:
+            sys.exit(1)

@@ -114,8 +114,9 @@ def test_compare_trajectories_alerts_on_z_gap(capsys):
         )
     )
 
-    compare_trajectories(computed, reference_trajectory)  # default dz_threshold=40.0, actual gap = 1500m
+    ok = compare_trajectories(computed, reference_trajectory)  # default dz_threshold=40.0, actual gap = 1500m
 
+    assert ok is False
     out = capsys.readouterr().out
     assert "ALERTE" in out
     assert f"{len(computed)}/{len(computed)}" in out
