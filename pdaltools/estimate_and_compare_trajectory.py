@@ -12,7 +12,16 @@ import numpy as np
 import pdal
 
 
-def compute_trajectory_from_returns(las_files: list[Path], fid: str, output_dir: Path = Path(".")) -> np.ndarray:
+def compute_trajectory_from_returns(
+    las_files: list[Path],
+    fid: str,
+    dtr: float,
+    dts: float,
+    minsep: float,
+    tblock: float,
+    tout: float,
+    output_dir: Path = Path("."),
+) -> np.ndarray:
     """Computes an estimate of the sensor location based on the position of multiple returns and the sensor scan angle.
 
     Also writes the computed trajectory to `{output_dir}/trajectoire_bande_{fid}.csv` as a side effect.
@@ -20,6 +29,11 @@ def compute_trajectory_from_returns(las_files: list[Path], fid: str, output_dir:
     Args:
         las_files (list[Path]): LAS/LAZ files to read.
         fid (str): `PointSourceId` values corresponding to the trajectory number.
+        dtr (float): Multi-return sampling interval in seconds (default: 0.00001).
+        dts (float): Single-return sampling interval in seconds (default: 0.00001).
+        minsep (float): Minimum separation of returns considered in meters (default: 0.5).
+        tblock (float): Block size for cublic spline in seconds (default: 1.0).
+        tout (float): Output data interval in seconds (default: 0.01).
         output_dir (Path): Directory to write the trajectory CSV to. Default: current directory.
 
     Returns:
@@ -47,7 +61,14 @@ def compute_trajectory_from_returns(las_files: list[Path], fid: str, output_dir:
     pipeline = pdal.Pipeline(
         json.dumps(
             [
-                {"type": "filters.trajectory", "dtr": 0.002, "minsep": 0.5, "tblock": 1.0, "tout": 0.01},
+                {
+                    "type": "filters.trajectory",
+                    "dtr": dtr,
+                    "dts": dts,
+                    "minsep": minsep,
+                    "tblock": tblock,
+                    "tout": tout,
+                },
                 {
                     "type": "writers.text",
                     "filename": str(output_csv),
@@ -131,6 +152,36 @@ if __name__ == "__main__":
         help="Alert threshold in meters for |Z_ref - Z_computed| (default: 40).",
     )
     parser.add_argument(
+        "--dtr",
+        type=float,
+        default=0.00001,
+        help="Multi-return sampling interval in seconds (default: 0.00001).",
+    )
+    parser.add_argument(
+        "--dts",
+        type=float,
+        default=0.00001,
+        help="Single-return sampling interval in seconds (default: 0.00001).",
+    )
+    parser.add_argument(
+        "--minsep",
+        type=float,
+        default=0.5,
+        help="Minimum separation of returns considered in meters (default: 0.5).",
+    )
+    parser.add_argument(
+        "--tblock",
+        type=float,
+        default=1.0,
+        help="Block size for cublic spline in seconds (default: 1.0).",
+    )
+    parser.add_argument(
+        "--tout",
+        type=float,
+        default=1.0,
+        help="Output data interval in seconds (default: 0.01).",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("."),
@@ -146,7 +197,16 @@ if __name__ == "__main__":
     if not args.output_dir.is_dir():
         parser.error(f"output directory not found: {args.output_dir}")
 
-    computed_trajectory = compute_trajectory_from_returns(args.las_files, args.PointSourceId, args.output_dir)
+    computed_trajectory = compute_trajectory_from_returns(
+        args.las_files,
+        args.PointSourceId,
+        dtr=args.dtr,
+        dts=args.dts,
+        minsep=args.minsep,
+        tblock=args.tblock,
+        tout=args.tout,
+        output_dir=args.output_dir,
+    )
 
     if args.reference_trajectory is not None:
         ok = compare_trajectories(computed_trajectory, args.reference_trajectory, args.dz_threshold)
