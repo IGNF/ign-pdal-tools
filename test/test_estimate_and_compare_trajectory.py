@@ -131,3 +131,44 @@ def test_compare_trajectories_alerts_on_z_gap(capsys):
     out = capsys.readouterr().out
     assert "ALERTE" in out
     assert f"{len(computed)}/{len(computed)}" in out
+
+
+def test_compare_trajectories_excludes_points_far_in_xy(capsys):
+    """A point far in XY from the reference trajectory (e.g. a `filters.trajectory` edge artifact
+    at the start/end of a return sequence) must be excluded from the Z comparison rather than
+    triggering a spurious alert."""
+    computed = np.array(
+        [
+            (100.0, 1000.0, 2000.0, 500.0),  # matches the reference: kept, dz=0
+            (200.0, 5000.0, 2000.0, 9999.0),  # far in XY (dist=3990m): must be excluded despite huge dz
+        ],
+        dtype=[("GpsTime", "f8"), ("X", "f8"), ("Y", "f8"), ("Z", "f8")],
+    )
+    reference_trajectory = Path(OUTPUT_DIR) / "synthetic_reference_trajectory_xy_filter.json"
+    reference_trajectory.write_text(
+        json.dumps(
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [1000.0, 2000.0]},
+                        "properties": {"timestamp": 100.0, "z": 500.0},
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [1010.0, 2000.0]},
+                        "properties": {"timestamp": 200.0, "z": 500.0},
+                    },
+                ],
+            }
+        )
+    )
+
+    ok = compare_trajectories(computed, reference_trajectory, xy_threshold=50.0)
+
+    assert ok is True
+    out = capsys.readouterr().out
+    assert "1/2 points exclus" in out
+    assert "ALERTE" not in out
+    assert "OK" in out

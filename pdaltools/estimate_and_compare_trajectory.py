@@ -84,39 +84,72 @@ def compute_trajectory_from_returns(
     return pipeline.arrays[0]
 
 
-def compare_trajectories(computed: np.ndarray, reference_trajectory: Path, dz_threshold: float = 40.0) -> bool:
+def compare_trajectories(
+    computed: np.ndarray, reference_trajectory: Path, dz_threshold: float = 40.0, xy_threshold: float = 50.0
+) -> bool:
     """Compares a computed trajectory against a reference trajectory and alerts on large Z gaps.
+
+    Points whose computed (X, Y) is farther than `xy_threshold` from the reference trajectory
+    are excluded from the Z comparison: `filters.trajectory` estimates are unreliable at the
+    start and end of a return sequence (not enough temporal context for the cubic spline), and
+    show up as large XY drift before the Z gap is even considered.
 
     Args:
         computed (np.ndarray): Structured array with fields `GpsTime`, `X`, `Y`, `Z`, as returned by
             `compute_trajectory_from_returns`.
-        reference_trajectory (Path): Reference trajectory file (GeoJSON), with a `timestamp`
-            and `z` property per point.
+        reference_trajectory (Path): Reference trajectory file (GeoJSON), with `timestamp`, `z`
+            properties and (X, Y) `geometry.coordinates` per point.
         dz_threshold (float): Alert threshold in meters for `|Z_ref - Z_computed|`. Default 40.
+        xy_threshold (float): Distance in meters beyond which a computed point is considered too
+            far in XY from the reference trajectory and excluded from the Z comparison. Default 50.
 
     Returns:
-        bool: True if no point exceeds `dz_threshold`, False otherwise.
+        bool: True if no remaining point exceeds `dz_threshold`, False otherwise (including when
+            every point was excluded by `xy_threshold`).
     """
     with open(reference_trajectory) as f:
         features = json.load(f)["features"]
-    ref_time, ref_z = (
+    ref_time, ref_x, ref_y, ref_z = (
         np.array(values, dtype=np.float64)
-        for values in zip(*((p["timestamp"], p["z"]) for p in (feat["properties"] for feat in features)))
+        for values in zip(
+            *(
+                (p["properties"]["timestamp"], *p["geometry"]["coordinates"][:2], p["properties"]["z"])
+                for p in features
+            )
+        )
     )
     # np.interp requires xp (ref_time) sorted ascending -- hence the argsort above.
     sort_idx = np.argsort(ref_time)
-    ref_time, ref_z = ref_time[sort_idx], ref_z[sort_idx]
+    ref_time, ref_x, ref_y, ref_z = ref_time[sort_idx], ref_x[sort_idx], ref_y[sort_idx], ref_z[sort_idx]
 
     computed_time = computed["GpsTime"].astype(np.float64)
+    computed_x = computed["X"].astype(np.float64)
+    computed_y = computed["Y"].astype(np.float64)
     computed_z = computed["Z"].astype(np.float64)
 
     # The two trajectories are rarely sampled at the same GpsTime, so linear
-    # interpolation reconstructs Z_ref at each computed timestamp before diffing.
+    # interpolation reconstructs X_ref/Y_ref/Z_ref at each computed timestamp before diffing.
     # NB: outside [ref_time.min(), ref_time.max()], np.interp clamps to the
     # nearest edge value instead of extrapolating -- dz will look artificially
     # flat there if computed_time runs past the reference trajectory's window.
+    x_ref_interp = np.interp(computed_time, ref_time, ref_x)
+    y_ref_interp = np.interp(computed_time, ref_time, ref_y)
     z_ref_interp = np.interp(computed_time, ref_time, ref_z)
-    abs_dz = np.abs(z_ref_interp - computed_z)
+
+    dist_xy = np.hypot(computed_x - x_ref_interp, computed_y - y_ref_interp)
+    valid = dist_xy <= xy_threshold
+    n_excluded = int(np.count_nonzero(~valid))
+    if n_excluded:
+        print(
+            f"{n_excluded}/{len(computed)} points exclus de la comparaison Z "
+            f"(ecart XY > {xy_threshold} m avec la trajectoire de reference)"
+        )
+
+    if not np.any(valid):
+        print("ALERTE : aucun point restant apres filtrage XY, comparaison Z impossible")
+        return False
+
+    abs_dz = np.abs(z_ref_interp[valid] - computed_z[valid])
 
     n_alerts = int(np.count_nonzero(abs_dz > dz_threshold))
     if n_alerts:
@@ -150,6 +183,13 @@ if __name__ == "__main__":
         type=float,
         default=40.0,
         help="Alert threshold in meters for |Z_ref - Z_computed| (default: 40).",
+    )
+    parser.add_argument(
+        "--xy-threshold",
+        type=float,
+        default=50.0,
+        help="Distance in meters beyond which a computed point is excluded from the Z comparison "
+        "for being too far in XY from the reference trajectory (default: 50).",
     )
     parser.add_argument(
         "--dtr",
@@ -209,6 +249,6 @@ if __name__ == "__main__":
     )
 
     if args.reference_trajectory is not None:
-        ok = compare_trajectories(computed_trajectory, args.reference_trajectory, args.dz_threshold)
+        ok = compare_trajectories(computed_trajectory, args.reference_trajectory, args.dz_threshold, args.xy_threshold)
         if not ok:
             sys.exit(1)
