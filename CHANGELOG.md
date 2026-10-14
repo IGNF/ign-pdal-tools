@@ -1,4 +1,4 @@
-# not yet released
+# 1.18.1
 - [fix] Add logs when `check_las` is successful
 
 # 1.18.0
