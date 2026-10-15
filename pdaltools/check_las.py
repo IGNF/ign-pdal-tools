@@ -18,10 +18,12 @@ def check_pdal_can_open_file(filepath: str) -> bool:
             raise FileNotFoundError(f"File {filepath} does not exist.")
         pipeline = pdal.Reader.las(filename=filepath).pipeline()
         pipeline.execute()
+        print(f"Reading {filepath} with pdal: Success.")
+
         return True
     except RuntimeError as e:
         if e.__str__().startswith("readers.las:"):
-            print(f"Pdal could not read {filepath} due to error: {e}")
+            print(f"Reading {filepath} with pdal: Failed due to error: {e}")
             return False
         else:
             raise e

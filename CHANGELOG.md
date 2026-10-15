@@ -1,5 +1,10 @@
+# 1.18.1
+- [fix] Add logs when `check_las` is successful
+- [new] estimate_and_compare_trajectory tool to estimate a sensor trajectory from multiple returns and can compare it with a reference trajectory.
+
 # 1.18.0
-- [new] add check_las and use it when needed
+- [new] `check_las` checks if a las file is correctly read by pdal
+- use check_las in and use it in color, las_add_extra_dims_from_las, standardize_format
 
 # 1.17.0
 - [new] add function to launch a pdal pipeline on a Las file
@@ -15,7 +20,7 @@
 - [fix] las_merge: handle filenames with different prefix
 
 # 1.15.7
-- [update] Update las_comparison with tolerance 
+- [update] Update las_comparison with tolerance
 - [update] Colorisation of Las with stream or files
 
 # 1.15.6

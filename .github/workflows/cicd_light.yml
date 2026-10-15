@@ -13,18 +13,18 @@ jobs:
     strategy:
       matrix:
         #os: [ubuntu-latest, macos-latest]
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     permissions:
         contents: read
         packages: write
 
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # See https://github.com/marketplace/actions/setup-micromamba
       - name: setup-micromamba
-        uses: mamba-org/setup-micromamba@v1.9.0
+        uses: mamba-org/setup-micromamba@v3.2.1
         with:
           micromamba-version: '1.5.8-0'  # temporary fix as setup-mircomamba hangs with later mamba version
           environment-file: environment.yml
@@ -34,6 +34,5 @@ jobs:
           generate-run-shell: true
 
       - name: Run tests with pytest
-        shell: micromamba-shell {0}
-        run: python -m pytest ./test -s --log-cli-level DEBUG -m "not geopf"
+        run: micromamba run -n pdaltools python -m pytest ./test -s --log-cli-level DEBUG -m "not geopf"
 

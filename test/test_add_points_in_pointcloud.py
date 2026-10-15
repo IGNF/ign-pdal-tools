@@ -8,6 +8,7 @@ import laspy
 import numpy as np
 import pdal
 import pytest
+from pyproj import CRS
 from shapely.geometry import LineString, MultiPoint, Point
 
 from pdaltools import add_points_in_pointcloud
@@ -317,7 +318,7 @@ def test_add_points_from_geometry_to_las(input_file, input_points, epsg, expecte
     assert input_las.header.point_format == output_las.header.point_format
     assert np.array_equal(input_las.header.scales, output_las.header.scales)
     assert np.array_equal(input_las.header.offsets, output_las.header.offsets)
-    assert input_las.header.vlrs[0].string == output_las.header.vlrs[0].string
+    assert CRS.from_string(input_las.header.vlrs[0].string) == CRS.from_string(output_las.header.vlrs[0].string)
 
     point_count = compute_count_one_file(OUTPUT_FILE)["68"]
     assert point_count == expected_nb_points  # Add all points from geojson
