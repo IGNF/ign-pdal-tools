@@ -1,5 +1,6 @@
 # 1.18.1
 - [fix] Add logs when `check_las` is successful
+- [new] estimate_and_compare_trajectory tool to estimate a sensor trajectory from multiple returns and can compare it with a reference trajectory.
 
 # 1.18.0
 - [new] `check_las` checks if a las file is correctly read by pdal
